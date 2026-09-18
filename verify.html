@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>التحقق من شهادة - شهادتي</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Tajawal:wght@400;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--navy:#0c2d4e;--blue:#0369a1;--sky:#0284c7;--gold:#b08d48;--bg:#f0f7ff;--border:#e0f0ff;--muted:#64748b;}
+body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);min-height:100vh;display:flex;flex-direction:column;}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;}
+
+/* NAV */
+.nav{background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:64px;box-shadow:0 2px 12px rgba(3,105,161,0.06);}
+.logo-wrap{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.logo-img{width:42px;height:42px;border-radius:50%;object-fit:cover;}
+.logo-name{font-size:18px;font-weight:900;color:var(--navy);}
+.logo-sub{font-size:8px;font-weight:700;color:var(--gold);letter-spacing:1.2px;}
+.nav-right{display:flex;align-items:center;gap:10px;}
+.btn-ghost{color:var(--blue);font-size:13px;font-weight:600;padding:7px 16px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);text-decoration:none;}
+.btn-cta{background:var(--blue);color:#fff;font-size:13px;font-weight:700;padding:8px 18px;border-radius:9px;text-decoration:none;}
+
+/* HERO */
+.hero{background:linear-gradient(150deg,#0c2d4e,#0369a1,#38bdf8);padding:72px 40px 60px;text-align:center;flex-shrink:0;}
+.hero-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:5px 16px;color:#7dd3fc;font-size:11px;font-weight:600;margin-bottom:20px;}
+.badge-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px rgba(74,222,128,0.6);}
+.hero h1{color:#fff;font-size:38px;font-weight:900;margin-bottom:12px;line-height:1.2;}
+.hero h1 em{color:#fde68a;font-style:normal;}
+.hero p{color:rgba(255,255,255,0.72);font-size:14px;margin-bottom:36px;line-height:1.8;}
+
+/* SEARCH BOX */
+.search-card{background:#fff;border-radius:20px;padding:28px;max-width:600px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);}
+.search-label{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;display:block;}
+.search-row{display:flex;gap:8px;}
+.search-inp{flex:1;padding:13px 16px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:'Cairo',sans-serif;background:var(--bg);transition:all .15s;direction:ltr;text-align:left;}
+.search-inp:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(3,105,161,0.1);background:#fff;}
+.search-btn{background:var(--blue);color:#fff;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;padding:13px 24px;border-radius:12px;border:none;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .15s;white-space:nowrap;}
+.search-btn:hover{background:var(--sky);}
+.search-btn .material-symbols-outlined{font-size:20px;}
+.search-hint{font-size:11px;color:var(--muted);margin-top:10px;display:flex;align-items:center;gap:6px;}
+.search-hint code{background:var(--bg);border-radius:4px;padding:2px 8px;font-family:monospace;color:var(--blue);font-size:11px;}
+
+/* MAIN */
+.main{flex:1;max-width:700px;width:100%;margin:0 auto;padding:40px 24px;}
+
+/* RESULT */
+.result-wrap{animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+.result-ok{background:#fff;border:2px solid var(--blue);border-radius:20px;overflow:hidden;}
+.result-ok-head{background:linear-gradient(135deg,#0c2d4e,#0369a1);padding:24px 28px;display:flex;align-items:center;gap:16px;}
+.result-ok-icon{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.result-ok-icon .material-symbols-outlined{font-size:30px;color:#fff;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;}
+.result-ok-title{color:#fff;font-size:20px;font-weight:900;}
+.result-ok-num{color:rgba(255,255,255,0.65);font-size:12px;margin-top:3px;font-family:monospace;}
+.result-ok-body{padding:24px 28px;}
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.info-box{background:var(--bg);border-radius:12px;padding:14px;}
+.info-lbl{font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px;}
+.info-val{font-size:14px;font-weight:800;color:var(--navy);}
+.result-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.btn-view{background:var(--blue);color:#fff;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;padding:10px 20px;border-radius:10px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;text-decoration:none;}
+.btn-share{background:var(--bg);color:var(--blue);font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;padding:10px 20px;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
+.btn-share .material-symbols-outlined{font-size:18px;}
+
+.result-err{background:#fff;border:2px solid #fee2e2;border-radius:20px;padding:40px;text-align:center;}
+.result-err .material-symbols-outlined{font-size:56px;color:#dc2626;display:block;margin-bottom:14px;font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;}
+.result-err h3{font-size:20px;font-weight:900;color:#dc2626;margin-bottom:8px;}
+.result-err p{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.7;}
+.result-err code{background:#fff5f5;color:#dc2626;padding:6px 12px;border-radius:8px;font-family:monospace;font-size:13px;}
+
+/* LOADING */
+.loading{text-align:center;padding:48px;}
+.spin{width:40px;height:40px;border:4px solid var(--bg);border-top-color:var(--blue);border-radius:50%;animation:rotate 1s linear infinite;margin:0 auto 16px;}
+@keyframes rotate{to{transform:rotate(360deg);}}
+.loading p{font-size:13px;font-weight:600;color:var(--muted);}
+
+/* HOW */
+.how-section{background:#fff;border-radius:16px;border:1px solid var(--border);padding:24px;margin-bottom:24px;}
+.how-title{font-size:14px;font-weight:800;color:var(--navy);margin-bottom:16px;}
+.how-steps{display:flex;gap:0;position:relative;}
+.how-steps::before{content:'';position:absolute;top:22px;right:40px;left:40px;height:2px;background:var(--border);z-index:0;}
+.how-step{flex:1;text-align:center;position:relative;z-index:1;}
+.how-step-num{width:44px;height:44px;border-radius:50%;background:var(--blue);color:#fff;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;}
+.how-step-lbl{font-size:11px;font-weight:600;color:var(--muted);}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+.stat-box{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px;text-align:center;}
+.stat-val{font-size:24px;font-weight:900;color:var(--blue);font-family:'Tajawal',sans-serif;display:block;}
+.stat-lbl{font-size:11px;color:var(--muted);margin-top:4px;}
+
+/* FOOTER */
+.footer{background:#0f2942;padding:24px;text-align:center;}
+.footer-copy{font-size:11px;color:rgba(255,255,255,0.25);}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="landing.html" class="logo-wrap">
+    <img src="logo.png" class="logo-img" alt="شهادتي" onerror="this.style.display='none'">
+    <div><div class="logo-name">شهادتي</div><div class="logo-sub">CERTIFICATE VERIFICATION</div></div>
+  </a>
+  <div class="nav-right">
+    <a href="institution.html" class="btn-ghost">بوابة المؤسسات</a>
+    <a href="register.html" class="btn-cta">ابدأ مجاناً</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge"><span class="badge-dot"></span>نظام التحقق الرقمي الموثوق</div>
+  <h1>تحقق من <em>صحة الشهادة</em><br>في ثوانٍ</h1>
+  <p>أدخل رقم الشهادة للتحقق الفوري من صحتها وبيانات صاحبها</p>
+  <div class="search-card">
+    <span class="search-label">رقم الشهادة</span>
+    <div class="search-row">
+      <input class="search-inp" id="searchInp" placeholder="SHD-2024-00001" onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="search-btn" onclick="doSearch()">
+        <span class="material-symbols-outlined">verified</span> تحقق الآن
+      </button>
+    </div>
+    <div class="search-hint">
+      <span class="material-symbols-outlined" style="font-size:14px;color:var(--muted)">info</span>
+      مثال: <code>SHD-2024-00123</code>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div id="resultArea"></div>
+
+  <!-- DEFAULT STATE -->
+  <div id="defaultState">
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-box"><span class="stat-val">+5,000</span><span class="stat-lbl">مؤسسة معتمدة</span></div>
+      <div class="stat-box"><span class="stat-val">+1M</span><span class="stat-lbl">شهادة مسجلة</span></div>
+      <div class="stat-box"><span class="stat-val">99.9%</span><span class="stat-lbl">دقة التحقق</span></div>
+    </div>
+
+    <!-- HOW -->
+    <div class="how-section">
+      <div class="how-title">كيف تتحقق من الشهادة؟</div>
+      <div class="how-steps">
+        <div class="how-step">
+          <div class="how-step-num">١</div>
+          <div class="how-step-lbl">أدخل رقم الشهادة</div>
+        </div>
+        <div class="how-step">
+          <div class="how-step-num">٢</div>
+          <div class="how-step-lbl">اضغط تحقق الآن</div>
+        </div>
+        <div class="how-step">
+          <div class="how-step-num">٣</div>
+          <div class="how-step-lbl">اطلع على النتيجة فوراً</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-copy">© 2025 شهادتي — جميع الحقوق محفوظة</div>
+</footer>
+
+<script>
+const SU='https://aniqwnsesxpegqohepvz.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFuaXF3bnNlc3hwZWdxb2hlcHZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDUyNjMsImV4cCI6MjA5ODIyMTI2M30.qpdF-aA6NvZUqwBZjDWM-6qYy8FKFoeFZQzMd8BzAas';
+const sb=supabase.createClient(SU,SK);
+
+async function doSearch(){
+  const q=document.getElementById('searchInp').value.trim().toUpperCase();
+  if(!q)return;
+  const ra=document.getElementById('resultArea');
+  const ds=document.getElementById('defaultState');
+  ds.style.display='none';
+  ra.innerHTML=`<div class="loading"><div class="spin"></div><p>جاري التحقق من الشهادة...</p></div>`;
+  const{data,error}=await sb.from('certificates').select('*,institutions(name,governorate)').eq('cert_number',q).eq('status','active').single();
+  if(error||!data){
+    ra.innerHTML=`<div class="result-err result-wrap">
+      <span class="material-symbols-outlined">cancel</span>
+      <h3>لم يتم العثور على الشهادة</h3>
+      <p>لا توجد شهادة بهذا الرقم في قاعدة بياناتنا، أو أنها تم إلغاؤها.<br>يرجى التحقق من الرقم والمحاولة مجدداً.</p>
+      <code>${q}</code>
+      <div style="margin-top:20px;display:flex;gap:10px;justify-content:center">
+        <button onclick="reset()" style="background:var(--bg);color:var(--navy);font-family:Cairo,sans-serif;font-size:13px;font-weight:700;padding:10px 20px;border-radius:10px;border:1.5px solid var(--border);cursor:pointer">← بحث جديد</button>
+      </div>
+    </div>`;
+    return;
+  }
+  const date=new Date(data.issue_date).toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});
+  ra.innerHTML=`<div class="result-ok result-wrap">
+    <div class="result-ok-head">
+      <div class="result-ok-icon"><span class="material-symbols-outlined">verified</span></div>
+      <div>
+        <div class="result-ok-title">✓ شهادة موثقة وصالحة</div>
+        <div class="result-ok-num">${data.cert_number}</div>
+      </div>
+    </div>
+    <div class="result-ok-body">
+      <div class="info-grid">
+        <div class="info-box"><div class="info-lbl">اسم الطالب</div><div class="info-val">${data.student_name}</div></div>
+        <div class="info-box"><div class="info-lbl">الدورة / البرنامج</div><div class="info-val">${data.course}</div></div>
+        <div class="info-box"><div class="info-lbl">التقدير</div><div class="info-val">${data.grade||'ناجح'}</div></div>
+        <div class="info-box"><div class="info-lbl">تاريخ الإصدار</div><div class="info-val">${date}</div></div>
+        <div class="info-box"><div class="info-lbl">المؤسسة المصدِرة</div><div class="info-val">${data.institutions?.name||'—'}</div></div>
+        <div class="info-box"><div class="info-lbl">رقم الشهادة</div><div class="info-val" style="font-family:monospace;font-size:12px">${data.cert_number}</div></div>
+      </div>
+      <div class="result-actions">
+        <a href="certificate.html?id=${data.cert_number}" class="btn-view" target="_blank">
+          <span class="material-symbols-outlined" style="font-size:18px">open_in_new</span> عرض الشهادة الرقمية
+        </a>
+        <button class="btn-share" onclick="share('${data.cert_number}')">
+          <span class="material-symbols-outlined">share</span> مشاركة
+        </button>
+        <button class="btn-share" onclick="reset()">
+          <span class="material-symbols-outlined">search</span> بحث جديد
+        </button>
+      </div>
+    </div>
+  </div>`;
+  // Log verification
+  try{await sb.from('activity_log').insert({action:'verify',cert_number:data.cert_number,details:'تحقق عام'});}catch(e){}
+}
+
+function reset(){
+  document.getElementById('resultArea').innerHTML='';
+  document.getElementById('defaultState').style.display='block';
+  document.getElementById('searchInp').value='';
+  document.getElementById('searchInp').focus();
+}
+
+function share(certNum){
+  const url=`${location.origin}/verify.html?cert=${certNum}`;
+  if(navigator.share){navigator.share({title:'شهادة موثقة - شهادتي',url});}
+  else{navigator.clipboard.writeText(url);alert('تم نسخ الرابط!');}
+}
+
+// Auto-search from URL param
+window.addEventListener('load',()=>{
+  const params=new URLSearchParams(window.location.search);
+  const cert=params.get('cert')||params.get('id');
+  if(cert){document.getElementById('searchInp').value=cert;doSearch();}
+});
+</script>
+</body>
+</html>

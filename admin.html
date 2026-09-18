@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الإدارة - شهادتي</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Tajawal:wght@400;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--navy:#0c2d4e;--blue:#0369a1;--sky:#0284c7;--gold:#b08d48;--bg:#f0f7ff;--border:#e0f0ff;--muted:#64748b;--sw:240px;}
+body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var(--navy);}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;}
+.stat-num{font-family:'Tajawal',sans-serif;}
+
+/* LOGIN */
+.login-screen{position:fixed;inset:0;background:linear-gradient(150deg,#0c2d4e,#0369a1,#38bdf8);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.login-box{background:#fff;border-radius:20px;padding:44px;width:100%;max-width:380px;box-shadow:0 24px 80px rgba(0,0,0,0.3);}
+.login-logo{text-align:center;margin-bottom:24px;}
+.login-logo img{width:56px;height:56px;border-radius:50%;object-fit:cover;margin-bottom:8px;}
+.login-logo-name{font-size:20px;font-weight:900;color:var(--navy);}
+.login-logo-sub{font-size:9px;font-weight:700;color:var(--gold);letter-spacing:1.3px;}
+.login-title{font-size:14px;font-weight:700;color:var(--muted);text-align:center;margin-bottom:22px;}
+.form-lbl{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;}
+.form-inp{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:'Cairo',sans-serif;background:var(--bg);margin-bottom:14px;transition:all .15s;}
+.form-inp:focus{outline:none;border-color:var(--blue);background:#fff;}
+.login-err{display:none;background:#fff5f5;color:#dc2626;font-size:12px;font-weight:600;padding:9px 14px;border-radius:8px;margin-bottom:12px;text-align:center;}
+.btn-login{width:100%;background:var(--blue);color:#fff;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;padding:12px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.admin-badge{text-align:center;margin-top:14px;font-size:11px;color:var(--muted);}
+.admin-badge span{background:var(--bg);color:var(--blue);padding:2px 9px;border-radius:6px;font-weight:700;font-size:10px;}
+
+/* SIDEBAR */
+.sidebar{position:fixed;right:0;top:0;bottom:0;width:var(--sw);background:var(--navy);z-index:100;overflow-y:auto;display:flex;flex-direction:column;}
+.sb-logo{padding:18px 16px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:9px;}
+.sb-logo img{width:38px;height:38px;border-radius:50%;object-fit:cover;}
+.sb-logo-name{font-size:15px;font-weight:900;color:#fff;}
+.sb-logo-sub{font-size:8px;color:var(--gold);font-weight:700;letter-spacing:1px;}
+.sb-admin-tag{margin:10px 12px;background:rgba(176,141,72,0.2);border:1px solid rgba(176,141,72,0.3);border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:7px;color:var(--gold);font-size:11px;font-weight:700;}
+.sb-admin-tag .material-symbols-outlined{font-size:16px;}
+.sb-nav{flex:1;padding:8px 10px;}
+.sb-sec{font-size:9px;font-weight:700;color:rgba(255,255,255,0.25);padding:12px 10px 4px;letter-spacing:1.3px;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;cursor:pointer;color:rgba(255,255,255,0.55);font-size:12px;font-weight:600;transition:all .15s;margin-bottom:2px;position:relative;}
+.sb-item:hover{background:rgba(255,255,255,0.07);color:#fff;}
+.sb-item.active{background:linear-gradient(135deg,var(--blue),var(--sky));color:#fff;box-shadow:0 4px 12px rgba(3,105,161,0.3);}
+.sb-item .material-symbols-outlined{font-size:18px;}
+.sb-badge{margin-right:auto;background:rgba(220,38,38,0.8);color:#fff;font-size:9px;font-weight:800;padding:1px 6px;border-radius:8px;}
+.sb-bottom{padding:10px;border-top:1px solid rgba(255,255,255,0.08);}
+
+/* MAIN */
+.main{margin-right:var(--sw);min-height:100vh;}
+.topbar{background:#fff;border-bottom:1px solid var(--border);height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:50;box-shadow:0 2px 10px rgba(3,105,161,0.05);}
+.page-title{font-size:17px;font-weight:900;color:var(--navy);}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.topbar-bell{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;}
+.topbar-bell .material-symbols-outlined{font-size:19px;color:var(--muted);}
+.bell-dot{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:#dc2626;border:2px solid #fff;}
+.content{padding:24px 28px;}
+
+/* PAGES */
+.page{display:none;}
+.page.active{display:block;animation:fi .2s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.stat-card{background:#fff;border-radius:14px;padding:18px;border:1px solid var(--border);}
+.sc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+.sc-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;}
+.sc-icon .material-symbols-outlined{font-size:20px;}
+.sc-val{font-size:28px;font-weight:900;color:var(--navy);display:block;margin-bottom:2px;}
+.sc-lbl{font-size:11px;color:var(--muted);}
+.sc-trend{font-size:11px;font-weight:700;color:#16a34a;display:flex;align-items:center;gap:3px;}
+.sc-trend .material-symbols-outlined{font-size:13px;}
+
+/* CARD */
+.card{background:#fff;border-radius:14px;border:1px solid var(--border);margin-bottom:18px;}
+.card-head{padding:16px 20px;border-bottom:1px solid #f0f7ff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.card-title{font-size:14px;font-weight:800;color:var(--navy);}
+.card-body{padding:18px 20px;}
+.card-tools{display:flex;align-items:center;gap:8px;}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{padding:11px 14px;font-size:11px;font-weight:700;color:var(--muted);text-align:right;border-bottom:1.5px solid #f0f7ff;white-space:nowrap;}
+.tbl td{padding:11px 14px;font-size:12px;color:#475569;border-bottom:0.5px solid #f8fbff;}
+.tbl td:first-child{font-weight:600;color:var(--navy);}
+.tbl tr:hover td{background:#fafcff;}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;gap:4px;}
+.bok{background:rgba(3,105,161,0.1);color:var(--blue);}
+.bwarn{background:rgba(245,158,11,0.1);color:#d97706;}
+.berr{background:rgba(220,38,38,0.1);color:#dc2626;}
+.bnew{background:rgba(176,141,72,0.1);color:#8a6a20;}
+
+/* INPUTS */
+.inp{padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Cairo',sans-serif;font-size:12px;background:var(--bg);transition:all .15s;}
+.inp:focus{outline:none;border-color:var(--blue);}
+
+/* BUTTONS */
+.btn-p{background:var(--blue);color:#fff;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;}
+.btn-p:hover{background:var(--sky);}
+.btn-p .material-symbols-outlined{font-size:16px;}
+.btn-s{background:var(--bg);color:var(--navy);font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;padding:8px 14px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.btn-s .material-symbols-outlined{font-size:15px;}
+.btn-d{background:#fff5f5;color:#dc2626;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;padding:8px 14px;border-radius:8px;border:1.5px solid #fee2e2;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+
+/* QUOTA BAR */
+.q-bar{height:6px;border-radius:3px;background:#e0f0ff;overflow:hidden;margin-top:4px;}
+.q-fill{height:100%;border-radius:3px;background:var(--blue);}
+.q-fill.warn{background:var(--gold);}
+.q-fill.danger{background:#dc2626;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:12px;font-size:13px;font-weight:700;font-family:'Cairo',sans-serif;color:#fff;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,0.15);}
+
+/* SPINNER */
+.spin{animation:rotate 1s linear infinite;width:20px;height:20px;border:2.5px solid rgba(3,105,161,0.2);border-top-color:var(--blue);border-radius:50%;display:inline-block;}
+@keyframes rotate{to{transform:rotate(360deg);}}
+
+/* MODAL */
+.modal-ov{position:fixed;inset:0;background:rgba(12,45,78,0.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal-box{background:#fff;border-radius:18px;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;}
+.modal-head{padding:20px 24px;border-bottom:1px solid #f0f7ff;display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:16px;font-weight:900;color:var(--navy);}
+.modal-close{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.modal-body{padding:24px;}
+.modal-foot{padding:16px 24px;border-top:1px solid #f0f7ff;display:flex;gap:10px;justify-content:flex-end;}
+.btn-cancel{background:var(--bg);color:var(--navy);font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;padding:9px 20px;border-radius:9px;border:1.5px solid var(--border);cursor:pointer;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <img src="logo.png" alt="شهادتي" onerror="this.style.display='none'">
+      <div class="login-logo-name">شهادتي</div>
+      <div class="login-logo-sub">CERTIFICATE VERIFICATION</div>
+    </div>
+    <div class="login-title">لوحة إدارة المنصة</div>
+    <label class="form-lbl">البريد الإلكتروني</label>
+    <input type="email" id="loginEmail" class="form-inp" placeholder="admin@shahadaty.com" dir="ltr">
+    <label class="form-lbl">كلمة المرور</label>
+    <input type="password" id="loginPass" class="form-inp" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="login-err" id="loginErr"></div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">
+      <span class="material-symbols-outlined">admin_panel_settings</span> دخول الإدارة
+    </button>
+    <div class="admin-badge"><span>🔒 وصول محدود — الإدارة فقط</span></div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <img src="logo.png" alt="شهادتي" onerror="this.style.display='none'">
+    <div><div class="sb-logo-name">شهادتي</div><div class="sb-logo-sub">ADMIN PANEL</div></div>
+  </div>
+  <div class="sb-admin-tag"><span class="material-symbols-outlined">shield</span>لوحة الإدارة المركزية</div>
+  <nav class="sb-nav">
+    <div class="sb-sec">الرئيسية</div>
+    <div class="sb-item active" onclick="sp('overview',this)"><span class="material-symbols-outlined">dashboard</span>نظرة عامة</div>
+    <div class="sb-sec">المؤسسات</div>
+    <div class="sb-item" onclick="sp('institutions',this)"><span class="material-symbols-outlined">business</span>إدارة المؤسسات</div>
+    <div class="sb-item" onclick="sp('requests',this)"><span class="material-symbols-outlined">approval</span>طلبات الاعتماد<span class="sb-badge" id="reqBadge">0</span></div>
+    <div class="sb-sec">الشهادات</div>
+    <div class="sb-item" onclick="sp('certs',this)"><span class="material-symbols-outlined">description</span>مراجعة الشهادات</div>
+    <div class="sb-item" onclick="sp('verify',this)"><span class="material-symbols-outlined">verified</span>تحقق يدوي</div>
+    <div class="sb-sec">الشركات</div>
+    <div class="sb-item" onclick="sp('recruitment',this)"><span class="material-symbols-outlined">work</span>طلبات الترشيح<span class="sb-badge" id="recBadge">0</span></div>
+    <div class="sb-item" onclick="sp('companies',this)"><span class="material-symbols-outlined">business_center</span>الشركات المشتركة</div>
+    <div class="sb-sec">النظام</div>
+    <div class="sb-item" onclick="sp('packages',this)"><span class="material-symbols-outlined">layers</span>إدارة الباقات</div>
+    <div class="sb-item" onclick="sp('reports',this)"><span class="material-symbols-outlined">bar_chart</span>التقارير</div>
+    <div class="sb-item" onclick="sp('sys',this)"><span class="material-symbols-outlined">settings</span>إعدادات النظام</div>
+  </nav>
+  <div class="sb-bottom">
+    <div class="sb-item" onclick="doLogout()"><span class="material-symbols-outlined">logout</span>تسجيل الخروج</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <header class="topbar">
+    <div class="page-title" id="pageTitle">نظرة عامة</div>
+    <div class="topbar-right">
+      <div class="topbar-bell"><span class="material-symbols-outlined">notifications</span><div class="bell-dot"></div></div>
+      <div style="font-size:12px;font-weight:600;color:var(--muted)" id="adminEmail">—</div>
+    </div>
+  </header>
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="page active" id="page-overview">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="sc-top"><div class="sc-icon" style="background:#eff6ff"><span class="material-symbols-outlined" style="color:#0369a1">business</span></div><div class="sc-trend"><span class="material-symbols-outlined">trending_up</span>+12%</div></div>
+          <span class="sc-val stat-num" id="ov_inst">—</span><span class="sc-lbl">مؤسسة معتمدة</span>
+        </div>
+        <div class="stat-card">
+          <div class="sc-top"><div class="sc-icon" style="background:#f0fdf4"><span class="material-symbols-outlined" style="color:#059669">description</span></div><div class="sc-trend"><span class="material-symbols-outlined">trending_up</span>+28%</div></div>
+          <span class="sc-val stat-num" id="ov_certs">—</span><span class="sc-lbl">شهادة مسجلة</span>
+        </div>
+        <div class="stat-card">
+          <div class="sc-top"><div class="sc-icon" style="background:#fef9ee"><span class="material-symbols-outlined" style="color:#b08d48">approval</span></div></div>
+          <span class="sc-val stat-num" id="ov_pending">—</span><span class="sc-lbl">طلب اعتماد معلق</span>
+        </div>
+        <div class="stat-card">
+          <div class="sc-top"><div class="sc-icon" style="background:#fdf4ff"><span class="material-symbols-outlined" style="color:#7c3aed">work</span></div></div>
+          <span class="sc-val stat-num" id="ov_rec">—</span><span class="sc-lbl">طلب ترشيح جديد</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div class="card">
+          <div class="card-head"><span class="card-title">آخر طلبات الاعتماد</span><button class="btn-p" onclick="sp('requests',null)"><span class="material-symbols-outlined">arrow_back</span>عرض الكل</button></div>
+          <div class="card-body"><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>المؤسسة</th><th>التاريخ</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="ov_reqs"><tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">استخدام الكوتا</span></div>
+          <div class="card-body" id="ov_quota"><div style="text-align:center;padding:20px;color:var(--muted)">جاري التحميل...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INSTITUTIONS -->
+    <div class="page" id="page-institutions">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">إدارة المؤسسات</span>
+          <div class="card-tools">
+            <input class="inp" id="instSearch" placeholder="بحث..." style="width:180px" oninput="filterInst()">
+            <select class="inp" id="instFilter" onchange="loadInstitutions()"><option value="">الكل</option><option value="approved">معتمد</option><option value="pending">معلق</option><option value="suspended">موقوف</option></select>
+          </div>
+        </div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>المؤسسة</th><th>البريد</th><th>الباقة</th><th>الكوتا</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="instTable"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- REQUESTS -->
+    <div class="page" id="page-requests">
+      <div class="card">
+        <div class="card-head"><span class="card-title">طلبات الاعتماد</span><select class="inp" id="reqFilter" onchange="loadReqs()"><option value="pending">معلقة</option><option value="approved">مقبولة</option><option value="rejected">مرفوضة</option><option value="">الكل</option></select></div>
+        <div id="reqsList" class="card-body"><div style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</div></div>
+      </div>
+    </div>
+
+    <!-- CERTS -->
+    <div class="page" id="page-certs">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">مراجعة الشهادات</span>
+          <div class="card-tools">
+            <input class="inp" id="certsSearch" placeholder="اسم أو رقم الشهادة..." style="width:220px" oninput="loadAdminCerts()">
+            <button class="btn-s" onclick="exportAdminCerts()"><span class="material-symbols-outlined">download</span>تصدير</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الطالب</th><th>رقم الشهادة</th><th>الدورة</th><th>المؤسسة</th><th>التاريخ</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="certsTable"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">أدخل كلمة بحث</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- VERIFY -->
+    <div class="page" id="page-verify">
+      <div style="max-width:500px">
+        <div class="card">
+          <div class="card-head"><span class="card-title">تحقق يدوي</span></div>
+          <div class="card-body">
+            <div style="display:flex;gap:10px;margin-bottom:14px">
+              <input class="inp" id="vInp" placeholder="SHD-2024-00001" style="flex:1;font-size:14px" dir="ltr" onkeydown="if(event.key==='Enter')adminVerify()">
+              <button class="btn-p" onclick="adminVerify()"><span class="material-symbols-outlined">verified</span>تحقق</button>
+            </div>
+            <div id="vResult"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECRUITMENT -->
+    <div class="page" id="page-recruitment">
+      <div class="card">
+        <div class="card-head"><span class="card-title">طلبات الترشيح من الشركات</span><select class="inp" id="recFilter" onchange="loadRec()"><option value="new">جديدة</option><option value="processing">قيد المعالجة</option><option value="fulfilled">تم التنفيذ</option><option value="">الكل</option></select></div>
+        <div id="recList" class="card-body"><div style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</div></div>
+      </div>
+    </div>
+
+    <!-- COMPANIES -->
+    <div class="page" id="page-companies">
+      <div class="card">
+        <div class="card-head"><span class="card-title">الشركات المشتركة</span><button class="btn-p" onclick="loadCompanies()"><span class="material-symbols-outlined">refresh</span>تحديث</button></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الشركة</th><th>المسؤول</th><th>الحالة</th><th>رصيد البحث</th><th>إجراءات</th></tr></thead><tbody id="compTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- PACKAGES -->
+    <div class="page" id="page-packages">
+      <div class="card">
+        <div class="card-head"><span class="card-title">إدارة الباقات</span></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الباقة</th><th>السعر الشهري</th><th>السعر السنوي</th><th>الكوتا</th><th>المشتركون</th></tr></thead><tbody id="pkgTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div class="page" id="page-reports">
+      <div class="stats-row">
+        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#eff6ff"><span class="material-symbols-outlined" style="color:#0369a1">trending_up</span></div></div><span class="sc-val stat-num" id="rep_today">—</span><span class="sc-lbl">شهادات اليوم</span></div>
+        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#f0fdf4"><span class="material-symbols-outlined" style="color:#059669">calendar_month</span></div></div><span class="sc-val stat-num" id="rep_month">—</span><span class="sc-lbl">شهادات الشهر</span></div>
+        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#fef9ee"><span class="material-symbols-outlined" style="color:#b08d48">monetization_on</span></div></div><span class="sc-val stat-num" id="rep_rev">—</span><span class="sc-lbl">الإيرادات المقدرة (ج)</span></div>
+        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#fdf4ff"><span class="material-symbols-outlined" style="color:#7c3aed">verified</span></div></div><span class="sc-val stat-num" id="rep_verify">—</span><span class="sc-lbl">عمليات تحقق</span></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">تصدير التقارير</span></div>
+        <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn-p" onclick="exportReport('institutions')"><span class="material-symbols-outlined">download</span>تصدير المؤسسات</button>
+          <button class="btn-p" onclick="exportReport('certificates')"><span class="material-symbols-outlined">download</span>تصدير الشهادات</button>
+          <button class="btn-p" onclick="exportReport('companies')"><span class="material-symbols-outlined">download</span>تصدير الشركات</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYSTEM SETTINGS -->
+    <div class="page" id="page-sys">
+      <div class="card" style="max-width:500px">
+        <div class="card-head"><span class="card-title">إعدادات النظام</span></div>
+        <div class="card-body">
+          <div style="margin-bottom:16px"><label class="form-lbl" style="display:block;margin-bottom:5px;font-size:11px;font-weight:700;color:var(--muted)">اسم المنصة</label><input class="inp" value="شهادتي" style="width:100%;font-size:14px"></div>
+          <div style="margin-bottom:16px"><label class="form-lbl" style="display:block;margin-bottom:5px;font-size:11px;font-weight:700;color:var(--muted)">بريد الدعم</label><input class="inp" value="support@shahadaty.com" dir="ltr" style="width:100%;font-size:14px"></div>
+          <div style="margin-bottom:20px"><label class="form-lbl" style="display:block;margin-bottom:5px;font-size:11px;font-weight:700;color:var(--muted)">وضع الصيانة</label>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="checkbox" id="maintenanceMode" style="accent-color:var(--blue);width:18px;height:18px">
+              <label for="maintenanceMode" style="font-size:13px;font-weight:600;color:var(--navy)">تفعيل وضع الصيانة</label>
+            </div>
+          </div>
+          <button class="btn-p"><span class="material-symbols-outlined">save</span>حفظ الإعدادات</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast" class="toast" style="display:none"></div>
+
+<script>
+const SU='https://aniqwnsesxpegqohepvz.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFuaXF3bnNlc3hwZWdxb2hlcHZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDUyNjMsImV4cCI6MjA5ODIyMTI2M30.qpdF-aA6NvZUqwBZjDWM-6qYy8FKFoeFZQzMd8BzAas';
+const sb=supabase.createClient(SU,SK);
+const ptitles={overview:'نظرة عامة',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام'};
+let allInstitutions=[], allAdminCerts=[];
+
+// ── AUTH ──────────────────────────────────────────────────────
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPass').value;
+  const btn=document.getElementById('loginBtn');
+  const err=document.getElementById('loginErr');
+  err.style.display='none';btn.disabled=true;btn.innerHTML='<span class="spin"></span>';
+  const{error}=await sb.auth.signInWithPassword({email,password:pass});
+  btn.disabled=false;btn.innerHTML='<span class="material-symbols-outlined">admin_panel_settings</span> دخول الإدارة';
+  if(error){err.textContent='بيانات الدخول غير صحيحة';err.style.display='block';return;}
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('adminEmail').textContent=email;
+  loadOverview();loadBadges();
+}
+async function doLogout(){await sb.auth.signOut();location.reload();}
+
+// ── NAV ────────────────────────────────────────────────────────
+function sp(name,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('pageTitle').textContent=ptitles[name]||name;
+  if(el)el.classList.add('active');
+  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:()=>{},recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,reports:loadReports};
+  if(loaders[name])loaders[name]();
+}
+
+// ── OVERVIEW ──────────────────────────────────────────────────
+async function loadOverview(){
+  const[a,b,c,d]=await Promise.all([
+    sb.from('institutions').select('id',{count:'exact',head:true}).eq('status','approved'),
+    sb.from('certificates').select('id',{count:'exact',head:true}),
+    sb.from('institutions').select('id',{count:'exact',head:true}).eq('status','pending'),
+    sb.from('recruitment_requests').select('id',{count:'exact',head:true}).eq('status','new')
+  ]);
+  document.getElementById('ov_inst').textContent=(a.count||0).toLocaleString('ar');
+  document.getElementById('ov_certs').textContent=(b.count||0).toLocaleString('ar');
+  document.getElementById('ov_pending').textContent=c.count||0;
+  document.getElementById('ov_rec').textContent=d.count||0;
+  // Recent requests
+  const{data:reqs}=await sb.from('institutions').select('name,status,created_at').eq('status','pending').order('created_at',{ascending:false}).limit(5);
+  document.getElementById('ov_reqs').innerHTML=(reqs||[]).map(r=>`<tr><td>${r.name}</td><td>${new Date(r.created_at).toLocaleDateString('ar-EG')}</td><td><span class="badge bwarn">معلق</span></td><td><button onclick="approveInst('${r.id}')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button></td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--muted)">لا توجد طلبات معلقة</td></tr>';
+  // Quota
+  const{data:insts}=await sb.from('institutions').select('name,quota_used,quota_total').order('quota_used',{ascending:false}).limit(6);
+  document.getElementById('ov_quota').innerHTML=(insts||[]).map(i=>{const p=i.quota_total>0?Math.round(i.quota_used/i.quota_total*100):0;return`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="font-weight:600;color:var(--navy)">${i.name}</span><span style="color:var(--muted)">${i.quota_used}/${i.quota_total}</span></div><div class="q-bar"><div class="q-fill ${p>=90?'danger':p>=75?'warn':''}" style="width:${p}%"></div></div></div>`;}).join('');
+}
+async function loadBadges(){
+  const[a,b]=await Promise.all([sb.from('institutions').select('id',{count:'exact',head:true}).eq('status','pending'),sb.from('recruitment_requests').select('id',{count:'exact',head:true}).eq('status','new')]);
+  document.getElementById('reqBadge').textContent=a.count||0;
+  document.getElementById('recBadge').textContent=b.count||0;
+  if(a.count)document.getElementById('reqBadge').style.display='inline';
+  if(b.count)document.getElementById('recBadge').style.display='inline';
+}
+
+// ── INSTITUTIONS ──────────────────────────────────────────────
+async function loadInstitutions(){
+  const s=document.getElementById('instFilter')?.value;
+  let q=sb.from('institutions').select('*,packages(name_ar)').order('created_at',{ascending:false});
+  if(s)q=q.eq('status',s);
+  const{data}=await q;
+  allInstitutions=data||[];renderInst(allInstitutions);
+}
+function renderInst(rows){
+  document.getElementById('instTable').innerHTML=!rows.length?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج</td></tr>':rows.map(r=>`<tr>
+    <td>${r.name}</td><td dir="ltr" style="font-size:11px">${r.contact_email}</td>
+    <td>${r.packages?.name_ar||'—'}</td>
+    <td><div style="min-width:100px">${r.quota_used||0}/${r.quota_total||0}<div class="q-bar" style="margin-top:3px"><div class="q-fill" style="width:${r.quota_total>0?Math.round((r.quota_used||0)/r.quota_total*100):0}%"></div></div></div></td>
+    <td><span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${r.status==='approved'?'معتمد':r.status==='pending'?'معلق':'موقوف'}</span></td>
+    <td><div style="display:flex;gap:6px">
+      ${r.status!=='approved'?`<button onclick="setInstSt('${r.id}','approved')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button>`:''}
+      ${r.status==='approved'?`<button onclick="setInstSt('${r.id}','suspended')" class="btn-d" style="font-size:10px;padding:5px 10px">إيقاف</button>`:''}
+      <button onclick="editQuota('${r.id}',${r.quota_total||0})" class="btn-s" style="font-size:10px;padding:5px 10px">كوتا</button>
+    </div></td>
+  </tr>`).join('');
+}
+function filterInst(){const q=document.getElementById('instSearch').value.toLowerCase();renderInst(allInstitutions.filter(r=>r.name.toLowerCase().includes(q)||r.contact_email.toLowerCase().includes(q)));}
+async function setInstSt(id,status){await sb.from('institutions').update({status}).eq('id',id);toast('تم التحديث','ok');loadInstitutions();loadBadges();}
+async function editQuota(id,current){const q=prompt('الكوتا الجديدة:',current);if(!q||isNaN(q))return;await sb.from('institutions').update({quota_total:parseInt(q)}).eq('id',id);toast('تم تعديل الكوتا','ok');loadInstitutions();}
+
+// ── REQUESTS ──────────────────────────────────────────────────
+async function loadReqs(){
+  const s=document.getElementById('reqFilter')?.value||'pending';
+  let q=sb.from('institutions').select('*').order('created_at',{ascending:false});
+  if(s)q=q.eq('status',s);
+  const{data}=await q;
+  document.getElementById('reqsList').innerHTML=!(data||[]).length?'<div style="text-align:center;padding:24px;color:var(--muted)">لا توجد طلبات</div>':(data||[]).map(r=>`
+  <div style="border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div><div style="font-size:15px;font-weight:800;color:var(--navy)">${r.name}</div><div style="font-size:11px;color:var(--muted)">${r.contact_email} · ${r.contact_phone||'—'}</div></div>
+      <span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${r.status==='approved'?'معتمد':r.status==='pending'?'معلق':'مرفوض'}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المحافظة</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${r.governorate||'—'}</div></div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">تاريخ التقديم</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${new Date(r.created_at).toLocaleDateString('ar-EG')}</div></div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">الباقة المطلوبة</div><div style="font-size:12px;font-weight:700;color:var(--navy)">تجريبية</div></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      ${r.status==='pending'?`<button onclick="setInstSt('${r.id}','approved')" class="btn-p"><span class="material-symbols-outlined">check_circle</span>قبول الطلب</button><button onclick="setInstSt('${r.id}','rejected')" class="btn-d"><span class="material-symbols-outlined">cancel</span>رفض</button>`:''}
+    </div>
+  </div>`).join('');
+}
+
+// ── CERTS ─────────────────────────────────────────────────────
+async function loadAdminCerts(){
+  const q=document.getElementById('certsSearch').value.trim();
+  if(q.length<2){document.getElementById('certsTable').innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">أدخل كلمة بحث (حرفان على الأقل)</td></tr>';return;}
+  let query=sb.from('certificates').select('*,institutions(name)').order('created_at',{ascending:false}).limit(50);
+  if(q.startsWith('SHD'))query=query.ilike('cert_number',`%${q}%`);else query=query.ilike('student_name',`%${q}%`);
+  const{data}=await query;
+  allAdminCerts=data||[];
+  document.getElementById('certsTable').innerHTML=!allAdminCerts.length?'<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج</td></tr>':allAdminCerts.map(c=>`<tr>
+    <td>${c.student_name}</td><td style="font-family:monospace;font-size:11px">${c.cert_number}</td><td>${c.course}</td>
+    <td>${c.institutions?.name||'—'}</td><td>${new Date(c.issue_date).toLocaleDateString('ar-EG')}</td>
+    <td><span class="badge ${c.status==='active'?'bok':'berr'}">${c.status==='active'?'نشط':'ملغي'}</span></td>
+    <td><div style="display:flex;gap:6px">
+      <a href="certificate.html?id=${c.cert_number}" target="_blank" class="btn-s" style="font-size:10px;padding:5px 10px">عرض</a>
+      ${c.status==='active'?`<button onclick="revokeCert('${c.id}')" class="btn-d" style="font-size:10px;padding:5px 10px">إلغاء</button>`:''}
+    </div></td>
+  </tr>`).join('');
+}
+async function revokeCert(id){if(!confirm('هل تريد إلغاء هذه الشهادة؟'))return;await sb.from('certificates').update({status:'revoked'}).eq('id',id);toast('تم إلغاء الشهادة','err');loadAdminCerts();}
+function exportAdminCerts(){const ws=XLSX.utils.json_to_sheet(allAdminCerts.map(c=>({'الطالب':c.student_name,'رقم الشهادة':c.cert_number,'الدورة':c.course,'التاريخ':c.issue_date,'الحالة':c.status})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الشهادات');XLSX.writeFile(wb,'تقرير_الشهادات.xlsx');}
+
+// ── VERIFY ────────────────────────────────────────────────────
+async function adminVerify(){
+  const q=document.getElementById('vInp').value.trim().toUpperCase();
+  const{data}=await sb.from('certificates').select('*,institutions(name)').eq('cert_number',q).single();
+  const res=document.getElementById('vResult');
+  if(!data){res.innerHTML='<div style="background:#fff5f5;color:#dc2626;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600">❌ لم يتم العثور على الشهادة</div>';return;}
+  res.innerHTML=`<div style="background:var(--bg);border:2px solid var(--blue);border-radius:12px;padding:18px">
+    <div style="font-size:15px;font-weight:800;color:var(--blue);margin-bottom:12px">✓ شهادة موثقة — ${data.status==='active'?'نشطة':'ملغاة'}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[['الطالب',data.student_name],['الدورة',data.course],['التاريخ',new Date(data.issue_date).toLocaleDateString('ar-EG')],['المؤسسة',data.institutions?.name||'—']].map(([l,v])=>`<div style="background:#fff;border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${l}</div><div style="font-size:13px;font-weight:700;color:var(--navy)">${v}</div></div>`).join('')}</div>
+  </div>`;
+}
+
+// ── RECRUITMENT ───────────────────────────────────────────────
+async function loadRec(){
+  const s=document.getElementById('recFilter')?.value;
+  let q=sb.from('recruitment_requests').select('*').order('created_at',{ascending:false});
+  if(s)q=q.eq('status',s);
+  const{data}=await q;
+  const sts={new:'جديد',processing:'قيد المعالجة',fulfilled:'تم التنفيذ',closed:'مغلق'};
+  document.getElementById('recList').innerHTML=!(data||[]).length?'<div style="text-align:center;padding:24px;color:var(--muted)">لا توجد طلبات</div>':(data||[]).map(r=>`
+  <div style="border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div><div style="font-size:15px;font-weight:800;color:var(--navy)">${r.company_name}</div><div style="font-size:11px;color:var(--muted)">${r.contact_name} · ${r.contact_email}</div></div>
+      <span class="badge ${r.status==='new'?'bnew':r.status==='fulfilled'?'bok':'bwarn'}">${sts[r.status]||r.status}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المؤهل</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${r.qualification}</div></div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المحافظة</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${r.governorate||'أي محافظة'}</div></div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">العدد المطلوب</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${r.positions_needed} وظيفة</div></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="setRecSt('${r.id}','processing')" class="btn-p" style="font-size:11px">قيد المعالجة</button>
+      <button onclick="setRecSt('${r.id}','fulfilled')" class="btn-s" style="font-size:11px">تم التنفيذ</button>
+      <button onclick="srchRec('${r.qualification}','${r.governorate||''}','${r.graduation_year||''}')" class="btn-s" style="font-size:11px;border-color:var(--gold);color:#8a6a20"><span class="material-symbols-outlined" style="font-size:14px">search</span>بحث تلقائي</button>
+    </div>
+  </div>`).join('');
+}
+async function setRecSt(id,status){await sb.from('recruitment_requests').update({status}).eq('id',id);toast('تم التحديث','ok');loadRec();}
+async function srchRec(qual,gov,year){
+  let q=sb.from('certificates').select('student_name,course,grade,issue_date,governorate,student_phone,institutions(name)').eq('visible_to_companies',true).eq('status','active');
+  if(qual)q=q.ilike('course',`%${qual}%`);if(gov)q=q.eq('governorate',gov);
+  if(year)q=q.gte('issue_date',`${year}-01-01`).lte('issue_date',`${year}-12-31`);
+  const{data}=await q.limit(30);
+  if(!data?.length){toast('لا توجد نتائج مطابقة','err');return;}
+  const m=document.createElement('div');
+  m.style.cssText='position:fixed;inset:0;background:rgba(12,45,78,0.6);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px';
+  m.innerHTML=`<div style="background:#fff;border-radius:18px;padding:24px;width:100%;max-width:700px;max-height:82vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <span style="font-size:16px;font-weight:900;color:var(--navy)">${data.length} نتيجة مطابقة</span>
+      <button onclick="this.closest('[style*=fixed]').remove()" style="width:32px;height:32px;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--bg)">✕</button>
+    </div>
+    ${data.map(c=>`<div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+      <div><div style="font-size:13px;font-weight:800;color:var(--navy)">${c.student_name}</div><div style="font-size:11px;color:var(--muted)">${c.course} · ${c.governorate||'—'} · ${new Date(c.issue_date).getFullYear()}</div><div style="font-size:10px;color:#94a3b8">${c.institutions?.name||''}</div></div>
+      <div style="text-align:left"><div style="font-size:14px;font-weight:800;color:var(--blue);direction:ltr">${c.student_phone||'غير متاح'}</div><div style="font-size:11px;color:var(--gold);font-weight:700">${c.grade||'ناجح'}</div></div>
+    </div>`).join('')}
+  </div>`;
+  document.body.appendChild(m);
+}
+
+// ── COMPANIES ─────────────────────────────────────────────────
+async function loadCompanies(){
+  const{data}=await sb.from('companies').select('*').order('created_at',{ascending:false});
+  document.getElementById('compTable').innerHTML=!(data||[]).length?'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">لا توجد شركات</td></tr>':data.map(c=>`<tr>
+    <td>${c.company_name}<div style="font-size:10px;color:var(--muted)">${c.contact_email}</div></td>
+    <td>${c.contact_name||'—'}</td>
+    <td><span class="badge ${c.status==='approved'?'bok':'bwarn'}">${c.status==='approved'?'معتمد':'معلق'}</span></td>
+    <td><div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;font-weight:900;color:var(--navy)">${c.search_credits||0}</span><button onclick="addCreds('${c.id}',${c.search_credits||0})" class="btn-s" style="font-size:10px;padding:4px 8px">+</button></div></td>
+    <td><div style="display:flex;gap:6px">
+      ${c.status!=='approved'?`<button onclick="setCompSt('${c.id}','approved')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button>`:''}
+      ${c.status==='approved'?`<button onclick="setCompSt('${c.id}','suspended')" class="btn-d" style="font-size:10px;padding:5px 10px">إيقاف</button>`:''}
+    </div></td>
+  </tr>`).join('');
+}
+async function setCompSt(id,status){await sb.from('companies').update({status}).eq('id',id);toast('تم التحديث','ok');loadCompanies();}
+async function addCreds(id,current){const a=prompt('كم عملية بحث تضيف؟','10');if(!a||isNaN(a))return;await sb.from('companies').update({search_credits:current+parseInt(a)}).eq('id',id);toast(`تم إضافة ${a} عملية`,'ok');loadCompanies();}
+
+// ── PACKAGES ──────────────────────────────────────────────────
+async function loadPkgs(){
+  const{data}=await sb.from('packages').select('*,institutions(id)').order('sort_order');
+  document.getElementById('pkgTable').innerHTML=!(data||[]).length?'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">لا توجد بيانات</td></tr>':data.map(p=>`<tr>
+    <td><span style="font-weight:800">${p.name_ar||p.name||'—'}</span></td>
+    <td>${p.price_monthly||0} ج</td><td>${p.price_yearly||0} ج</td>
+    <td>${p.quota_limit||0} شهادة</td>
+    <td><span style="font-size:13px;font-weight:800;color:var(--blue)">${p.institutions?.length||0}</span></td>
+  </tr>`).join('');
+}
+
+// ── REPORTS ───────────────────────────────────────────────────
+async function loadReports(){
+  const today=new Date().toISOString().split('T')[0];
+  const month=new Date().toISOString().slice(0,7);
+  const[a,b,c,d]=await Promise.all([
+    sb.from('certificates').select('id',{count:'exact',head:true}).gte('created_at',today),
+    sb.from('certificates').select('id',{count:'exact',head:true}).gte('created_at',month+'-01'),
+    sb.from('institutions').select('id',{count:'exact',head:true}).eq('status','approved'),
+    sb.from('activity_log').select('id',{count:'exact',head:true})
+  ]);
+  document.getElementById('rep_today').textContent=a.count||0;
+  document.getElementById('rep_month').textContent=b.count||0;
+  document.getElementById('rep_rev').textContent=((c.count||0)*333).toLocaleString('ar');
+  document.getElementById('rep_verify').textContent=(d.count||0).toLocaleString('ar');
+}
+async function exportReport(table){
+  const{data}=await sb.from(table).select('*').limit(1000);
+  if(!data?.length){toast('لا توجد بيانات','err');return;}
+  const ws=XLSX.utils.json_to_sheet(data);
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,table);
+  XLSX.writeFile(wb,`تقرير_${table}.xlsx`);
+  toast('تم تصدير التقرير','ok');
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=type==='ok'?'#0369a1':'#dc2626';t.style.display='block';setTimeout(()=>t.style.display='none',3500);}
+
+// ── INIT ──────────────────────────────────────────────────────
+window.addEventListener('load',async()=>{
+  const{data:{session}}=await sb.auth.getSession();
+  if(session){document.getElementById('loginScreen').style.display='none';document.getElementById('adminEmail').textContent=session.user.email;loadOverview();loadBadges();}
+});
+</script>
+</body>
+</html>
