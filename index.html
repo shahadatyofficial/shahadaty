@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>شهادتي — الثقة تبدأ من شهادتك</title>
+<meta name="description" content="منصة رقمية للتحقق من الشهادات الأكاديمية والمهنية، بسرعة وأمان.">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Tajawal:wght@400;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--navy:#0c2d4e;--blue:#0369a1;--sky:#0284c7;--gold:#b08d48;--gold2:#c9a227;--bg:#f8faff;--bg2:#f0f9ff;--border:#e0f0ff;--muted:#64748b;}
+html{scroll-behavior:smooth;}
+body{font-family:'Cairo',sans-serif;direction:rtl;color:var(--navy);background:#fff;overflow-x:hidden;}
+
+/* NAV */
+.nav{background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 48px;height:76px;position:sticky;top:0;z-index:999;box-shadow:0 2px 20px rgba(3,105,161,0.07);}
+.logo{display:flex;align-items:center;gap:13px;text-decoration:none;}
+.logo-img{width:54px;height:54px;border-radius:50%;object-fit:cover;box-shadow:0 2px 12px rgba(3,105,161,0.15);}
+.logo-name{font-family:'Tajawal',sans-serif;font-size:22px;font-weight:800;color:var(--navy);line-height:1.1;}
+.logo-sub{font-size:8px;font-weight:700;color:var(--gold);letter-spacing:1.8px;margin-top:1px;}
+.nav-links{display:flex;align-items:center;gap:2px;}
+.nl{color:var(--muted);font-size:13px;font-weight:600;padding:7px 12px;border-radius:9px;cursor:pointer;transition:all .15s;white-space:nowrap;text-decoration:none;}
+.nl:hover,.nl.active{color:var(--blue);background:var(--bg2);}
+.nl.verify{color:var(--blue);font-weight:700;background:var(--bg2);border:1.5px solid var(--border);display:flex;align-items:center;gap:5px;}
+.nav-actions{display:flex;align-items:center;gap:10px;}
+.lang-toggle{display:flex;align-items:center;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;overflow:hidden;height:38px;}
+.lang-btn{padding:0 13px;height:100%;font-size:12px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:'Cairo',sans-serif;transition:all .15s;display:flex;align-items:center;gap:4px;}
+.lang-btn.active{background:var(--blue);color:#fff;border-radius:8px;margin:3px;height:calc(100% - 6px);}
+.btn-portal{color:var(--blue);font-size:13px;font-weight:700;padding:9px 18px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg2);cursor:pointer;font-family:'Cairo',sans-serif;}
+.btn-cta{background:linear-gradient(135deg,var(--blue),var(--sky));color:#fff;font-size:13px;font-weight:700;padding:10px 22px;border-radius:10px;border:none;cursor:pointer;font-family:'Cairo',sans-serif;box-shadow:0 4px 14px rgba(3,105,161,0.28);display:flex;align-items:center;gap:7px;}
+
+/* HERO */
+.hero{background:var(--bg);padding:80px 60px 72px;text-align:center;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;top:-180px;right:-180px;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(3,105,161,0.07) 0%,transparent 70%);pointer-events:none;}
+.hero::after{content:'';position:absolute;bottom:-160px;left:-160px;width:440px;height:440px;border-radius:50%;background:radial-gradient(circle,rgba(176,141,72,0.05) 0%,transparent 70%);pointer-events:none;}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--border);border-radius:30px;padding:7px 20px;color:var(--blue);font-size:12px;font-weight:700;margin-bottom:28px;box-shadow:0 2px 12px rgba(3,105,161,0.08);position:relative;z-index:1;}
+.badge-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0.4);}50%{box-shadow:0 0 0 7px rgba(34,197,94,0);}}
+.hero-h1{font-family:'Tajawal',sans-serif;font-size:58px;font-weight:900;color:var(--navy);line-height:1.1;margin-bottom:16px;letter-spacing:-1.5px;position:relative;z-index:1;}
+.hero-h1 .accent{color:var(--blue);position:relative;display:inline-block;}
+.hero-h1 .accent::after{content:'';position:absolute;bottom:-6px;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--blue),#38bdf8,var(--gold));border-radius:3px;opacity:0.7;}
+.hero-sub1{font-size:20px;font-weight:600;color:#334155;margin-bottom:8px;position:relative;z-index:1;}
+.hero-sub2{font-size:15px;color:var(--muted);margin-bottom:44px;max-width:540px;margin-left:auto;margin-right:auto;line-height:1.8;position:relative;z-index:1;}
+.search-outer{max-width:660px;margin:0 auto 12px;position:relative;z-index:1;}
+.search-card{background:#fff;border:2px solid #dbeafe;border-radius:22px;padding:8px;display:flex;gap:8px;box-shadow:0 10px 40px rgba(3,105,161,0.1);transition:all .2s;}
+.search-card:focus-within{border-color:var(--blue);box-shadow:0 10px 48px rgba(3,105,161,0.18);}
+.s-icon{display:flex;align-items:center;padding:0 14px;color:#94a3b8;}
+.s-icon svg{width:22px;height:22px;}
+.s-inp{flex:1;border:none;outline:none;font-size:16px;color:var(--navy);background:transparent;font-family:'Cairo',sans-serif;padding:6px 0;}
+.s-inp::placeholder{color:#94a3b8;}
+.qr-btn{width:54px;height:54px;border-radius:14px;border:1.5px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s;}
+.qr-btn:hover,.qr-btn.on{border-color:var(--blue);background:#e0f4ff;}
+.qr-btn svg{width:24px;height:24px;color:var(--blue);}
+.s-btn{background:linear-gradient(135deg,var(--blue),var(--sky));color:#fff;font-size:15px;font-weight:700;padding:0 32px;border-radius:15px;border:none;cursor:pointer;height:54px;white-space:nowrap;font-family:'Cairo',sans-serif;box-shadow:0 4px 16px rgba(3,105,161,0.3);transition:all .15s;flex-shrink:0;}
+.s-btn:hover{transform:translateY(-1px);}
+.s-hint{font-size:11px;color:#94a3b8;margin-bottom:44px;position:relative;z-index:1;}
+.s-hint code{background:var(--bg2);color:var(--blue);padding:2px 8px;border-radius:5px;font-family:monospace;}
+.scanner-wrap{max-width:660px;margin:0 auto 24px;display:none;position:relative;z-index:1;}
+.scanner-wrap.show{display:block;animation:fadeUp .3s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.scanner-box{background:#0c2d4e;border-radius:22px;overflow:hidden;position:relative;height:320px;}
+.cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.45;}
+.scan-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+.scan-frame{position:relative;width:260px;height:260px;}
+.scan-border{position:absolute;inset:0;border:1.5px solid rgba(255,255,255,0.12);border-radius:14px;}
+.corner{position:absolute;width:32px;height:32px;}
+.c-tl{top:-2px;right:-2px;border-top:4px solid #38bdf8;border-right:4px solid #38bdf8;border-radius:0 12px 0 0;}
+.c-tr{top:-2px;left:-2px;border-top:4px solid #38bdf8;border-left:4px solid #38bdf8;border-radius:12px 0 0 0;}
+.c-bl{bottom:-2px;right:-2px;border-bottom:4px solid #38bdf8;border-right:4px solid #38bdf8;border-radius:0 0 0 12px;}
+.c-br{bottom:-2px;left:-2px;border-bottom:4px solid #38bdf8;border-left:4px solid #38bdf8;border-radius:0 0 12px 0;}
+.laser{position:absolute;right:0;left:0;height:3px;background:linear-gradient(90deg,transparent,rgba(56,189,248,0.3) 20%,#38bdf8 50%,rgba(56,189,248,0.3) 80%,transparent);box-shadow:0 0 14px rgba(56,189,248,0.9),0 0 32px rgba(3,105,161,0.5);border-radius:3px;animation:laserScan 2.4s ease-in-out infinite;}
+@keyframes laserScan{0%{top:0;opacity:0;}8%{opacity:1;}92%{opacity:1;}100%{top:100%;opacity:0;}}
+.scan-label{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.65);font-size:12px;font-weight:600;display:flex;align-items:center;gap:7px;white-space:nowrap;}
+.scan-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:blink 1.2s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.2;}}
+.scan-close{width:100%;margin-top:10px;padding:12px;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;font-family:'Cairo',sans-serif;}
+.result-wrap{max-width:660px;margin:0 auto 32px;position:relative;z-index:1;}
+.res-ok{background:#fff;border:2px solid var(--blue);border-radius:20px;overflow:hidden;animation:fadeUp .3s ease;}
+.res-head{background:linear-gradient(135deg,#0c2d4e,var(--blue));padding:22px 28px;display:flex;align-items:center;gap:16px;}
+.res-icon{width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.res-icon svg{width:28px;height:28px;color:#fff;}
+.res-title{color:#fff;font-size:19px;font-weight:900;}
+.res-num{color:rgba(255,255,255,0.6);font-size:12px;font-family:monospace;margin-top:3px;}
+.res-body{padding:24px 28px;}
+.res-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;}
+.res-cell{background:var(--bg2);border-radius:12px;padding:14px;}
+.res-lbl{font-size:10px;font-weight:700;color:var(--muted);margin-bottom:5px;}
+.res-val{font-size:13px;font-weight:800;color:var(--navy);}
+.res-btns{display:flex;gap:10px;}
+.rb1{background:var(--blue);color:#fff;font-size:13px;font-weight:700;padding:10px 22px;border-radius:10px;border:none;cursor:pointer;font-family:'Cairo',sans-serif;display:flex;align-items:center;gap:7px;text-decoration:none;}
+.rb2{background:var(--bg2);color:var(--blue);font-size:13px;font-weight:700;padding:10px 22px;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;font-family:'Cairo',sans-serif;}
+.res-err{background:#fff;border:2px solid #fee2e2;border-radius:20px;padding:36px;text-align:center;animation:fadeUp .3s ease;}
+.stats-row{display:inline-flex;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:20px;padding:22px 44px;box-shadow:0 4px 24px rgba(3,105,161,0.07);position:relative;z-index:1;}
+.stat{text-align:center;padding:0 36px;}
+.stat:not(:last-child){border-left:1px solid var(--border);}
+.sn{font-family:'Tajawal',sans-serif;font-size:30px;font-weight:900;color:var(--navy);display:block;line-height:1;}
+.sn span{color:var(--blue);}
+.sl{font-size:12px;color:var(--muted);margin-top:5px;}
+
+/* SECTIONS */
+.sec{padding:80px 60px;}
+.sec.bg{background:var(--bg);}
+.sec-tag{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--border);border-radius:30px;padding:6px 18px;color:var(--blue);font-size:11px;font-weight:700;margin-bottom:16px;}
+.sec-title{font-family:'Tajawal',sans-serif;font-size:38px;font-weight:900;color:var(--navy);margin-bottom:10px;line-height:1.15;}
+.sec-title em{color:var(--blue);font-style:normal;}
+.sec-sub{font-size:14px;color:var(--muted);line-height:1.8;max-width:520px;}
+
+/* WHY TABS */
+.tabs-wrap{display:flex;gap:8px;margin-bottom:36px;background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:6px;}
+.tab{flex:1;padding:13px 20px;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:'Cairo',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.tab:hover{background:var(--bg);color:var(--blue);}
+.tab.active{background:var(--blue);color:#fff;box-shadow:0 4px 14px rgba(3,105,161,0.25);}
+.tab.active.gold{background:linear-gradient(135deg,var(--gold),var(--gold2));}
+.tab.active.green{background:linear-gradient(135deg,#059669,#10b981);}
+.why-cards{display:none;grid-template-columns:repeat(3,1fr);gap:18px;animation:fadeUp .3s ease;}
+.why-cards.active{display:grid;}
+.wc{background:#fff;border:1px solid var(--border);border-radius:18px;padding:28px;position:relative;overflow:hidden;transition:all .2s;}
+.wc:hover{border-color:var(--sky);box-shadow:0 14px 44px rgba(3,105,161,0.1);transform:translateY(-4px);}
+.wc::before{content:'';position:absolute;top:0;right:0;left:0;height:3px;border-radius:18px 18px 0 0;}
+.wc1::before{background:linear-gradient(90deg,var(--blue),#38bdf8);}
+.wc2::before{background:linear-gradient(90deg,var(--gold),#fde68a);}
+.wc3::before{background:linear-gradient(90deg,#059669,#34d399);}
+.wc4::before{background:linear-gradient(90deg,#7c3aed,#a78bfa);}
+.wc5::before{background:linear-gradient(90deg,var(--sky),#7dd3fc);}
+.wc6::before{background:linear-gradient(90deg,#d97706,#fbbf24);}
+.card-emoji{font-size:32px;margin-bottom:14px;display:block;}
+.card-title{font-size:15px;font-weight:800;color:var(--navy);margin-bottom:8px;}
+.card-desc{font-size:12px;color:var(--muted);line-height:1.75;}
+
+/* SECTORS */
+.sectors-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}
+.sector{background:#fff;border:1.5px solid var(--border);border-radius:20px;overflow:hidden;cursor:pointer;transition:all .22s;}
+.sector:hover{transform:translateY(-5px);box-shadow:0 16px 44px rgba(3,105,161,0.13);border-color:var(--blue);}
+.sector-img-wrap{overflow:hidden;height:140px;position:relative;}
+.sector-img{width:100%;height:100%;object-fit:cover;transition:transform .3s;}
+.sector:hover .sector-img{transform:scale(1.05);}
+.sector-img-wrap::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(12,45,78,0.5) 100%);}
+.sector-badge{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:10px;z-index:1;}
+.sector-body{padding:18px;}
+.sector-name{font-size:14px;font-weight:800;color:var(--navy);margin-bottom:6px;}
+.sector-desc{font-size:11.5px;color:var(--muted);line-height:1.65;}
+.strip{background:linear-gradient(135deg,#0c2d4e,var(--blue));border-radius:20px;padding:36px 48px;display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:48px;}
+.strip h3{color:#fff;font-size:20px;font-weight:900;margin-bottom:6px;}
+.strip p{color:rgba(255,255,255,0.65);font-size:13px;}
+.strip-stats{display:flex;gap:28px;flex-shrink:0;}
+.strip-stat{text-align:center;}
+.strip-val{font-family:'Tajawal',sans-serif;font-size:26px;font-weight:900;color:#fff;display:block;}
+.strip-val em{color:#fde68a;font-style:normal;}
+.strip-lbl{font-size:11px;color:rgba(255,255,255,0.55);margin-top:3px;}
+.strip-div{width:1px;background:rgba(255,255,255,0.15);}
+
+/* PACKAGES */
+.toggle-wrap{display:inline-flex;background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:5px;gap:5px;margin-bottom:44px;}
+.tog{padding:10px 28px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:'Cairo',sans-serif;transition:all .2s;}
+.tog.active{background:var(--blue);color:#fff;box-shadow:0 4px 12px rgba(3,105,161,0.22);}
+.save-badge{background:#dcfce7;color:#16a34a;font-size:10px;font-weight:700;padding:2px 8px;border-radius:7px;margin-right:6px;}
+.pkg-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:44px;}
+.pkg{border:1.5px solid var(--border);border-radius:20px;padding:22px 16px;background:#fff;text-align:center;position:relative;transition:all .22s;}
+.pkg:hover{transform:translateY(-5px);box-shadow:0 18px 48px rgba(3,105,161,0.1);}
+.pkg.feat{border-color:var(--blue);border-width:2px;}
+.pkg.gold-pkg{border-color:var(--gold);border-width:2px;}
+.pkg.ent{border-color:#0c2d4e;border-width:2px;background:linear-gradient(160deg,#0c2d4e,#1e3a5f);}
+.pkg-ribbon{position:absolute;top:-1px;left:50%;transform:translateX(-50%);color:#fff;font-size:9px;font-weight:800;padding:3px 14px;border-radius:0 0 10px 10px;white-space:nowrap;}
+.pkg-icon{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;}
+.pkg-name{font-size:14px;font-weight:900;margin-bottom:3px;}
+.pkg-tag{font-size:10px;color:#94a3b8;margin-bottom:14px;}
+.price-block{min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:4px;}
+.pkg-price{font-size:26px;font-weight:900;color:var(--navy);line-height:1;display:flex;align-items:flex-start;gap:1px;}
+.pkg-price sup{font-size:13px;margin-top:5px;}
+.pkg-period{font-size:10px;color:#94a3b8;margin-bottom:2px;}
+.orig{font-size:11px;color:#94a3b8;text-decoration:line-through;min-height:15px;}
+.disc{background:#dcfce7;color:#16a34a;font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;display:none;margin-bottom:2px;}
+.pkg-quota{background:var(--bg2);border-radius:10px;padding:9px;margin:12px 0;}
+.pq-num{font-size:19px;font-weight:900;display:block;line-height:1.1;}
+.pq-lbl{font-size:9px;color:var(--muted);}
+.pkg-div{height:1px;background:#f0f7ff;margin-bottom:12px;}
+.pf{font-size:10px;color:#475569;margin-bottom:6px;display:flex;align-items:center;gap:5px;}
+.pf svg{width:11px;height:11px;flex-shrink:0;fill:none;stroke:var(--blue);stroke-width:2.5;}
+.pf.no{color:#94a3b8;}
+.pf.no svg{stroke:#d1d5db;}
+.pkg-btn{width:100%;padding:10px;border-radius:11px;font-size:12px;font-weight:700;cursor:pointer;margin-top:14px;font-family:'Cairo',sans-serif;border:none;transition:all .15s;}
+.pkg-btn.out{border:1.5px solid var(--blue);color:var(--blue);background:transparent;}
+.pkg-btn.fill{background:var(--blue);color:#fff;}
+.pkg-btn.gld{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#fff;}
+.pkg-btn.ent-btn{background:linear-gradient(135deg,#fde68a,var(--gold));color:#0c2d4e;font-weight:800;}
+.pkg.ent .pkg-name{color:#fde68a;}
+.pkg.ent .pkg-tag,.pkg.ent .pkg-period{color:rgba(255,255,255,0.45);}
+.pkg.ent .pkg-price{color:#fff;}
+.pkg.ent .pkg-quota{background:rgba(255,255,255,0.08);}
+.pkg.ent .pq-num{color:#fde68a;}
+.pkg.ent .pq-lbl{color:rgba(255,255,255,0.4);}
+.pkg.ent .pkg-div{background:rgba(255,255,255,0.1);}
+.pkg.ent .pf{color:rgba(255,255,255,0.75);}
+.pkg.ent .pf svg{stroke:#fde68a;}
+.addons-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:44px;}
+.addon{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;align-items:center;gap:12px;}
+.addon-icon{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.addon-name{font-size:12px;font-weight:800;color:var(--navy);margin-bottom:2px;}
+.addon-price{font-size:13px;color:var(--blue);font-weight:900;}
+.addon-qty{font-size:10px;color:#94a3b8;}
+
+/* TESTIMONIALS */
+.f-tabs{display:flex;gap:8px;margin-bottom:40px;flex-wrap:wrap;}
+.f-tab{padding:8px 18px;border-radius:30px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-family:'Cairo',sans-serif;transition:all .2s;}
+.f-tab:hover{border-color:var(--blue);color:var(--blue);}
+.f-tab.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+.ts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:36px;}
+.ts-card{background:#fff;border:1.5px solid var(--border);border-radius:20px;padding:26px;transition:all .22s;animation:fadeUp .3s ease;}
+.ts-card:hover{border-color:var(--blue);box-shadow:0 12px 36px rgba(3,105,161,0.1);transform:translateY(-3px);}
+.ts-card.feat{background:linear-gradient(135deg,#0c2d4e,var(--blue));border-color:transparent;}
+.qm{font-size:48px;line-height:1;color:#dbeafe;margin-bottom:10px;font-family:Georgia,serif;display:block;}
+.ts-card.feat .qm{color:rgba(255,255,255,0.15);}
+.ts-stars{color:#f59e0b;font-size:15px;letter-spacing:2px;margin-bottom:12px;}
+.ts-card.feat .ts-stars{color:#fde68a;}
+.ts-quote{font-size:13px;line-height:1.8;color:#334155;margin-bottom:18px;font-style:italic;}
+.ts-card.feat .ts-quote{color:rgba(255,255,255,0.88);}
+.ts-sep{height:1px;background:#f0f7ff;margin-bottom:16px;}
+.ts-card.feat .ts-sep{background:rgba(255,255,255,0.15);}
+.ts-author{display:flex;align-items:center;gap:12px;}
+.ts-av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;flex-shrink:0;}
+.ts-name{font-size:13px;font-weight:800;color:var(--navy);}
+.ts-card.feat .ts-name{color:#fff;}
+.ts-role{font-size:11px;color:var(--muted);margin-top:2px;}
+.ts-card.feat .ts-role{color:rgba(255,255,255,0.6);}
+.ts-type{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:6px;margin-top:4px;}
+.pg{display:flex;align-items:center;justify-content:center;gap:8px;}
+.pg-btn{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--muted);}
+.pg-dot{width:8px;height:8px;border-radius:50%;background:var(--border);cursor:pointer;transition:all .2s;}
+.pg-dot.active{background:var(--blue);width:24px;border-radius:4px;}
+
+/* FAQ */
+.faq-tabs{display:flex;gap:12px;margin-bottom:36px;}
+.faq-tab{flex:1;padding:16px;border-radius:16px;border:1.5px solid var(--border);background:#fff;cursor:pointer;transition:all .2s;text-align:center;font-family:'Cairo',sans-serif;}
+.faq-tab:hover{border-color:var(--blue);background:var(--bg2);}
+.faq-tab.active{border-color:var(--blue);background:var(--blue);box-shadow:0 6px 18px rgba(3,105,161,0.22);}
+.faq-tab-icon{font-size:26px;display:block;margin-bottom:8px;}
+.faq-tab-name{font-size:14px;font-weight:800;display:block;margin-bottom:3px;}
+.faq-tab:not(.active) .faq-tab-name{color:var(--navy);}
+.faq-tab.active .faq-tab-name{color:#fff;}
+.faq-tab-desc{font-size:11px;}
+.faq-tab.active .faq-tab-desc{color:rgba(255,255,255,0.7);}
+.faq-tab:not(.active) .faq-tab-desc{color:var(--muted);}
+.faq-layout{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start;}
+.faq-list{display:flex;flex-direction:column;gap:10px;}
+.faq-item{background:#fff;border:1.5px solid var(--border);border-radius:14px;overflow:hidden;transition:all .2s;}
+.faq-item.open{border-color:var(--blue);}
+.faq-q{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:13.5px;font-weight:700;color:var(--navy);gap:14px;}
+.faq-item.open .faq-q{background:var(--bg2);color:var(--blue);}
+.faq-icon{width:28px;height:28px;border-radius:8px;background:var(--bg2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;font-weight:700;color:var(--blue);transition:all .2s;}
+.faq-item.open .faq-icon{background:var(--blue);color:#fff;transform:rotate(45deg);}
+.faq-a{display:none;padding:14px 22px 18px;font-size:13px;color:#475569;line-height:1.8;border-top:1px solid #f0f7ff;}
+.faq-a.show{display:block;}
+.contact-box{background:#fff;border:1.5px solid var(--border);border-radius:20px;padding:28px;position:sticky;top:90px;}
+.contact-box h3{font-size:18px;font-weight:900;color:var(--navy);margin-bottom:8px;}
+.contact-box p{font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:20px;}
+.c-opts{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+.c-opt{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;transition:all .15s;}
+.c-opt:hover{border-color:var(--blue);background:var(--bg2);}
+.c-opt-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.c-opt-name{font-size:13px;font-weight:700;color:var(--navy);}
+.c-opt-desc{font-size:11px;color:var(--muted);}
+.c-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--blue),var(--sky));color:#fff;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;border-radius:12px;border:none;cursor:pointer;}
+
+/* CTA */
+.cta-sec{background:linear-gradient(150deg,#0c2d4e,var(--blue),var(--sky));padding:88px 60px;text-align:center;position:relative;overflow:hidden;}
+.cta-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:5px 16px;color:#7dd3fc;font-size:11px;font-weight:700;margin-bottom:20px;}
+.cta-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;animation:pulse 2s infinite;}
+.cta-title{font-family:'Tajawal',sans-serif;color:#fff;font-size:42px;font-weight:900;margin-bottom:12px;line-height:1.15;}
+.cta-title em{color:#fde68a;font-style:normal;}
+.cta-sub{color:rgba(255,255,255,0.7);font-size:15px;margin-bottom:36px;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.8;}
+.cta-btns{display:flex;gap:14px;justify-content:center;margin-bottom:20px;}
+.cb1{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#fff;font-size:14px;font-weight:800;padding:14px 32px;border-radius:12px;cursor:pointer;border:none;font-family:'Cairo',sans-serif;}
+.cb2{border:1.5px solid rgba(255,255,255,0.3);color:#fff;font-size:14px;padding:14px 32px;border-radius:12px;cursor:pointer;background:transparent;font-family:'Cairo',sans-serif;font-weight:600;}
+.cta-note{font-size:11px;color:rgba(255,255,255,0.4);}
+
+/* FOOTER */
+.footer{background:#0a1f35;padding:60px 60px 28px;}
+.foot-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:36px;margin-bottom:44px;}
+.foot-logo-wrap{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.foot-logo{width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.1);}
+.foot-brand-name{font-family:'Tajawal',sans-serif;font-size:20px;font-weight:900;color:#fff;}
+.foot-brand-sub{font-size:8px;font-weight:700;color:var(--gold);letter-spacing:1.5px;}
+.foot-desc{font-size:12px;color:rgba(255,255,255,0.38);line-height:1.85;max-width:260px;margin-bottom:22px;}
+.foot-social{display:flex;gap:8px;}
+.soc{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;}
+.foot-col h5{color:#fff;font-size:13px;font-weight:800;margin-bottom:18px;display:flex;align-items:center;gap:6px;}
+.foot-col h5::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.06);}
+.foot-link{font-size:12px;color:rgba(255,255,255,0.38);margin-bottom:10px;cursor:pointer;transition:color .15s;display:flex;align-items:center;gap:6px;text-decoration:none;}
+.foot-link:hover{color:rgba(255,255,255,0.72);}
+.fnew{font-size:9px;background:var(--blue);color:#fff;padding:1px 6px;border-radius:4px;font-weight:700;}
+.fsoon{font-size:9px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.4);padding:1px 6px;border-radius:4px;font-weight:700;}
+.foot-div{height:1px;background:rgba(255,255,255,0.06);margin-bottom:20px;}
+.foot-bottom{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.foot-copy{font-size:11px;color:rgba(255,255,255,0.22);}
+.foot-links{display:flex;gap:20px;}
+.fl{font-size:11px;color:rgba(255,255,255,0.22);text-decoration:none;}
+.fl:hover{color:rgba(255,255,255,0.5);}
+
+/* UTILS */
+.spin{animation:rotate 1s linear infinite;width:26px;height:26px;border:3px solid rgba(3,105,161,0.1);border-top-color:var(--blue);border-radius:50%;display:inline-block;}
+@keyframes rotate{to{transform:rotate(360deg);}}
+.cta-strip{background:linear-gradient(135deg,#0c2d4e,var(--blue));border-radius:20px;padding:32px 40px;display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:40px;}
+.cta-strip h3{color:#fff;font-size:19px;font-weight:900;margin-bottom:5px;}
+.cta-strip p{color:rgba(255,255,255,0.65);font-size:13px;}
+.cta-strip-btns{display:flex;gap:10px;flex-shrink:0;}
+.cs1{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#fff;font-size:13px;font-weight:800;padding:11px 22px;border-radius:10px;cursor:pointer;font-family:'Cairo',sans-serif;border:none;white-space:nowrap;}
+.cs2{border:1.5px solid rgba(255,255,255,0.3);color:#fff;font-size:13px;padding:11px 22px;border-radius:10px;cursor:pointer;background:transparent;font-family:'Cairo',sans-serif;white-space:nowrap;}
+.stats-mini{display:flex;gap:14px;}
+.sm{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:14px 20px;text-align:center;}
+.sm-val{font-family:'Tajawal',sans-serif;font-size:24px;font-weight:900;color:var(--blue);display:block;}
+.sm-lbl{font-size:11px;color:var(--muted);margin-top:2px;}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav" id="mainNav">
+  <a href="#" class="logo">
+    <img src="logo.png" class="logo-img" alt="شهادتي" onerror="this.style.display='none'">
+    <div><div class="logo-name" id="logoName">شهادتي</div><div class="logo-sub">CERTIFICATE VERIFICATION</div></div>
+  </a>
+  <div class="nav-links" id="navLinks">
+    <a href="#" class="nl active">الرئيسية</a>
+    <a href="#why" class="nl">المميزات</a>
+    <a href="#sectors" class="nl">القطاعات</a>
+    <a href="#packages" class="nl">الباقات</a>
+    <a href="#faq" class="nl">الأسئلة</a>
+    <a href="#contact" class="nl">تواصل معنا</a>
+    <a href="verify.html" class="nl verify">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+      تحقق من شهادة
+    </a>
+  </div>
+  <div class="nav-actions">
+    <div class="lang-toggle">
+      <button class="lang-btn active" id="btnAr" onclick="setLang('ar')">🇪🇬 العربية</button>
+      <button class="lang-btn" id="btnEn" onclick="setLang('en')">🇬🇧 English</button>
+    </div>
+    <button class="btn-portal" onclick="location.href='institution.html'">بوابة المؤسسات</button>
+    <button class="btn-cta" onclick="location.href='register.html'">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      ابدأ مجاناً
+    </button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge"><span class="badge-dot"></span>منصة التحقق الرقمي الأولى في مصر والوطن العربي</div>
+  <h1 class="hero-h1">الثقة تبدأ من<br><span class="accent">شهادتك</span></h1>
+  <p class="hero-sub1">امتلك سجلًا رقميًا لشهادتك، واحمِ مستقبلك.</p>
+  <p class="hero-sub2">منصة رقمية للتحقق من الشهادات الأكاديمية والمهنية، بسرعة وأمان.</p>
+  <div class="search-outer">
+    <div class="search-card">
+      <div class="s-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>
+      <input class="s-inp" id="sInp" placeholder="أدخل رقم الشهادة للتحقق الفوري..." onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="qr-btn" id="qrBtn" onclick="toggleScanner()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><rect x="19" y="14" width="2" height="2"/><rect x="14" y="19" width="2" height="2"/><rect x="18" y="18" width="3" height="3"/></svg>
+      </button>
+      <button class="s-btn" onclick="doSearch()">تحقق الآن</button>
+    </div>
+  </div>
+  <div class="s-hint">مثال: <code>SHD-2024-00123</code> — أو اضغط QR لتشغيل الكاميرا</div>
+  <div class="scanner-wrap" id="scannerWrap">
+    <div class="scanner-box">
+      <video class="cam" id="camFeed" autoplay playsinline muted></video>
+      <div class="scan-ov"><div class="scan-frame"><div class="scan-border"></div><div class="corner c-tl"></div><div class="corner c-tr"></div><div class="corner c-bl"></div><div class="corner c-br"></div><div class="laser"></div></div></div>
+      <div class="scan-label"><span class="scan-dot"></span>جاري المسح — وجّه الكاميرا نحو QR Code</div>
+    </div>
+    <button class="scan-close" onclick="toggleScanner()">✕ إغلاق الكاميرا</button>
+  </div>
+  <div class="result-wrap" id="resultWrap"></div>
+  <div class="stats-row">
+    <div class="stat"><span class="sn"><span>+</span>5,000</span><span class="sl">مؤسسة معتمدة</span></div>
+    <div class="stat"><span class="sn"><span>+</span>1,000,000</span><span class="sl">شهادة مسجلة</span></div>
+    <div class="stat"><span class="sn">99.9<span>%</span></span><span class="sl">دقة التحقق</span></div>
+    <div class="stat"><span class="sn"><span>&lt;</span>3ث</span><span class="sl">وقت التحقق</span></div>
+  </div>
+</section>
+
+<!-- WHY -->
+<section class="sec bg" id="why">
+  <div style="text-align:center">
+    <div class="sec-tag">✅ لماذا شهادتي؟</div>
+    <h2 class="sec-title">منصة واحدة — <em>حلول لكل طرف</em></h2>
+    <p class="sec-sub" style="margin:0 auto 44px">شهادتي مش بس للمراكز التدريبية — هي منظومة متكاملة للجهة التدريبية والخريج والشركات</p>
+  </div>
+  <div class="tabs-wrap">
+    <button class="tab active" onclick="showTab('training',this)"><span>🏫</span> للجهة التدريبية</button>
+    <button class="tab" onclick="showTab('graduate',this)"><span>🎓</span> للخريج</button>
+    <button class="tab" onclick="showTab('company',this)"><span>🏢</span> للشركات والمستشفيات</button>
+  </div>
+  <div class="why-cards active" id="tab-training">
+    <div class="wc wc1"><span class="card-emoji">⚡</span><div class="card-title">تحقق فوري في ثوانٍ</div><div class="card-desc">أي شركة أو مستشفى تقدر تتحقق من شهادة موظفك بضغطة واحدة — من غير مكالمات ولا انتظار.</div></div>
+    <div class="wc wc2"><span class="card-emoji">📊</span><div class="card-title">رفع Excel بدل الإدخال اليدوي</div><div class="card-desc">ارفع كل شهاداتك مرة واحدة بملف Excel — المنصة بتنظمها وتنشرها أوتوماتيك.</div></div>
+    <div class="wc wc3"><span class="card-emoji">🎛️</span><div class="card-title">لوحة تحكم كاملة</div><div class="card-desc">تتابع كل شهاداتك، تعدل، توقف، أو تجدد — كل ده من مكان واحد في أي وقت.</div></div>
+    <div class="wc wc4"><span class="card-emoji">📈</span><div class="card-title">تقارير وإحصائيات</div><div class="card-desc">شوف كام مرة اتحقق من شهاداتك — أنهي دفعة الأكثر طلباً في سوق الشغل.</div></div>
+    <div class="wc wc5"><span class="card-emoji">🎨</span><div class="card-title">شهادات بتصميمك</div><div class="card-desc">تصميم الشهادة بالهوية البصرية لمركزك — مش template جاهز للكل.</div></div>
+    <div class="wc wc6"><span class="card-emoji">🔒</span><div class="card-title">حماية من التزوير</div><div class="card-desc">كل شهادة ليها رقم تسلسلي موثق — أي شهادة مزورة بتنكشف فوراً.</div></div>
+  </div>
+  <div class="why-cards" id="tab-graduate">
+    <div class="wc wc1"><span class="card-emoji">📱</span><div class="card-title">QR Code لكل شهادة</div><div class="card-desc">كل شهادة ليها QR خاص بيها — يتطبع على الشهادة الورقية وبيوصل للتحقق في ثانية.</div></div>
+    <div class="wc wc2"><span class="card-emoji">🏆</span><div class="card-title">ملف رقمي للخريج</div><div class="card-desc">كل خريج عنده بروفايل موثق بكل شهاداته — يشاركه في CV أو LinkedIn بضغطة.</div></div>
+    <div class="wc wc3"><span class="card-emoji">📲</span><div class="card-title">مشاركة فورية على WhatsApp</div><div class="card-desc">الخريج يبعت شهادته الموثقة لأي جهة بضغطة — من موبايله على طول.</div></div>
+    <div class="wc wc4"><span class="card-emoji">💼</span><div class="card-title">بوابة توظيف للخريجين</div><div class="card-desc">شركات ومستشفيات بتدور على كوادر مؤهلة — خريجينك بيظهروا مباشرة في نتائج البحث.</div></div>
+  </div>
+  <div class="why-cards" id="tab-company">
+    <div class="wc wc1"><span class="card-emoji">🔍</span><div class="card-title">محرك بحث للشركات</div><div class="card-desc">شركات التوظيف والمستشفيات تقدر تبحث عن خريجينك مباشرة — شهادتك بتتسوق نفسها.</div></div>
+    <div class="wc wc2"><span class="card-emoji">📋</span><div class="card-title">تقرير دفعي</div><div class="card-desc">تتحقق من 50 موظف دفعة واحدة بملف Excel — مش واحد واحد.</div></div>
+    <div class="wc wc3"><span class="card-emoji">⏰</span><div class="card-title">تحقق على مدار الساعة</div><div class="card-desc">مش محتاج تتصل بالمركز في ساعات العمل — المنصة شغالة 24/7.</div></div>
+    <div class="wc wc4"><span class="card-emoji">📣</span><div class="card-title">إشعار تلقائي للشركات</div><div class="card-desc">لما تضيف دفعة جديدة، الشركات المشتركة في مجالك بتتبلغ أوتوماتيك.</div></div>
+    <div class="wc wc5"><span class="card-emoji">🔗</span><div class="card-title">API للمستشفيات والشركات</div><div class="card-desc">ربط مباشر مع أنظمة HR — التحقق من الشهادات بيحصل جوه نظامهم.</div></div>
+    <div class="wc wc6"><span class="card-emoji">🛠️</span><div class="card-title">دعم فني مخصص</div><div class="card-desc">فريق دعم متاح يساعدك في الإعداد والتشغيل — مش بتتركك تشتغل لوحدك.</div></div>
+  </div>
+</section>
+
+<!-- SECTORS -->
+<section class="sec" id="sectors">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:44px;flex-wrap:wrap;gap:16px">
+    <div><div class="sec-tag">🏢 القطاعات</div><h2 class="sec-title" style="margin-bottom:0">نخدم <em>كل المؤسسات</em></h2></div>
+  </div>
+  <div class="sectors-grid">
+    <div class="sector"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1562774053-701939374585?w=400&q=80" alt="جامعات"><div class="sector-badge" style="background:rgba(3,105,161,0.85);color:#fff">+500 جامعة</div></div><div class="sector-body"><div class="sector-name">الجامعات والكليات</div><div class="sector-desc">شهادات الدرجات العلمية والدبلومات الأكاديمية المعتمدة</div></div></div>
+    <div class="sector"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=400&q=80" alt="مراكز تدريب"><div class="sector-badge" style="background:rgba(176,141,72,0.9);color:#fff">+3,000 مركز</div></div><div class="sector-body"><div class="sector-name">مراكز التدريب</div><div class="sector-desc">شهادات الدورات المهنية والتدريبية المتخصصة</div></div></div>
+    <div class="sector"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=400&q=80" alt="مدارس"><div class="sector-badge" style="background:rgba(5,150,105,0.85);color:#fff">+1,000 مدرسة</div></div><div class="sector-body"><div class="sector-name">المدارس</div><div class="sector-desc">شهادات التميز والتخرج وشهادات الأنشطة الطلابية</div></div></div>
+    <div class="sector"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1509062522246-3755977927d7?w=400&q=80" alt="معاهد"><div class="sector-badge" style="background:rgba(124,58,237,0.85);color:#fff">+500 معهد</div></div><div class="sector-body"><div class="sector-name">المعاهد العلمية</div><div class="sector-desc">البرامج الأكاديمية والشهادات المهنية المعتمدة</div></div></div>
+    <div class="sector"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400&q=80" alt="مستشفيات"><div class="sector-badge" style="background:rgba(225,29,72,0.85);color:#fff">+200 مستشفى</div></div><div class="sector-body"><div class="sector-name">المستشفيات</div><div class="sector-desc">شهادات الكوادر الطبية والتمريضية والتحقق من مؤهلاتهم</div></div></div>
+    <div class="sector"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1459865264687-595d652de67e?w=400&q=80" alt="نوادي"><div class="sector-badge" style="background:rgba(217,119,6,0.9);color:#fff">+300 نادي</div></div><div class="sector-body"><div class="sector-name">النوادي الرياضية</div><div class="sector-desc">شهادات المدربين والمحكمين وإجازات الاتحادات الرياضية</div></div></div>
+    <div class="sector"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1593113598332-cd288d649433?w=400&q=80" alt="جمعيات"><div class="sector-badge" style="background:rgba(8,145,178,0.85);color:#fff">+150 جمعية</div></div><div class="sector-body"><div class="sector-name">الجمعيات والمنظمات</div><div class="sector-desc">شهادات التطوع والعضوية وبرامج التأهيل المجتمعي</div></div></div>
+    <div class="sector"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1565514020179-026b92b84bb6?w=400&q=80" alt="مصانع"><div class="sector-badge" style="background:rgba(109,40,217,0.85);color:#fff">+100 مصنع</div></div><div class="sector-body"><div class="sector-name">المصانع المتطورة</div><div class="sector-desc">شهادات السلامة الصناعية والتدريب التقني المتخصص</div></div></div>
+  </div>
+  <div class="strip">
+    <div><h3>قطاعك مش في القائمة؟</h3><p>شهادتي تدعم أي جهة بتصدر شهادات — تواصل معنا ونعمل لك حل مخصص</p></div>
+    <div class="strip-stats">
+      <div class="strip-stat"><span class="strip-val"><em>+</em>8</span><span class="strip-lbl">قطاعات مدعومة</span></div>
+      <div class="strip-div"></div>
+      <div class="strip-stat"><span class="strip-val"><em>+</em>5,000</span><span class="strip-lbl">مؤسسة معتمدة</span></div>
+      <div class="strip-div"></div>
+      <div class="strip-stat"><span class="strip-val"><em>+</em>1M</span><span class="strip-lbl">شهادة مسجلة</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- PACKAGES -->
+<section class="sec bg" id="packages">
+  <div style="text-align:center">
+    <div class="sec-tag">💳 الباقات والأسعار</div>
+    <h2 class="sec-title">اختر الباقة <em>المناسبة لمؤسستك</em></h2>
+    <p class="sec-sub" style="margin:0 auto 32px">حلول مرنة تناسب جميع المؤسسات — من المركز الصغير للوزارات الكبيرة</p>
+    <div class="toggle-wrap">
+      <button class="tog active" onclick="setBilling('monthly',this)">شهري</button>
+      <button class="tog" onclick="setBilling('yearly',this)">سنوي <span class="save-badge">وفر 25%</span></button>
+    </div>
+  </div>
+  <div class="pkg-grid">
+    <div class="pkg">
+      <div class="pkg-icon" style="background:#f1f5f9">⏳</div><div class="pkg-name" style="color:#64748b">تجريبية</div><div class="pkg-tag">جرب بدون التزام</div>
+      <div class="price-block"><div class="orig">&nbsp;</div><div class="pkg-price"><sup>ج</sup>0</div><div class="pkg-period">14 يوم</div></div>
+      <div class="pkg-quota"><span class="pq-num" style="color:#64748b">10</span><span class="pq-lbl">شهادة</span></div>
+      <div class="pkg-div"></div>
+      <div class="pf"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>تحقق رقمي</div>
+      <div class="pf"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>QR Code</div>
+      <div class="pf no"><svg viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>رفع Excel</div>
+      <button class="pkg-btn out" onclick="location.href='register.html'">ابدأ مجاناً</button>
+    </div>
+    <div class="pkg">
+      <div class="pkg-icon" style="background:#fef9ee">🚀</div><div class="pkg-name" style="color:#92400e">أساسية</div><div class="pkg-tag">للبداية القوية</div>
+      <div class="price-block">
+        <div class="orig monthly">&nbsp;</div><div class="orig yearly" style="display:none">1,500 ج</div>
+        <div class="disc yearly">وفر 25%</div>
+        <div class="pkg-price monthly"><sup>ج</sup>125</div><div class="pkg-period monthly-p">جنيه / شهر</div>
+        <div class="pkg-price yearly" style="display:none"><sup>ج</sup>1,125</div><div class="pkg-period yearly-p" style="display:none">جنيه / سنة</div>
+      </div>
+      <div class="pkg-quota"><span class="pq-num" style="color:#92400e">100</span><span class="pq-lbl">شهادة / سنة</span></div>
+      <div class="pkg-div"></div>
+      <div class="pf"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>QR لكل شهادة</div>
+      <div class="pf"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>لوحة تحكم</div>
+      <div class="pf no"><svg viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>رفع Excel</div>
+      <button class="pkg-btn fill" style="background:#92400e" onclick="location.href='register.html'">اشترك الآن</button>
+    </div>
+    <div class="pkg feat">
+      <div class="pkg-ribbon" style="background:#0369a1">⭐ الأكثر طلباً</div>
+      <div class="pkg-icon" style="background:#fff7ed;margin-top:14px">🏅</div><div class="pkg-name" style="color:#b45309">برونزية</div><div class="pkg-tag">للمؤسسات المتنامية</div>
+      <div class="price-block">
+        <div class="orig monthly">&nbsp;</div><div class="orig yearly" style="display:none">3,996 ج</div>
+        <div class="disc yearly">وفر 25%</div>
+        <div class="pkg-price monthly"><sup>ج</sup>333</div><div class="pkg-period monthly-p">جنيه / شهر</div>
+        <div class="pkg-price yearly" style="display:none"><sup>ج</sup>2,997</div><div class="pkg-period yearly-p" style="display:none">جنيه / سنة</div>
+      </div>
+      <div class="pkg-quota"><span class="pq-num" style="color:#b45309">500</span><span class="pq-lbl">شهادة / سنة</span></div>
+      <div class="pkg-div"></div>
+      <div class="pf"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>رفع Excel</div>
+      <div class="pf"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>3 مستخدمين</div>
+      <div class="pf"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>دعم أولوية</div>
+      <button class="pkg-btn fill" onclick="location.href='register.html'">اشترك الآن</button>
+    </div>
+    <div class="pkg">
+      <div class="pkg-icon" style="background:#f8fafc">💎</div><div class="pkg-name" style="color:#475569">فضية</div><div class="pkg-tag">للمؤسسات المتقدمة</div>
+      <div class="price-block">
+        <div class="orig monthly">&nbsp;</div><div class="orig yearly" style="display:none">8,004 ج</div>
+        <div class="disc yearly">وفر 25%</div>
+        <div class="pkg-price monthly"><sup>ج</sup>667</div><div class="pkg-period monthly-p">جنيه / شهر</div>
+        <div class="pkg-price yearly" style="display:none"><sup>ج</sup>6,003</div><div class="pkg-period yearly-p" style="display:none">جنيه / سنة</div>
+      </div>
+      <div class="pkg-quota"><span class="pq-num" style="color:#475569">2,000</span><span class="pq-lbl">شهادة / سنة</span></div>
+      <div class="pkg-div"></div>
+      <div class="pf"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>10 مستخدمين</div>
+      <div class="pf"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>تقارير متقدمة</div>
+      <div class="pf"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>تخصيص جزئي</div>
+      <button class="pkg-btn fill" style="background:#475569" onclick="location.href='register.html'">اشترك الآن</button>
+    </div>
+    <div class="pkg gold-pkg">
+      <div class="pkg-ribbon" style="background:linear-gradient(135deg,#b08d48,#c9a227)">👑 للكبرى</div>
+      <div class="pkg-icon" style="background:#fef9ee;margin-top:14px">🏆</div><div class="pkg-name" style="color:#b08d48">ذهبية</div><div class="pkg-tag">للمؤسسات الكبيرة</div>
+      <div class="price-block">
+        <div class="orig monthly">&nbsp;</div><div class="orig yearly" style="display:none">14,988 ج</div>
+        <div class="disc yearly">وفر 25%</div>
+        <div class="pkg-price monthly"><sup>ج</sup>1,249</div><div class="pkg-period monthly-p">جنيه / شهر</div>
+        <div class="pkg-price yearly" style="display:none"><sup>ج</sup>11,241</div><div class="pkg-period yearly-p" style="display:none">جنيه / سنة</div>
+      </div>
+      <div class="pkg-quota"><span class="pq-num" style="color:#b08d48">6,000</span><span class="pq-lbl">شهادة / سنة</span></div>
+      <div class="pkg-div"></div>
+      <div class="pf"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>غير محدود</div>
+      <div class="pf"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>API كامل</div>
+      <div class="pf"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>دعم VIP</div>
+      <button class="pkg-btn gld" onclick="location.href='register.html'">اشترك الآن</button>
+    </div>
+    <div class="pkg ent">
+      <div class="pkg-ribbon" style="background:linear-gradient(135deg,#fde68a,#b08d48);color:#0c2d4e">🏛️ Enterprise</div>
+      <div class="pkg-icon" style="background:rgba(255,255,255,0.1);margin-top:14px">🏛️</div>
+      <div class="pkg-name">مؤسسات</div><div class="pkg-tag">للجامعات والوزارات</div>
+      <div class="price-block"><div class="orig">&nbsp;</div><div class="pkg-price" style="font-size:15px;color:#fde68a">تواصل معنا</div><div class="pkg-period">سعر مخصص</div></div>
+      <div class="pkg-quota" style="background:rgba(255,255,255,0.08)"><span class="pq-num" style="color:#fde68a">∞</span><span class="pq-lbl" style="color:rgba(255,255,255,0.4)">شهادات غير محدودة</span></div>
+      <div class="pkg-div"></div>
+      <div class="pf"><svg viewBox="0 0 24 24" style="stroke:#fde68a"><path d="M5 13l4 4L19 7"/></svg>كل مميزات الذهبية</div>
+      <div class="pf"><svg viewBox="0 0 24 24" style="stroke:#fde68a"><path d="M5 13l4 4L19 7"/></svg>SLA مضمون</div>
+      <div class="pf"><svg viewBox="0 0 24 24" style="stroke:#fde68a"><path d="M5 13l4 4L19 7"/></svg>مدير حساب خاص</div>
+      <button class="pkg-btn ent-btn">تواصل معنا</button>
+    </div>
+  </div>
+  <div style="text-align:center;margin-bottom:20px">
+    <h3 style="font-size:20px;font-weight:800;color:var(--navy);margin-bottom:6px">رصيد شهادات إضافي</h3>
+    <p style="font-size:13px;color:var(--muted)">اشترِ رصيداً إضافياً في أي وقت دون الحاجة لترقية الباقة</p>
+  </div>
+  <div class="addons-grid">
+    <div class="addon"><div class="addon-icon" style="background:#f0f9ff">➕</div><div><div class="addon-name">+100 شهادة</div><div class="addon-price">600 جنيه</div><div class="addon-qty">6 جنيه / شهادة</div></div></div>
+    <div class="addon"><div class="addon-icon" style="background:#f0f9ff">➕</div><div><div class="addon-name">+500 شهادة</div><div class="addon-price">2,500 جنيه</div><div class="addon-qty">5 جنيه / شهادة</div></div></div>
+    <div class="addon"><div class="addon-icon" style="background:#fef9ee">⭐</div><div><div class="addon-name">+1,000 شهادة</div><div class="addon-price">4,500 جنيه</div><div class="addon-qty">4.5 جنيه / شهادة</div></div></div>
+    <div class="addon"><div class="addon-icon" style="background:#fef9ee">👑</div><div><div class="addon-name">+3,000 شهادة</div><div class="addon-price">10,500 جنيه</div><div class="addon-qty">3.5 جنيه / شهادة</div></div></div>
+  </div>
+  <div class="cta-strip">
+    <div><h3>مش متأكد من الباقة المناسبة؟</h3><p>تحدث مع فريقنا وهيساعدك تختار الباقة الأنسب لمؤسستك — مجاناً</p></div>
+    <div class="cta-strip-btns"><button class="cs1" onclick="location.href='register.html'">ابدأ تجربة مجانية</button><button class="cs2">تحدث مع فريقنا</button></div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="sec" id="testimonials">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:16px">
+    <div><div class="sec-tag">💬 آراء عملائنا</div><h2 class="sec-title">ماذا يقول <em>مستخدمو المنصة</em></h2><p class="sec-sub">آراء حقيقية من خريجين ومتخصصي موارد بشرية ومدربين ومراكز تدريب</p></div>
+    <div class="stats-mini"><div class="sm"><span class="sm-val">4.9</span><span class="sm-lbl">متوسط التقييم</span></div><div class="sm"><span class="sm-val">+5K</span><span class="sm-lbl">مؤسسة</span></div><div class="sm"><span class="sm-val">99%</span><span class="sm-lbl">رضا العملاء</span></div></div>
+  </div>
+  <div class="f-tabs">
+    <button class="f-tab active" onclick="filterTs('all',this)">الكل</button>
+    <button class="f-tab" onclick="filterTs('graduate',this)">🎓 خريجون</button>
+    <button class="f-tab" onclick="filterTs('hr',this)">💼 موارد بشرية</button>
+    <button class="f-tab" onclick="filterTs('trainer',this)">📚 مدربون</button>
+    <button class="f-tab" onclick="filterTs('center',this)">🏫 مراكز التدريب</button>
+  </div>
+  <div class="ts-grid" id="tsGrid"></div>
+  <div class="pg" id="tsPg"></div>
+</section>
+
+<!-- FAQ -->
+<section class="sec bg" id="faq">
+  <div style="text-align:center;margin-bottom:40px">
+    <div class="sec-tag">❓ الأسئلة الشائعة</div>
+    <h2 class="sec-title">عندك سؤال؟ <em>عندنا إجابة</em></h2>
+    <p class="sec-sub" style="margin:0 auto">اختر الفئة المناسبة لك واقرأ إجابات الأسئلة الأكثر شيوعًا</p>
+  </div>
+  <div class="faq-tabs">
+    <div class="faq-tab active" onclick="switchFaq('graduate',this)"><span class="faq-tab-icon">🎓</span><span class="faq-tab-name">للخريج</span><span class="faq-tab-desc">التحقق من شهادتك</span></div>
+    <div class="faq-tab" onclick="switchFaq('institution',this)"><span class="faq-tab-icon">🏢</span><span class="faq-tab-name">للمؤسسات</span><span class="faq-tab-desc">إصدار الشهادات</span></div>
+    <div class="faq-tab" onclick="switchFaq('verify',this)"><span class="faq-tab-icon">🔎</span><span class="faq-tab-name">للتحقق</span><span class="faq-tab-desc">للشركات وجهات العمل</span></div>
+  </div>
+  <div class="faq-layout">
+    <div class="faq-list" id="faqList"></div>
+    <div class="contact-box" id="contact">
+      <h3>مش لاقي إجابتك؟</h3>
+      <p>فريقنا جاهز يساعدك في أي وقت — اختار الطريقة الأنسب ليك</p>
+      <div class="c-opts">
+        <div class="c-opt"><div class="c-opt-icon" style="background:#f0f9ff">💬</div><div><div class="c-opt-name">محادثة مباشرة</div><div class="c-opt-desc">رد فوري خلال دقائق</div></div></div>
+        <div class="c-opt"><div class="c-opt-icon" style="background:#f0fdf4">📱</div><div><div class="c-opt-name">واتساب</div><div class="c-opt-desc">تواصل من موبايلك</div></div></div>
+        <div class="c-opt"><div class="c-opt-icon" style="background:#fef9ee">📧</div><div><div class="c-opt-name">بريد إلكتروني</div><div class="c-opt-desc">رد خلال ساعة</div></div></div>
+      </div>
+      <button class="c-btn">💬 تحدث مع فريقنا الآن</button>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-sec">
+  <div class="cta-badge"><span class="cta-dot"></span>ابدأ مجاناً — بدون بطاقة ائتمانية</div>
+  <h2 class="cta-title">مستعد تنضم لشبكة<br><em>شهادتي؟</em></h2>
+  <p class="cta-sub">انضم لآلاف المؤسسات التي تثق في شهادتي لتوثيق شهادات خريجيها وحماية مستقبلهم</p>
+  <div class="cta-btns">
+    <button class="cb1" onclick="location.href='register.html'">ابدأ تجربتك المجانية الآن</button>
+    <button class="cb2">تحدث مع فريقنا</button>
+  </div>
+  <div class="cta-note">✓ 14 يوم مجاناً &nbsp;·&nbsp; ✓ بدون بطاقة ائتمانية &nbsp;·&nbsp; ✓ إلغاء في أي وقت</div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="foot-top">
+    <div>
+      <div class="foot-logo-wrap">
+        <img src="logo.png" class="foot-logo" alt="شهادتي" onerror="this.style.display='none'">
+        <div><div class="foot-brand-name">شهادتي</div><div class="foot-brand-sub">CERTIFICATE VERIFICATION</div></div>
+      </div>
+      <p class="foot-desc">منصة التحقق الرقمي الموحد من الشهادات الأكاديمية والمهنية — موثوقة من آلاف المؤسسات في مصر والوطن العربي.</p>
+      <div class="foot-social"><div class="soc">📘</div><div class="soc">📸</div><div class="soc">▶️</div><div class="soc">💼</div></div>
+    </div>
+    <div class="foot-col"><h5>المنصة</h5><a class="foot-link" href="#why">المميزات</a><a class="foot-link" href="#packages">الباقات</a><a class="foot-link" href="#sectors">القطاعات</a><a class="foot-link" href="#">المدونة <span class="fnew">جديد</span></a></div>
+    <div class="foot-col"><h5>الخدمات</h5><a class="foot-link" href="institution.html">بوابة المؤسسات</a><a class="foot-link" href="verify.html">تحقق من شهادة</a><a class="foot-link" href="talent.html">للشركات</a><a class="foot-link" href="graduate.html">ملفي الرقمي</a><a class="foot-link" href="#">API <span class="fsoon">قريباً</span></a></div>
+    <div class="foot-col"><h5>الشركة</h5><a class="foot-link" href="#">من نحن</a><a class="foot-link" href="#">فريق العمل</a><a class="foot-link" href="#">الشراكات</a><a class="foot-link" href="#">وظائف <span class="fnew">نوظّف</span></a></div>
+    <div class="foot-col"><h5>الدعم</h5><a class="foot-link" href="#faq">الأسئلة الشائعة</a><a class="foot-link" href="#">دليل الاستخدام</a><a class="foot-link" href="#">سياسة الخصوصية</a><a class="foot-link" href="#">شروط الاستخدام</a></div>
+  </div>
+  <div class="foot-div"></div>
+  <div class="foot-bottom">
+    <div class="foot-copy">© 2025 شهادتي — جميع الحقوق محفوظة</div>
+    <div style="display:flex;gap:6px;font-size:11px;color:rgba(255,255,255,0.3)"><span style="cursor:pointer">🇪🇬 العربية</span><span style="color:rgba(255,255,255,0.15)">|</span><span style="cursor:pointer">🇬🇧 English</span></div>
+    <div class="foot-links"><a class="fl" href="#">سياسة الخصوصية</a><a class="fl" href="#">شروط الاستخدام</a></div>
+  </div>
+</footer>
+
+<script>
+const SU='https://snteiiavvaaumgaegazn.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
+const sb=supabase.createClient(SU,SK);
+async function loadPublicStats(){const{data}=await sb.rpc('public_platform_stats');const r=Array.isArray(data)?data[0]:data;if(!r)return;document.getElementById('publicInstCount').textContent='+'+Number(r.institutions_count||0).toLocaleString('ar-EG');document.getElementById('publicCertCount').textContent='+'+Number(r.certificates_count||0).toLocaleString('ar-EG');document.getElementById('publicVerifyCount').textContent='+'+Number(r.verifications_count||0).toLocaleString('ar-EG');}
+loadPublicStats();
+let camStream=null;
+
+async function doSearch(){
+  const q=document.getElementById('sInp').value.trim();
+  if(!q)return;
+  if(camStream)toggleScanner();
+  const rw=document.getElementById('resultWrap');
+  rw.innerHTML='<div style="padding:28px;text-align:center"><div class="spin" style="margin:0 auto 12px"></div><div style="font-size:14px;color:#64748b;font-weight:600">جاري التحقق...</div></div>';
+  const{data:verifyData,error}=await sb.rpc('verify_certificate',{p_cert_number:q});
+  const cert=Array.isArray(verifyData)?verifyData[0]:verifyData;
+  if(error||!cert){
+    rw.innerHTML='<div class="res-err"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" style="display:block;margin:0 auto 14px"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg><h3 style="font-size:19px;font-weight:900;color:#dc2626;margin-bottom:8px">لم يتم العثور على الشهادة</h3><p style="font-size:13px;color:#64748b;line-height:1.7;margin-bottom:16px">تأكد من الرقم وحاول مجدداً.</p><button onclick="document.getElementById(\'resultWrap\').innerHTML=\'\';document.getElementById(\'sInp\').value=\'\'" style="background:#f0f9ff;color:#0369a1;font-size:13px;font-weight:700;padding:10px 24px;border-radius:10px;border:1.5px solid #bae6fd;cursor:pointer;font-family:Cairo,sans-serif">← بحث جديد</button></div>';
+    return;
+  }
+  const data=cert;
+  if(data.status!=='active'){
+    rw.innerHTML='<div class="res-err"><h3>الشهادة غير سارية</h3><p>حالة الشهادة الحالية: '+data.status+'</p></div>';return;
+  }
+  const date=new Date(data.issue_date).toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});
+  rw.innerHTML=`<div class="res-ok"><div class="res-head"><div class="res-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg></div><div><div class="res-title">✓ شهادة موثقة وصالحة</div><div class="res-num">${data.cert_number}</div></div></div><div class="res-body"><div class="res-grid"><div class="res-cell"><div class="res-lbl">اسم الطالب</div><div class="res-val">${data.student_name}</div></div><div class="res-cell"><div class="res-lbl">الدورة</div><div class="res-val">${data.course}</div></div><div class="res-cell"><div class="res-lbl">التقدير</div><div class="res-val">${data.grade||'ناجح'}</div></div><div class="res-cell"><div class="res-lbl">تاريخ الإصدار</div><div class="res-val">${date}</div></div><div class="res-cell"><div class="res-lbl">المؤسسة</div><div class="res-val">${data.institution_name||'—'}</div></div><div class="res-cell"><div class="res-lbl">رقم الشهادة</div><div class="res-val" style="font-size:11px;font-family:monospace">${data.cert_number}</div></div></div><div class="res-btns"><a href="certificate.html?id=${data.cert_number}" class="rb1" target="_blank"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>عرض الشهادة</a><button class="rb2" onclick="document.getElementById('resultWrap').innerHTML='';document.getElementById('sInp').value=''">← بحث جديد</button></div></div></div>`;
+}
+
+function toggleScanner(){
+  const w=document.getElementById('scannerWrap'),btn=document.getElementById('qrBtn');
+  if(w.classList.contains('show')){
+    w.classList.remove('show');btn.classList.remove('on');
+    if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+  } else {
+    w.classList.add('show');btn.classList.add('on');
+    document.getElementById('resultWrap').innerHTML='';
+    navigator.mediaDevices?.getUserMedia({video:{facingMode:'environment'}})
+    .then(s=>{camStream=s;document.getElementById('camFeed').srcObject=s;}).catch(()=>{});
+  }
+}
+
+function showTab(name,el){
+  document.querySelectorAll('.why-cards').forEach(c=>c.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active','gold','green'));
+  document.getElementById('tab-'+name).classList.add('active');
+  el.classList.add('active');
+  if(name==='graduate')el.classList.add('gold');
+  if(name==='company')el.classList.add('green');
+}
+
+function setBilling(mode,el){
+  document.querySelectorAll('.tog').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const m=mode==='monthly';
+  document.querySelectorAll('.pkg-price.monthly,.pkg-period.monthly-p,.orig.monthly').forEach(e=>e.style.display=m?'block':'none');
+  document.querySelectorAll('.pkg-price.yearly,.pkg-period.yearly-p,.orig.yearly').forEach(e=>e.style.display=m?'none':'block');
+  document.querySelectorAll('.disc.yearly').forEach(e=>e.style.display=m?'none':'inline-block');
+  document.querySelectorAll('.pkg-price').forEach(e=>{if(e.style.display==='block')e.style.display='flex';});
+}
+
+const tsAll=[
+  {n:'أحمد محمود',r:'خريج',t:'graduate',c:'#0369a1',q:'وجود سجل رقمي للشهادة خلاني أقدر أوصل لبياناتها بسهولة بدل ما أفضل أدور في المستندات الورقية.',f:true},
+  {n:'سارة محمد',r:'خريجة',t:'graduate',c:'#0284c7',q:'فكرة التحقق الرقمي بسيطة ومريحة، خصوصًا لما أحتاج أثبت بيانات شهادتي بسرعة.'},
+  {n:'محمد سامي',r:'مسؤول موارد بشرية',t:'hr',c:'#059669',q:'الوصول إلى بيانات الشهادة والتحقق منها بشكل رقمي يوفر وقتًا كبيرًا أثناء مراجعة ملفات المتقدمين.'},
+  {n:'دينا أحمد',r:'أخصائية موارد بشرية',t:'hr',c:'#6d28d9',q:'بدل الاعتماد على المستندات الورقية فقط، أصبح لدينا طريقة رقمية أكثر سهولة لمراجعة بيانات الشهادة.'},
+  {n:'د. أحمد محمود',r:'مدرب أكاديمي',t:'trainer',c:'#b08d48',q:'وجود سجل رقمي للشهادة يساعد على تنظيم بيانات الخريجين والوصول إليها بسهولة.'},
+  {n:'د. سارة حسن',r:'مدربة',t:'trainer',c:'#d97706',q:'المنصة تجمع بين سهولة الاستخدام وفكرة عملية يحتاجها الخريج والجهة التي تراجع شهادته.'},
+  {n:'هشام عبدالله',r:'مدير مركز تدريب',t:'center',c:'#0369a1',q:'شهادتي وفّرت علينا وقتًا وجهدًا كبيرًا في إدارة شهادات الخريجين — كل حاجة بقت رقمية.'},
+  {n:'نادية حسن',r:'مديرة أكاديمية',t:'center',c:'#059669',q:'الرفع الجماعي بـ Excel غيّر طريقة شغلنا تمامًا — بنرفع شهادات دفعة كاملة في دقائق.'},
+  {n:'طارق محمود',r:'مسؤول التدريب',t:'center',c:'#b08d48',q:'المنصة خلّت الشركات تتحقق من شهادات خريجينا بسهولة — ده رفع ثقتهم في مستوى التدريب عندنا.'},
+  {n:'عمر خالد',r:'متدرب',t:'graduate',c:'#0891b2',q:'وجود QR مرتبط بالشهادة بيدي طريقة عملية وسريعة للوصول إلى بياناتها.'},
+  {n:'خالد محمد',r:'مدير موارد بشرية',t:'hr',c:'#e11d48',q:'التحول الرقمي في إدارة الشهادات أصبح ضرورة، والمنصة تقدم تجربة سهلة للمستخدم.'},
+  {n:'إيمان سالم',r:'مديرة مركز تعليمي',t:'center',c:'#7c3aed',q:'لوحة التحكم بتديني صورة كاملة عن كل الشهادات الصادرة — أقدر أتابع وأعدّل في أي وقت.'},
+];
+const tsTypes={graduate:{l:'خريج/ة',bg:'#eff6ff',c:'#0369a1'},hr:{l:'موارد بشرية',bg:'#f0fdf4',c:'#059669'},trainer:{l:'مدرب أكاديمي',bg:'#fef9ee',c:'#b08d48'},center:{l:'مركز تدريب',bg:'#fdf4ff',c:'#7c3aed'}};
+let tsCur=tsAll,tsPage=0,tsPerPage=6;
+function tsInits(n){return n.replace('د. ','').split(' ').slice(0,2).map(w=>w[0]).join('');}
+function renderTs(){
+  const slice=tsCur.slice(tsPage*tsPerPage,(tsPage+1)*tsPerPage);
+  document.getElementById('tsGrid').innerHTML=slice.map((t,i)=>`<div class="ts-card ${t.f&&tsPage===0&&i===0?'feat':''}"><span class="qm">"</span><div class="ts-stars">★★★★★</div><div class="ts-quote">${t.q}</div><div class="ts-sep"></div><div class="ts-author"><div class="ts-av" style="background:${t.c}">${tsInits(t.n)}</div><div><div class="ts-name">${t.n}</div><div class="ts-role">${t.r}</div><span class="ts-type" style="background:${tsTypes[t.t].bg};color:${tsTypes[t.t].c}">${tsTypes[t.t].l}</span></div></div></div>`).join('');
+  const pages=Math.ceil(tsCur.length/tsPerPage);
+  const pg=document.getElementById('tsPg');
+  if(pages<=1){pg.innerHTML='';return;}
+  let h=`<button class="pg-btn" onclick="tsGo(${tsPage-1})" ${tsPage===0?'style="opacity:.3;pointer-events:none"':''}>›</button>`;
+  for(let i=0;i<pages;i++)h+=`<div class="pg-dot ${i===tsPage?'active':''}" onclick="tsGo(${i})"></div>`;
+  h+=`<button class="pg-btn" onclick="tsGo(${tsPage+1})" ${tsPage===pages-1?'style="opacity:.3;pointer-events:none"':''}>‹</button>`;
+  pg.innerHTML=h;
+}
+function tsGo(p){if(p<0||p>=Math.ceil(tsCur.length/tsPerPage))return;tsPage=p;renderTs();}
+function filterTs(type,el){
+  document.querySelectorAll('.f-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  tsCur=type==='all'?tsAll:tsAll.filter(t=>t.t===type);
+  tsPage=0;renderTs();
+}
+
+const faqs={
+  graduate:[
+    {q:'كيف أتحقق من شهادتي؟',a:'أدخل رقم الشهادة في صندوق البحث أو استخدم رمز QR المطبوع على شهادتك — ستظهر لك كل البيانات فوراً.'},
+    {q:'هل يمكنني استخدام QR Code للتحقق؟',a:'نعم، كل شهادة صادرة من شهادتي تحتوي على QR Code خاص بها — امسحه بكاميرا موبايلك وستصل لبيانات الشهادة فوراً.'},
+    {q:'كيف أشارك شهادتي مع جهة العمل؟',a:'يمكنك مشاركة رابط الشهادة الرقمية مباشرة عبر واتساب أو بريد إلكتروني — الجهة تتحقق منها في ثوانٍ.'},
+    {q:'ماذا أفعل إذا لم تظهر بيانات شهادتي؟',a:'تأكد من صحة رقم الشهادة، ثم تواصل مع المؤسسة التي أصدرت لك الشهادة للتحقق من تسجيلها في المنصة.'},
+    {q:'هل أحتاج تثبيت أي برنامج؟',a:'لا، شهادتي منصة ويب تعمل من المتصفح على أي جهاز — موبايل أو كمبيوتر — بدون أي تثبيت.'},
+  ],
+  institution:[
+    {q:'كيف أرفع الشهادات على المنصة؟',a:'يمكنك إصدار شهادة واحدة يدوياً من لوحة التحكم، أو رفع ملف Excel يحتوي على بيانات عدد كبير من الطلاب دفعة واحدة.'},
+    {q:'كيف يعمل الرفع الجماعي بـ Excel؟',a:'حمّل النموذج القياسي من لوحة التحكم، أدخل بيانات الطلاب، ثم ارفع الملف — المنصة تصدر الشهادات مع QR لكل طالب تلقائياً.'},
+    {q:'هل يمكن تخصيص تصميم الشهادات؟',a:'نعم، الباقات الفضية والذهبية تتيح تخصيص الشهادة بشعار مؤسستك وألوانها. الباقة الذهبية توفر تخصيماً كاملاً.'},
+    {q:'ماذا يحدث إذا انتهى رصيد الشهادات؟',a:'يمكنك شراء رصيد إضافي فوراً بدون الحاجة لترقية الباقة — ستتلقى إشعاراً تلقائياً عند اقتراب انتهاء الرصيد.'},
+    {q:'هل يمكنني تغيير الباقة في أي وقت؟',a:'نعم، يمكنك الترقية أو التخفيض في أي وقت. في حالة الترقية يتم احتساب الفارق تلقائياً.'},
+    {q:'هل التجربة المجانية تحتاج بطاقة ائتمانية؟',a:'لا، التجربة المجانية 14 يوم بدون أي بيانات دفع — تقدر تبدأ فوراً.'},
+  ],
+  verify:[
+    {q:'كيف يتم التحقق من صحة شهادة؟',a:'أدخل رقم الشهادة أو امسح رمز QR — ستظهر جميع بيانات الشهادة فوراً.'},
+    {q:'هل يمكن للشركات التحقق من الشهادات؟',a:'نعم، التحقق متاح للجميع بدون تسجيل — أي جهة تقدر تدخل رقم الشهادة وتتحقق منها على مدار الساعة.'},
+    {q:'هل بيانات الطلاب آمنة؟',a:'نعم، جميع البيانات مشفرة. بيانات الطلاب لا تظهر للشركات إلا بموافقة صريحة من الطالب.'},
+    {q:'هل يمكن التحقق من عدد كبير من الشهادات دفعة واحدة؟',a:'نعم، الجهات المشتركة تقدر ترفع ملف Excel بأسماء المتقدمين والتحقق من شهاداتهم دفعة واحدة.'},
+    {q:'ماذا أفعل إذا واجهت مشكلة في التحقق؟',a:'تواصل مع فريق الدعم مباشرة عبر المحادثة المباشرة أو واتساب.'},
+  ]
+};
+let faqIdx=-1,faqKey='graduate';
+function switchFaq(key,el){
+  document.querySelectorAll('.faq-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');faqIdx=-1;faqKey=key;renderFaq();
+}
+function renderFaq(){
+  document.getElementById('faqList').innerHTML=faqs[faqKey].map((f,i)=>`<div class="faq-item ${faqIdx===i?'open':''}"><div class="faq-q" onclick="toggleFaq(${i})"><span>${f.q}</span><div class="faq-icon">+</div></div><div class="faq-a ${faqIdx===i?'show':''}">${f.a}</div></div>`).join('');
+}
+function toggleFaq(i){faqIdx=faqIdx===i?-1:i;renderFaq();}
+
+function setLang(lang){
+  document.getElementById('btnAr').classList.toggle('active',lang==='ar');
+  document.getElementById('btnEn').classList.toggle('active',lang==='en');
+  document.getElementById('logoName').textContent=lang==='ar'?'شهادتي':'Shahadaty';
+  document.getElementById('mainNav').style.direction=lang==='ar'?'rtl':'ltr';
+}
+
+window.addEventListener('load',()=>{
+  renderTs();renderFaq();
+  const cert=new URLSearchParams(window.location.search).get('cert');
+  if(cert){document.getElementById('sInp').value=cert;doSearch();}
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>الشهادة الرقمية | شهادتي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<style>
+:root{--navy:#0c2d4e;--blue:#0369a1;--sky:#0284c7;--gold:#b08d48;--bg:#f5f7fa;--border:#e2e8f0;--muted:#64748b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--navy);font-family:Cairo,Tajawal,sans-serif}.top{background:var(--navy);padding:14px 22px;color:#fff;display:flex;align-items:center;justify-content:space-between}.brand{font-family:Tajawal;font-size:21px;font-weight:900}.brand small{display:block;font-family:Cairo;font-size:9px;letter-spacing:1.5px;opacity:.65}.actions{display:flex;gap:8px}.actions button,.actions a{font:700 12px Cairo;background:#fff;color:var(--navy);border:0;border-radius:9px;padding:9px 13px;text-decoration:none;cursor:pointer}.wrap{max-width:980px;margin:34px auto;padding:0 18px}.loading,.error{text-align:center;background:#fff;border:1px solid var(--border);border-radius:18px;padding:60px 25px}.spin{width:42px;height:42px;border:4px solid #dbeafe;border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 15px}@keyframes spin{to{transform:rotate(360deg)}}.certificate{background:#fff;border:8px double var(--gold);border-radius:18px;padding:14px;box-shadow:0 15px 45px rgba(12,45,78,.12)}.inner{border:1px solid #d6b96b;padding:48px 42px;min-height:620px;position:relative;text-align:center}.seal{width:92px;height:92px;border-radius:50%;border:2px solid var(--gold);display:grid;place-items:center;margin:0 auto 20px;color:var(--gold);font-size:35px}.eyebrow{font-size:11px;letter-spacing:2px;color:var(--gold);font-weight:800}.title{font-family:Tajawal;font-size:38px;font-weight:900;margin:6px 0;color:var(--navy)}.subtitle{font-size:14px;color:var(--muted)}.student{font-family:Tajawal;font-size:31px;font-weight:900;margin:26px 0 10px}.course{font-size:18px;font-weight:800;color:var(--blue);margin-bottom:25px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:720px;margin:0 auto 25px}.box{border:1px solid var(--border);border-radius:10px;padding:10px;background:#fbfdff}.lbl{font-size:9px;color:var(--muted);font-weight:700}.val{font-size:12px;font-weight:800;margin-top:3px}.verify{display:flex;justify-content:center;align-items:center;gap:20px;margin-top:25px}.qr{width:110px;height:110px;display:grid;place-items:center}.number{font-family:monospace;font-size:15px;font-weight:900;color:var(--navy)}.valid{color:#15803d;font-weight:800;font-size:12px;margin-top:5px}.foot{margin-top:28px;color:var(--muted);font-size:10px}.error h2{color:#dc2626;font-size:20px}@media(max-width:650px){.inner{padding:30px 18px}.title{font-size:30px}.student{font-size:24px}.grid{grid-template-columns:1fr 1fr}.verify{flex-direction:column}.actions a,.actions button{padding:8px}.top{padding:12px 14px}}@media print{.top{display:none}.wrap{margin:0;padding:0}.certificate{box-shadow:none}.actions{display:none}body{background:#fff}}
+</style>
+</head>
+<body>
+<header class="top"><div class="brand">شهادتي<small>CERTIFICATE VERIFICATION</small></div><div class="actions"><button onclick="window.print()">طباعة</button><a href="verify.html">التحقق من شهادة أخرى</a></div></header>
+<main class="wrap" id="app"><div class="loading"><div class="spin"></div><div>جاري تحميل الشهادة...</div></div></main>
+<script>
+const SU='https://snteiiavvaaumgaegazn.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
+const sb=supabase.createClient(SU,SK);
+const id=new URLSearchParams(location.search).get('id');
+function esc(v){return String(v??'—').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+async function load(){
+  if(!id)return showError('لم يتم تحديد رقم الشهادة.');
+  const {data,error}=await sb.rpc('verify_certificate',{p_cert_number:id});
+  if(error||!data?.length)return showError('لم يتم العثور على الشهادة أو أنها غير متاحة للتحقق.');
+  const c=Array.isArray(data)?data[0]:data;
+  const date=new Date(c.issue_date).toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});
+  const active=c.status==='active';
+  document.getElementById('app').innerHTML=`<section class="certificate"><div class="inner">
+    <div class="seal">✓</div><div class="eyebrow">شهادة رقمية موثقة</div><div class="title">شهادة إتمام</div><div class="subtitle">تشهد منصة شهادتي بصحة بيانات الشهادة المسجلة لديها</div>
+    <div class="student">${esc(c.student_name)}</div><div class="course">${esc(c.course)}</div>
+    <div class="grid">
+      <div class="box"><div class="lbl">المؤسسة المصدرة</div><div class="val">${esc(c.institution_name)}</div></div>
+      <div class="box"><div class="lbl">نوع المؤسسة</div><div class="val">${esc(c.institution_type)}</div></div>
+      <div class="box"><div class="lbl">التخصص</div><div class="val">${esc(c.specialization)}</div></div>
+      <div class="box"><div class="lbl">تاريخ الإصدار</div><div class="val">${esc(date)}</div></div>
+      <div class="box"><div class="lbl">التقدير</div><div class="val">${esc(c.grade||'ناجح')}</div></div>
+      <div class="box"><div class="lbl">مدة البرنامج</div><div class="val">${esc(c.duration)}</div></div>
+    </div>
+    <div class="verify"><div id="qrcode" class="qr"></div><div><div class="number">${esc(c.cert_number)}</div><div class="valid">${active?'✓ شهادة سارية وموثقة':'⚠️ الشهادة موجودة ولكنها غير سارية'}</div><div class="foot">للتحقق من هذه الشهادة استخدم رقمها في منصة شهادتي.</div></div></div>
+  </div></section>`;
+  new QRCode(document.getElementById('qrcode'),{text:location.href,width:105,height:105,colorDark:'#0c2d4e',colorLight:'#ffffff'});
+}
+function showError(msg){document.getElementById('app').innerHTML=`<div class="error"><div style="font-size:45px">❌</div><h2>تعذر عرض الشهادة</h2><p>${esc(msg)}</p><a href="verify.html" style="color:var(--blue);font-weight:800">العودة لصفحة التحقق</a></div>`}
+load();
+</script>
+</body></html>
