@@ -379,20 +379,19 @@ function sp(name,el){
 
 // ── OVERVIEW ──────────────────────────────────────────────────
 async function loadOverview(){
-  const [{data:stats,error:statsErr},{data:pending,error:pendingErr},{data:approved,error:approvedErr}]=await Promise.all([
-    sb.rpc('public_platform_stats'),
+  const [{data:pending,error:pendingErr},{data:approved,error:approvedErr}]=await Promise.all([
     sb.rpc('admin_list_institutions',{p_status:'pending'}),
     sb.rpc('admin_list_institutions',{p_status:'approved'})
   ]);
-  if(statsErr||pendingErr||approvedErr){toast((statsErr||pendingErr||approvedErr).message||'تعذر تحميل لوحة الإدارة','err');return;}
-  const st=Array.isArray(stats)?stats[0]:stats;
-  document.getElementById('ov_inst').textContent=Number(st?.institutions_count||0).toLocaleString('ar');
-  document.getElementById('ov_certs').textContent=Number(st?.certificates_count||0).toLocaleString('ar');
-  document.getElementById('ov_pending').textContent=(pending||[]).length;
+  if(pendingErr||approvedErr){toast((pendingErr||approvedErr).message||'تعذر تحميل لوحة الإدارة','err');return;}
+  document.getElementById('ov_inst').textContent=(approved||[]).length.toLocaleString('ar');
+  document.getElementById('ov_certs').textContent='—';
+  document.getElementById('ov_pending').textContent=(pending||[]).length.toLocaleString('ar');
   document.getElementById('ov_rec').textContent='—';
-  document.getElementById('ov_reqs').innerHTML=(pending||[]).slice(0,5).map(r=>`<tr><td>${r.name||'—'}</td><td>${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG'):'—'}</td><td><span class="badge bwarn">معلق</span></td><td><button onclick="approveInst('${r.id}')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button></td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--muted)">لا توجد طلبات معلقة</td></tr>';
+  document.getElementById('ov_reqs').innerHTML=(pending||[]).slice(0,5).map(r=>`<tr><td>${r.name||'—'}</td><td>${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG'):'—'}</td><td><span class="badge bwarn">معلق</span></td><td><button onclick="setInstSt('${r.id}','approved')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button></td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--muted)">لا توجد طلبات معلقة</td></tr>';
   document.getElementById('ov_quota').innerHTML=(approved||[]).slice(0,6).map(i=>{const used=Number(i.quota_used||0),total=Number(i.quota_total||0),p=total?Math.round(used/total*100):0;return`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="font-weight:600;color:var(--navy)">${i.name||'—'}</span><span style="color:var(--muted)">${used}/${total}</span></div><div class="q-bar"><div class="q-fill ${p>=90?'danger':p>=75?'warn':''}" style="width:${p}%"></div></div></div>`}).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">لا توجد مؤسسات معتمدة</div>';
 }
+
 async function loadBadges(){
   const{data,error}=await sb.rpc('admin_list_institutions',{p_status:'pending'});
   if(error){return;}
