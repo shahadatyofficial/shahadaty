@@ -206,16 +206,16 @@ const FALLBACK_PACKAGES=[
 ];
 
 async function loadPackages(){
-  const {data,error}=await sb.from('packages').select('id,name,name_ar,quota,price_monthly,price_yearly,features').eq('is_active',true).order('sort_order');
+  const {data,error}=await sb.from('packages').select('id,name,name_ar,price_monthly,price_yearly,quota_limit,sort_order').order('sort_order');
   if(error || !data?.length){ PACKAGES=FALLBACK_PACKAGES; return; }
   PACKAGES=data.map(p=>{
     const meta=PACKAGE_META[p.name]||{emoji:'📦',color:'#0c2d4e'};
-    const features=Array.isArray(p.features)?p.features:[];
+    const quota=Number(p.quota_limit||0);
     return {
-      id:p.name, dbId:p.id, name:p.name_ar, emoji:meta.emoji,
-      price:Number(p.price_monthly), period:'شهر',
-      quota:p.name==='enterprise'?'شهادات غير محدودة':`${Number(p.quota).toLocaleString('ar-EG')} شهادة/سنة`,
-      feats:features, color:meta.color, popular:!!meta.popular
+      id:p.name, dbId:p.id, name:p.name_ar||p.name, emoji:meta.emoji,
+      price:Number(p.price_monthly||0), yearlyPrice:Number(p.price_yearly||0), period:'شهر',
+      quota:p.name==='enterprise'||quota>=999999?'شهادات غير محدودة':`${quota.toLocaleString('ar-EG')} شهادة`,
+      feats:meta.feats||[], color:meta.color, popular:!!meta.popular
     };
   });
 }
