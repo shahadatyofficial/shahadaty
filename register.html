@@ -584,74 +584,62 @@ async function submitFinal(){
   errT.style.display='none';
   const selectedPackage=PACKAGES.find(p=>p.id===formData.package_id);
   if(!selectedPackage){return showSubmitError('الباقة المختارة غير متاحة حالياً. أعد تحميل الصفحة وحاول مرة أخرى.');}
-  document.getElementById('mainContent').innerHTML=`<div style="text-align:center;padding:60px"><div class="spinner"></div><div style="font-size:15px;font-weight:700;color:var(--muted);margin-top:16px">جاري إرسال طلب التسجيل...</div></div>`;
+  document.getElementById('mainContent').innerHTML=`<div style="text-align:center;padding:60px"><div class="spinner"></div><div style="font-size:15px;font-weight:700;color:var(--muted);margin-top:16px">جاري إنشاء الحساب وإرسال طلب التسجيل...</div></div>`;
   try{
-    // 1) Create a server-side accreditation request first.
-    // The auth trigger will link the request to the new auth user and create the institution.
-    const {data:req,error:reqErr}=await sb.from('accreditation_requests').insert({
-      institution_name:formData.inst_name,
-      institution_type:formData.inst_type,
-      governorate:formData.governorate,
-      address:formData.address,
-      contact_email:formData.email.toLowerCase(),
-      contact_name:formData.manager_name,
-      contact_phone:formData.phone,
-      commercial_registration:formData.commercial_reg,
-      tax_card_number:formData.tax_num,
-      owner_name:formData.owner_name,
-      manager_name:formData.manager_name,
-      package_requested:selectedPackage.dbId||null,
-      policy_accepted:true,
-      data_accuracy_accepted:true,
-      status:'new'
-    }).select('id').single();
-    if(reqErr) throw reqErr;
-
-    // 2) Create the login account. The DB trigger creates the institution securely.
+    // 1) Create the authentication account first.
     const {data:authData,error:authErr}=await sb.auth.signUp({
       email:formData.email.toLowerCase(),
-      password:formData.password,
-      options:{data:{registration_request_id:req.id}}
+      password:formData.password
     });
     if(authErr) throw authErr;
+    if(!authData?.user) throw new Error('تعذر إنشاء حساب المستخدم.');
+    if(!authData.session) throw new Error('تم إنشاء الحساب، لكن يلزم تأكيد البريد الإلكتروني أولاً ثم تسجيل الدخول لإكمال طلب المؤسسة.');
+    
+    // 2) Create the institution through the secured backend RPC.
+    const {data:regData,error:regErr}=await sb.rpc('register_institution',{
+      p_name:formData.inst_name,
+      p_institution_type:formData.inst_type,
+      p_governorate:formData.governorate,
+      p_address:formData.address,
+      p_commercial_registration_number:formData.commercial_reg,
+      p_tax_card_number:formData.tax_num,
+      p_owner_name:formData.owner_name,
+      p_manager_name:formData.manager_name,
+      p_contact_phone:formData.phone,
+      p_package_id:selectedPackage.dbId
+    });
+    if(regErr) throw regErr;
 
-    // 3) If Supabase returned an authenticated session immediately, upload documents now.
-    // If email confirmation is enabled, the documents remain pending and can be uploaded
-    // from the institution portal after the email is confirmed.
-    let uploadedDocs=0;
-    if(authData.session && authData.user){
-      uploadedDocs=await uploadRegistrationDocuments(authData.user.id);
-    }
-
-    renderSuccess({emailConfirmationRequired:!authData.session,uploadedDocs});
+    // 3) Upload the legal documents against the newly created institution.
+    const uploadedDocs=await uploadRegistrationDocuments(regData?.institution_id);
+    renderSuccess({emailConfirmationRequired:false,uploadedDocs,requestNumber:regData?.request_number});
   }catch(err){
     showSubmitError(err.message||'تعذر إرسال طلب التسجيل. يرجى المحاولة مرة أخرى.');
   }
 }
 
-async function uploadRegistrationDocuments(userId){
+async function uploadRegistrationDocuments(institutionId){
+  if(!institutionId)return 0;
   const docs=[
     {key:'commercial',type:'commercial_registration'},
     {key:'tax',type:'tax_card'},
     {key:'other',type:'institution_proof'}
   ];
-  const {data:inst}=await sb.from('institutions').select('id').eq('auth_user_id',userId).single();
-  if(!inst)return 0;
   let count=0;
   for(const d of docs){
     const file=formData['doc_'+d.key];
     if(!file)continue;
-    const path=`${inst.id}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+    const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const path=`${institutionId}/${crypto.randomUUID()}-${safeName}`;
     const {error:uploadErr}=await sb.storage.from('institution-documents').upload(path,file,{contentType:file.type||'application/octet-stream',upsert:false});
     if(uploadErr)continue;
     const {error:rowErr}=await sb.from('institution_documents').insert({
-      institution_id:inst.id,
+      institution_id:institutionId,
       document_type:d.type,
       file_name:file.name,
-      storage_path:path,
-      mime_type:file.type||null,
-      file_size:file.size,
-      status:'pending'
+      file_path:path,
+      status:'pending',
+      uploaded_by:(await sb.auth.getUser()).data.user?.id||null
     });
     if(!rowErr)count++;
   }
@@ -667,11 +655,11 @@ function showSubmitError(message){
   </div></div>`;
 }
 
-function renderSuccess({emailConfirmationRequired=false,uploadedDocs=0}={}){
+function renderSuccess({emailConfirmationRequired=false,uploadedDocs=0,requestNumber=null}={}){
   currentStep=5;renderProgress();
   const emailText=emailConfirmationRequired
     ? `تم إنشاء الحساب وإرسال رسالة تأكيد إلى ${formData.email}. افتح الرسالة وأكّد بريدك الإلكتروني لإكمال الدخول.`
-    : `تم إنشاء الحساب واستلام طلب المؤسسة. تم رفع ${uploadedDocs} مستندات قانونية وسيقوم فريقنا بمراجعتها.`;
+    : `تم إنشاء الحساب واستلام طلب المؤسسة${requestNumber?` رقم ${requestNumber}`:''}. تم رفع ${uploadedDocs} مستندات قانونية وسيقوم فريقنا بمراجعتها.`;
   document.getElementById('mainContent').innerHTML=`
   <div class="card">
     <div class="success-screen">
