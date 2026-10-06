@@ -644,7 +644,7 @@ async function doLogin(){
 async function loadInst(){
   const{data:{user}}=await sb.auth.getUser();
   if(!user)return;
-  const{data}=await sb.from('institutions').select('*,packages(name_ar,quota)').eq('auth_user_id',user.id).single();
+  const{data}=await sb.from('institutions').select('*,packages(name_ar,quota_limit)').eq('auth_user_id',user.id).single();
   if(!data){document.getElementById('loginErr').textContent='لا يوجد حساب مرتبط. تواصل مع الإدارة.';document.getElementById('loginErr').style.display='block';await sb.auth.signOut();return;}
   inst=data;
   document.getElementById('loginScreen').style.display='none';
@@ -718,7 +718,7 @@ async function loadQuotaDetails(){
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div><div style="font-size:13px;font-weight:700;color:var(--navy)">الباقة الحالية: ${inst.packages?.name_ar||'—'}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">الاشتراك: ${sub?.status==='active'?'نشط':sub?.status||'غير مفعل'}</div></div><span class="badge badge-ok">${inst.status==='approved'?'نشط':'معلق'}</span></div>
       <div class="quota-bar" style="margin-bottom:8px"><div class="quota-fill ${pct>=90?'danger':pct>=75?'warn':''}" style="width:${pct}%"></div></div>
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>مستخدم: ${inst.quota_used}</span><span>الكلي: ${inst.quota_total||'غير محدود'}</span></div>
-      ${sub?.end_at?`<div style="margin-top:10px;font-size:11px;color:var(--muted)">ينتهي الاشتراك: ${new Date(sub.end_at).toLocaleDateString('ar-EG')}</div>`:''}
+      ${sub?.ends_at?`<div style="margin-top:10px;font-size:11px;color:var(--muted)">ينتهي الاشتراك: ${new Date(sub.ends_at).toLocaleDateString('ar-EG')}</div>`:''}
     </div>
     <button onclick="location.href='landing.html#packages'" style="display:inline-flex;align-items:center;gap:7px;background:var(--blue);color:#fff;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;padding:11px 22px;border-radius:10px;border:none;cursor:pointer"><span class="material-symbols-outlined" style="font-size:18px">upgrade</span> ترقية الباقة</button>`;
 }
