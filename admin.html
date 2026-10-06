@@ -430,7 +430,22 @@ function renderInst(rows){
   </tr>`).join('');
 }
 function filterInst(){const q=document.getElementById('instSearch').value.toLowerCase();renderInst(allInstitutions.filter(r=>r.name.toLowerCase().includes(q)||r.contact_email.toLowerCase().includes(q)));}
-async function setInstSt(id,status){const reason=status==='rejected'?prompt('سبب الرفض (اختياري):',''):null; const{error}=await sb.rpc('review_institution',{p_institution_id:id,p_status:status,p_notes:reason}); if(error){toast(error.message,'err');return;} toast('تم تحديث حالة المؤسسة','ok');loadInstitutions();loadBadges();loadReqs();loadOverview();}
+async function setInstSt(id,status){
+  if(status==='approved'){
+    const{error}=await sb.rpc('admin_approve_institution',{p_institution_id:id,p_billing_cycle:'monthly',p_payment_status:'unpaid'});
+    if(error){toast(error.message,'err');return;}
+    toast('تم اعتماد المؤسسة بنجاح','ok');
+  }else if(status==='rejected'){
+    const reason=prompt('سبب الرفض:','');
+    if(reason===null)return;
+    const{error}=await sb.rpc('admin_reject_institution',{p_institution_id:id,p_rejection_reason:reason});
+    if(error){toast(error.message,'err');return;}
+    toast('تم رفض الطلب','ok');
+  }else{
+    toast('هذا الإجراء غير متاح من الواجهة الحالية','err');return;
+  }
+  loadInstitutions();loadBadges();loadReqs();loadOverview();
+}
 async function editQuota(id,current){const q=prompt('الكوتا الجديدة:',current);if(!q||isNaN(q))return;await sb.from('institutions').update({quota_total:parseInt(q)}).eq('id',id);toast('تم تعديل الكوتا','ok');loadInstitutions();}
 
 // ── REQUESTS ──────────────────────────────────────────────────
