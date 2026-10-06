@@ -358,7 +358,8 @@ async function doLogin(){
   const{data:loginData,error}=await sb.auth.signInWithPassword({email,password:pass});
   btn.disabled=false;btn.innerHTML='<span class="material-symbols-outlined">admin_panel_settings</span> دخول الإدارة';
   if(error){err.textContent='بيانات الدخول غير صحيحة';err.style.display='block';return;}
-  if(loginData?.user?.app_metadata?.role!=='admin'){await sb.auth.signOut();err.textContent='هذا الحساب ليس حساب إدارة';err.style.display='block';return;}
+  const{data:isAdmin,error:adminErr}=await sb.rpc('is_platform_admin');
+  if(adminErr||isAdmin!==true){await sb.auth.signOut();err.textContent='هذا الحساب ليس حساب إدارة';err.style.display='block';return;}
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('adminEmail').textContent=email;
   loadOverview();loadBadges();
@@ -378,24 +379,29 @@ function sp(name,el){
 
 // ── OVERVIEW ──────────────────────────────────────────────────
 async function loadOverview(){
-  const[a,b,c,d]=await Promise.all([
-    sb.from('institutions').select('id',{count:'exact',head:true}).eq('status','approved'),
-    sb.from('certificates').select('id',{count:'exact',head:true}),
-    sb.from('institutions').select('id',{count:'exact',head:true}).eq('status','pending'),
-    sb.from('recruitment_requests').select('id',{count:'exact',head:true}).eq('status','new')
+  const [{data:stats,error:statsErr},{data:pending,error:pendingErr},{data:approved,error:approvedErr}]=await Promise.all([
+    sb.rpc('public_platform_stats'),
+    sb.rpc('admin_list_institutions',{p_status:'pending'}),
+    sb.rpc('admin_list_institutions',{p_status:'approved'})
   ]);
-  document.getElementById('ov_inst').textContent=(a.count||0).toLocaleString('ar');
-  document.getElementById('ov_certs').textContent=(b.count||0).toLocaleString('ar');
-  document.getElementById('ov_pending').textContent=c.count||0;
-  document.getElementById('ov_rec').textContent=d.count||0;
-  // Recent requests
-  const{data:reqs}=await sb.from('institutions').select('name,status,created_at').eq('status','pending').order('created_at',{ascending:false}).limit(5);
-  document.getElementById('ov_reqs').innerHTML=(reqs||[]).map(r=>`<tr><td>${r.name}</td><td>${new Date(r.created_at).toLocaleDateString('ar-EG')}</td><td><span class="badge bwarn">معلق</span></td><td><button onclick="approveInst('${r.id}')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button></td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--muted)">لا توجد طلبات معلقة</td></tr>';
-  // Quota
-  const{data:insts}=await sb.from('institutions').select('name,quota_used,quota_total').order('quota_used',{ascending:false}).limit(6);
-  document.getElementById('ov_quota').innerHTML=(insts||[]).map(i=>{const p=i.quota_total>0?Math.round(i.quota_used/i.quota_total*100):0;return`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="font-weight:600;color:var(--navy)">${i.name}</span><span style="color:var(--muted)">${i.quota_used}/${i.quota_total}</span></div><div class="q-bar"><div class="q-fill ${p>=90?'danger':p>=75?'warn':''}" style="width:${p}%"></div></div></div>`;}).join('');
+  if(statsErr||pendingErr||approvedErr){toast((statsErr||pendingErr||approvedErr).message||'تعذر تحميل لوحة الإدارة','err');return;}
+  const st=Array.isArray(stats)?stats[0]:stats;
+  document.getElementById('ov_inst').textContent=Number(st?.institutions_count||0).toLocaleString('ar');
+  document.getElementById('ov_certs').textContent=Number(st?.certificates_count||0).toLocaleString('ar');
+  document.getElementById('ov_pending').textContent=(pending||[]).length;
+  document.getElementById('ov_rec').textContent='—';
+  document.getElementById('ov_reqs').innerHTML=(pending||[]).slice(0,5).map(r=>`<tr><td>${r.name||'—'}</td><td>${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG'):'—'}</td><td><span class="badge bwarn">معلق</span></td><td><button onclick="approveInst('${r.id}')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button></td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--muted)">لا توجد طلبات معلقة</td></tr>';
+  document.getElementById('ov_quota').innerHTML=(approved||[]).slice(0,6).map(i=>{const used=Number(i.quota_used||0),total=Number(i.quota_total||0),p=total?Math.round(used/total*100):0;return`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="font-weight:600;color:var(--navy)">${i.name||'—'}</span><span style="color:var(--muted)">${used}/${total}</span></div><div class="q-bar"><div class="q-fill ${p>=90?'danger':p>=75?'warn':''}" style="width:${p}%"></div></div></div>`}).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">لا توجد مؤسسات معتمدة</div>';
 }
 async function loadBadges(){
+  const{data,error}=await sb.rpc('admin_list_institutions',{p_status:'pending'});
+  if(error){return;}
+  const n=(data||[]).length;
+  document.getElementById('reqBadge').textContent=n;
+  document.getElementById('reqBadge').style.display=n?'inline':'none';
+  document.getElementById('recBadge').textContent='0';
+  document.getElementById('recBadge').style.display='none';
+}(){
   const[a,b]=await Promise.all([sb.from('institutions').select('id',{count:'exact',head:true}).eq('status','pending'),sb.from('recruitment_requests').select('id',{count:'exact',head:true}).eq('status','new')]);
   document.getElementById('reqBadge').textContent=a.count||0;
   document.getElementById('recBadge').textContent=b.count||0;
@@ -405,10 +411,9 @@ async function loadBadges(){
 
 // ── INSTITUTIONS ──────────────────────────────────────────────
 async function loadInstitutions(){
-  const s=document.getElementById('instFilter')?.value;
-  let q=sb.from('institutions').select('*,packages(name_ar)').order('created_at',{ascending:false});
-  if(s)q=q.eq('status',s);
-  const{data}=await q;
+  const s=document.getElementById('instFilter')?.value||null;
+  const{data,error}=await sb.rpc('admin_list_institutions',{p_status:s});
+  if(error){toast(error.message,'err');return;}
   allInstitutions=data||[];renderInst(allInstitutions);
 }
 function renderInst(rows){
@@ -431,29 +436,23 @@ async function editQuota(id,current){const q=prompt('الكوتا الجديدة
 // ── REQUESTS ──────────────────────────────────────────────────
 async function loadReqs(){
   const s=document.getElementById('reqFilter')?.value||'pending';
-  let q=sb.from('institutions').select('*,packages(name_ar)').order('created_at',{ascending:false});
-  if(s)q=q.eq('status',s);
-  const {data,error}=await q; if(error){toast(error.message,'err');return;}
+  const{data,error}=await sb.rpc('admin_list_institutions',{p_status:s||null});
+  if(error){toast(error.message,'err');return;}
   const rows=data||[];
   document.getElementById('reqsList').innerHTML=!rows.length?'<div style="text-align:center;padding:24px;color:var(--muted)">لا توجد طلبات</div>':rows.map(r=>`
   <div style="border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div><div style="font-size:15px;font-weight:800;color:var(--navy)">${r.name}</div><div style="font-size:11px;color:var(--muted)">${r.contact_email} · ${r.contact_phone||'—'}</div></div><span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${r.status==='approved'?'معتمد':r.status==='pending'?'معلق':r.status==='rejected'?'مرفوض':'موقوف'}</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div><div style="font-size:15px;font-weight:800;color:var(--navy)">${r.name||'—'}</div><div style="font-size:11px;color:var(--muted)">${r.contact_email||'—'} · ${r.contact_phone||'—'}</div></div><span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${r.status==='approved'?'معتمد':r.status==='pending'?'معلق':r.status==='rejected'?'مرفوض':'موقوف'}</span></div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
-      ${[['النوع',r.type],['المحافظة',r.governorate],['السجل التجاري',r.commercial_registration],['البطاقة الضريبية',r.tax_card_number],['المالك',r.owner_name],['المدير',r.manager_name],['الباقة',r.packages?.name_ar||'—'],['تاريخ التقديم',new Date(r.created_at).toLocaleDateString('ar-EG')]].map(x=>`<div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${x[0]}</div><div style="font-size:12px;font-weight:700;color:var(--navy);word-break:break-word">${x[1]||'—'}</div></div>`).join('')}
+      ${[['النوع',r.institution_type||r.type],['المحافظة',r.governorate],['العنوان',r.address],['السجل التجاري',r.commercial_registration_number||r.commercial_registration],['البطاقة الضريبية',r.tax_card_number],['المالك',r.owner_name],['المدير',r.manager_name],['الباقة',r.package_name_ar||r.package_name]].map(x=>`<div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${x[0]}</div><div style="font-size:12px;font-weight:700;color:var(--navy);word-break:break-word">${x[1]||'—'}</div></div>`).join('')}
     </div>
-    <div id="docs-${r.id}" style="margin-bottom:12px;color:var(--muted);font-size:11px">جاري تحميل المستندات...</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      ${r.status==='pending'?`<button onclick="setInstSt('${r.id}','approved')" class="btn-p">✓ اعتماد</button><button onclick="setInstSt('${r.id}','rejected')" class="btn-d">رفض</button>`:''}
-      ${r.status==='approved'?`<button onclick="setInstSt('${r.id}','suspended')" class="btn-d">إيقاف</button>`:''}
+      ${r.status==='pending'?'<button onclick="setInstSt(\''+r.id+'\',\'approved\')" class="btn-p">✓ اعتماد</button><button onclick="setInstSt(\''+r.id+'\',\'rejected\')" class="btn-d">رفض</button>':''}
     </div>
   </div>`).join('');
-  rows.forEach(r=>loadRequestDocs(r.id));
 }
 async function loadRequestDocs(instId){
   const el=document.getElementById('docs-'+instId); if(!el)return;
-  const {data,error}=await sb.from('institution_documents').select('*').eq('institution_id',instId).order('created_at');
-  if(error){el.textContent='تعذر تحميل المستندات';return;}
-  el.innerHTML=(data||[]).length?data.map(d=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid #eef6fb"><span>📎 <a href="#" onclick="event.preventDefault();openDoc('${d.storage_path}')" style="color:var(--blue);font-weight:700">${d.file_name}</a></span><span class="badge ${d.status==='approved'?'bok':d.status==='rejected'?'berr':'bwarn'}">${d.status==='approved'?'مقبول':d.status==='rejected'?'مرفوض':'قيد المراجعة'}</span><button onclick="reviewDoc('${d.id}','approved')" class="btn-s" style="padding:3px 8px;font-size:10px">قبول</button><button onclick="reviewDoc('${d.id}','rejected')" class="btn-d" style="padding:3px 8px;font-size:10px">رفض</button></div>`).join(''):'لا توجد مستندات مرفوعة بعد.';
+  el.innerHTML='<span style="color:var(--muted)">المستندات محفوظة بشكل خاص وتحتاج دالة مراجعة إدارية مخصصة؛ لم يتم فتح الوصول المباشر للجدول حفاظًا على الأمان.</span>';
 }
 async function reviewDoc(id,status){const reason=status==='rejected'?prompt('سبب رفض المستند:',''):null;const{error}=await sb.rpc('review_document',{p_document_id:id,p_status:status,p_reason:reason});if(error){toast(error.message,'err');return;}toast('تم تحديث المستند','ok');loadReqs();}
 
