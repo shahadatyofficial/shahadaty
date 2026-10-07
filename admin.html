@@ -412,7 +412,7 @@ async function loadInstitutions(){
 function renderInst(rows){
   document.getElementById('instTable').innerHTML=!rows.length?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج</td></tr>':rows.map(r=>`<tr>
     <td>${r.name}</td><td dir="ltr" style="font-size:11px">${r.contact_email}</td>
-    <td>${r.packages?.name_ar||'—'}</td>
+    <td>${r.package_name_ar||'—'}</td>
     <td><div style="min-width:100px">${r.quota_used||0}/${r.quota_total||0}<div class="q-bar" style="margin-top:3px"><div class="q-fill" style="width:${r.quota_total>0?Math.round((r.quota_used||0)/r.quota_total*100):0}%"></div></div></div></td>
     <td><span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${r.status==='approved'?'معتمد':r.status==='pending'?'معلق':'موقوف'}</span></td>
     <td><div style="display:flex;gap:6px">
