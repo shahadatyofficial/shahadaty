@@ -460,9 +460,26 @@ async function loadReqs(){
 }
 async function loadRequestDocs(instId){
   const el=document.getElementById('docs-'+instId); if(!el)return;
-  el.innerHTML='<span style="color:var(--muted)">المستندات محفوظة بشكل خاص وتحتاج دالة مراجعة إدارية مخصصة؛ لم يتم فتح الوصول المباشر للجدول حفاظًا على الأمان.</span>';
+  const{data,error}=await sb.rpc('admin_list_institution_documents',{p_institution_id:instId});
+  if(error){el.innerHTML='<span style="color:#dc2626">تعذر تحميل المستندات: '+error.message+'</span>';return;}
+  const docs=data||[];
+  if(!docs.length){el.innerHTML='<span style="color:var(--muted)">لا توجد مستندات مرفوعة.</span>';return;}
+  el.innerHTML=docs.map(d=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div><div style="font-weight:800;font-size:12px">${d.document_type||'مستند'}</div><div style="font-size:10px;color:var(--muted)">${d.file_name||'—'} · ${d.status||'pending'}</div></div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-s" style="font-size:10px;padding:5px 8px" onclick="openDoc('${String(d.file_path||'').replace(/'/g,"\\'")}')">عرض</button>
+        ${d.status==='pending'?'<button class="btn-p" style="font-size:10px;padding:5px 8px" onclick="reviewDoc(\\''+d.id+'\\',\\'approved\\')">اعتماد</button><button class="btn-d" style="font-size:10px;padding:5px 8px" onclick="reviewDoc(\\''+d.id+'\\',\\'rejected\\')">رفض</button>':''}
+      </div>
+    </div>`).join('');
 }
-async function reviewDoc(id,status){const reason=status==='rejected'?prompt('سبب رفض المستند:',''):null;const{error}=await sb.rpc('review_document',{p_document_id:id,p_status:status,p_reason:reason});if(error){toast(error.message,'err');return;}toast('تم تحديث المستند','ok');loadReqs();}
+async function reviewDoc(id,status){
+  const reason=status==='rejected'?prompt('سبب رفض المستند:',''):null;
+  if(status==='rejected' && !reason)return;
+  const{error}=await sb.rpc('review_document',{p_document_id:id,p_status:status,p_reason:reason});
+  if(error){toast(error.message,'err');return;}
+  toast('تم تحديث المستند','ok');loadReqs();
+}
 
 // ── CERTS ─────────────────────────────────────────────────────
 async function loadAdminCerts(){
