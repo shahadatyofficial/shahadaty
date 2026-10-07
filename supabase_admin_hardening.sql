@@ -246,3 +246,66 @@ $$;
 
 grant execute on function public.admin_list_institution_documents(uuid) to authenticated;
 grant execute on function public.review_document(uuid,text,text) to authenticated;
+
+-- ============================================================
+-- STORAGE SECURITY FIX
+-- ============================================================
+DROP POLICY IF EXISTS institution_docs_storage_read ON storage.objects;
+CREATE POLICY institution_docs_storage_read ON storage.objects
+FOR SELECT USING (
+  bucket_id = 'institution-documents'
+  AND (
+    public.is_platform_admin()
+    OR EXISTS (
+      SELECT 1 FROM public.institution_users iu
+      WHERE iu.institution_id::text = (storage.foldername(name))[1]
+        AND iu.auth_user_id = auth.uid()
+        AND iu.status = 'active'
+    )
+  )
+);
+
+DROP POLICY IF EXISTS institution_docs_storage_insert ON storage.objects;
+CREATE POLICY institution_docs_storage_insert ON storage.objects
+FOR INSERT WITH CHECK (
+  bucket_id = 'institution-documents'
+  AND EXISTS (
+    SELECT 1 FROM public.institution_users iu
+    WHERE iu.institution_id::text = (storage.foldername(name))[1]
+      AND iu.auth_user_id = auth.uid()
+      AND iu.status = 'active'
+      AND iu.role IN ('owner','manager','staff')
+  )
+);
+
+DROP POLICY IF EXISTS institution_docs_storage_update ON storage.objects;
+CREATE POLICY institution_docs_storage_update ON storage.objects
+FOR UPDATE USING (
+  bucket_id = 'institution-documents'
+  AND (
+    public.is_platform_admin()
+    OR EXISTS (
+      SELECT 1 FROM public.institution_users iu
+      WHERE iu.institution_id::text = (storage.foldername(name))[1]
+        AND iu.auth_user_id = auth.uid()
+        AND iu.status = 'active'
+        AND iu.role IN ('owner','manager','staff')
+    )
+  )
+) WITH CHECK (bucket_id = 'institution-documents');
+
+DROP POLICY IF EXISTS institution_docs_storage_delete ON storage.objects;
+CREATE POLICY institution_docs_storage_delete ON storage.objects
+FOR DELETE USING (
+  bucket_id = 'institution-documents'
+  AND (
+    public.is_platform_admin()
+    OR EXISTS (
+      SELECT 1 FROM public.institution_users iu
+      WHERE iu.institution_id::text = (storage.foldername(name))[1]
+        AND iu.auth_user_id = auth.uid()
+        AND iu.status = 'active'
+        AND iu.role IN ('owner','manager','staff')
+    )
+  )
+);
