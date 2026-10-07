@@ -551,7 +551,7 @@ returns jsonb language plpgsql security definer set search_path=public as $$
 declare v_cert public.certificates%rowtype;
 begin
   if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
-  update public.certificates set status='revoked',updated_at=now()
+  update public.certificates set status='revoked'
   where id=p_certificate_id and status='active' returning * into v_cert;
   if not found then raise exception 'CERTIFICATE_NOT_FOUND_OR_ALREADY_REVOKED'; end if;
   return jsonb_build_object('success',true,'certificate_id',v_cert.id,'cert_number',v_cert.cert_number,'status',v_cert.status);
@@ -763,7 +763,6 @@ using (
 -- We intentionally keep legacy tables untouched to avoid data loss.
 -- ------------------------------------------------------------
 drop function if exists public.create_institution_from_registration() cascade;
-drop function if exists public.review_institution(uuid,text,text);
 drop function if exists public.revoke_my_certificate(uuid);
 drop function if exists public.is_admin();
 
