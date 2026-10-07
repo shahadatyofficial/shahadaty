@@ -517,10 +517,9 @@ async function adminVerify(){
 
 // ── RECRUITMENT ───────────────────────────────────────────────
 async function loadRec(){
-  const s=document.getElementById('recFilter')?.value;
-  let q=sb.from('recruitment_requests').select('*').order('created_at',{ascending:false});
-  if(s)q=q.eq('status',s);
-  const{data}=await q;
+  const s=document.getElementById('recFilter')?.value||null;
+  const{data,error}=await sb.rpc('admin_list_recruitment_requests',{p_status:s});
+  if(error){toast(error.message,'err');return;}
   const sts={new:'جديد',processing:'قيد المعالجة',fulfilled:'تم التنفيذ',closed:'مغلق'};
   document.getElementById('recList').innerHTML=!(data||[]).length?'<div style="text-align:center;padding:24px;color:var(--muted)">لا توجد طلبات</div>':(data||[]).map(r=>`
   <div style="border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px">
@@ -540,7 +539,7 @@ async function loadRec(){
     </div>
   </div>`).join('');
 }
-async function setRecSt(id,status){await sb.from('recruitment_requests').update({status}).eq('id',id);toast('تم التحديث','ok');loadRec();}
+async function setRecSt(id,status){const{error}=await sb.rpc('admin_update_recruitment_status',{p_request_id:id,p_status:status});if(error){toast(error.message,'err');return;}toast('تم التحديث','ok');loadRec();}
 async function srchRec(qual,gov,year){
   let q=sb.from('certificates').select('student_name,course,grade,issue_date,governorate,student_phone,institutions(name)').eq('visible_to_companies',true).eq('status','active');
   if(qual)q=q.ilike('course',`%${qual}%`);if(gov)q=q.eq('governorate',gov);
@@ -564,7 +563,8 @@ async function srchRec(qual,gov,year){
 
 // ── COMPANIES ─────────────────────────────────────────────────
 async function loadCompanies(){
-  const{data}=await sb.from('companies').select('*').order('created_at',{ascending:false});
+  const{data,error}=await sb.rpc('admin_list_companies');
+  if(error){toast(error.message,'err');return;}
   document.getElementById('compTable').innerHTML=!(data||[]).length?'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">لا توجد شركات</td></tr>':data.map(c=>`<tr>
     <td>${c.company_name}<div style="font-size:10px;color:var(--muted)">${c.contact_email}</div></td>
     <td>${c.contact_name||'—'}</td>
@@ -576,8 +576,8 @@ async function loadCompanies(){
     </div></td>
   </tr>`).join('');
 }
-async function setCompSt(id,status){await sb.from('companies').update({status}).eq('id',id);toast('تم التحديث','ok');loadCompanies();}
-async function addCreds(id,current){const a=prompt('كم عملية بحث تضيف؟','10');if(!a||isNaN(a))return;await sb.from('companies').update({search_credits:current+parseInt(a)}).eq('id',id);toast(`تم إضافة ${a} عملية`,'ok');loadCompanies();}
+async function setCompSt(id,status){const{error}=await sb.rpc('admin_update_company',{p_company_id:id,p_status:status,p_search_credits:null});if(error){toast(error.message,'err');return;}toast('تم التحديث','ok');loadCompanies();}
+async function addCreds(id,current){const a=prompt('كم عملية بحث تضيف؟','10');if(!a||isNaN(a)||parseInt(a)<0)return;const{error}=await sb.rpc('admin_update_company',{p_company_id:id,p_status:null,p_search_credits:current+parseInt(a)});if(error){toast(error.message,'err');return;}toast(`تم إضافة ${a} عملية`,'ok');loadCompanies();}
 
 // ── PACKAGES ──────────────────────────────────────────────────
 async function loadPkgs(){
