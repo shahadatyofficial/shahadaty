@@ -1,1003 +1,522 @@
 -- ============================================================
--- منصة شهادتي - قاعدة البيانات الأساسية V2
--- هذه النسخة هي الأساس قبل تطوير بقية البوابة.
--- شغّلها في Supabase SQL Editor بعد أخذ نسخة احتياطية.
+-- شهادتي | FINAL DATABASE ALIGNMENT
+-- هذه هي النسخة النهائية المتوافقة مع قاعدة البيانات الحالية.
+-- آمنة لإعادة التشغيل: لا تعيد إنشاء هياكل V1 القديمة ولا تعيد
+-- تفعيل accreditation_requests أو is_active أو end_at.
 -- ============================================================
 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+create extension if not exists "uuid-ossp";
 
 -- ------------------------------------------------------------
--- Helpers
+-- 1) Current schema alignment
 -- ------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS boolean
-LANGUAGE sql
-STABLE
-AS $$
-  SELECT COALESCE((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false);
+alter table public.packages add column if not exists quota_limit integer not null default 10;
+alter table public.packages add column if not exists sort_order integer not null default 0;
+alter table public.packages add column if not exists created_at timestamptz not null default now();
+update public.packages set quota_limit=10 where quota_limit is null;
+
+alter table public.institutions add column if not exists institution_type text;
+alter table public.institutions add column if not exists address text;
+alter table public.institutions add column if not exists commercial_registration_number text;
+alter table public.institutions add column if not exists tax_card_number text;
+alter table public.institutions add column if not exists owner_name text;
+alter table public.institutions add column if not exists manager_name text;
+alter table public.institutions add column if not exists rejection_reason text;
+alter table public.institutions add column if not exists approved_at timestamptz;
+alter table public.institutions add column if not exists approved_by uuid references auth.users(id) on delete set null;
+alter table public.institutions add column if not exists request_number text;
+alter table public.institutions add column if not exists quota_used integer not null default 0;
+alter table public.institutions add column if not exists quota_total integer not null default 10;
+alter table public.institutions add column if not exists updated_at timestamptz not null default now();
+
+update public.institutions
+set status='pending'
+where status is null or trim(status)='';
+
+alter table public.institution_users add column if not exists role text not null default 'owner';
+alter table public.institution_users add column if not exists status text not null default 'active';
+update public.institution_users set status='active' where status is null;
+alter table public.institution_users drop constraint if exists institution_users_role_check;
+alter table public.institution_users add constraint institution_users_role_check
+  check (role in ('owner','manager','staff','viewer'));
+alter table public.institution_users drop constraint if exists institution_users_status_check;
+alter table public.institution_users add constraint institution_users_status_check
+  check (status in ('active','inactive','suspended'));
+
+alter table public.institution_documents add column if not exists file_path text;
+alter table public.institution_documents add column if not exists file_url text;
+alter table public.institution_documents add column if not exists uploaded_by uuid references auth.users(id) on delete set null;
+alter table public.institution_documents add column if not exists uploaded_at timestamptz not null default now();
+alter table public.institution_documents add column if not exists updated_at timestamptz not null default now();
+
+alter table public.subscriptions add column if not exists starts_at timestamptz;
+alter table public.subscriptions add column if not exists ends_at timestamptz;
+alter table public.subscriptions add column if not exists quota_limit integer not null default 0;
+alter table public.subscriptions add column if not exists quota_used integer not null default 0;
+alter table public.subscriptions add column if not exists currency text not null default 'EGP';
+alter table public.subscriptions add column if not exists payment_status text not null default 'unpaid';
+alter table public.subscriptions add column if not exists payment_reference text;
+update public.subscriptions set starts_at=coalesce(starts_at,now()) where starts_at is null;
+update public.subscriptions set quota_limit=coalesce(quota_limit,0) where quota_limit is null;
+alter table public.subscriptions drop constraint if exists subscriptions_billing_cycle_check;
+alter table public.subscriptions add constraint subscriptions_billing_cycle_check
+  check (billing_cycle in ('monthly','yearly'));
+alter table public.subscriptions drop constraint if exists subscriptions_payment_status_check;
+alter table public.subscriptions add constraint subscriptions_payment_status_check
+  check (payment_status in ('unpaid','pending','paid','failed','refunded'));
+
+alter table public.certificates add column if not exists visible_to_companies boolean not null default false;
+alter table public.certificates add column if not exists consent_given_at timestamptz;
+alter table public.certificates add column if not exists student_phone text;
+update public.certificates set visible_to_companies=false where visible_to_companies is null;
+
+-- ------------------------------------------------------------
+-- 2) Indexes / numbering
+-- ------------------------------------------------------------
+create unique index if not exists packages_name_unique_idx on public.packages(name);
+create unique index if not exists institutions_auth_user_id_unique_idx
+  on public.institutions(auth_user_id) where auth_user_id is not null;
+create unique index if not exists certificates_cert_number_unique_idx on public.certificates(cert_number);
+create index if not exists certificates_institution_idx on public.certificates(institution_id);
+create index if not exists certificates_status_idx on public.certificates(status);
+create index if not exists institutions_status_idx on public.institutions(status);
+create index if not exists institution_users_auth_user_idx on public.institution_users(auth_user_id);
+create index if not exists institution_users_institution_idx on public.institution_users(institution_id);
+create index if not exists institution_documents_institution_idx on public.institution_documents(institution_id);
+
+create table if not exists public.certificate_sequences (
+  sequence_key text primary key,
+  last_number bigint not null default 0,
+  updated_at timestamptz not null default now()
+);
+insert into public.certificate_sequences(sequence_key,last_number)
+values('global',0)
+on conflict(sequence_key) do nothing;
+
+create or replace function public.get_next_certificate_number()
+returns bigint
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare v_number bigint;
+begin
+  update public.certificate_sequences
+  set last_number=last_number+1,updated_at=now()
+  where sequence_key='global'
+  returning last_number into v_number;
+  if v_number is null then
+    insert into public.certificate_sequences(sequence_key,last_number)
+    values('global',1)
+    returning last_number into v_number;
+  end if;
+  return v_number;
+end;
 $$;
 
-CREATE OR REPLACE FUNCTION public.update_updated_at()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
+create or replace function public.generate_certificate_number()
+returns text
+language plpgsql
+security definer
+set search_path=public
+as $$
+begin
+  return 'SH-' || to_char(current_date,'YYYY') || '-' ||
+         lpad(public.get_next_certificate_number()::text,6,'0');
+end;
 $$;
 
--- ------------------------------------------------------------
--- Packages
--- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.packages (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name text UNIQUE NOT NULL,
-  name_ar text NOT NULL,
-  quota integer NOT NULL DEFAULT 0 CHECK (quota >= 0),
-  price_monthly numeric(10,2) NOT NULL DEFAULT 0 CHECK (price_monthly >= 0),
-  price_yearly numeric(10,2) NOT NULL DEFAULT 0 CHECK (price_yearly >= 0),
-  features jsonb NOT NULL DEFAULT '[]'::jsonb,
-  is_active boolean NOT NULL DEFAULT true,
-  sort_order integer NOT NULL DEFAULT 0,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
+grant execute on function public.get_next_certificate_number() to authenticated;
+grant execute on function public.generate_certificate_number() to authenticated;
 
 -- ------------------------------------------------------------
--- Institutions
+-- 3) Security helpers
 -- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.institutions (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  auth_user_id uuid UNIQUE REFERENCES auth.users(id) ON DELETE SET NULL,
-  name text NOT NULL,
-  name_en text,
-  logo_url text,
-  type text NOT NULL DEFAULT 'أخرى',
-  governorate text NOT NULL,
-  address text NOT NULL,
-
-  -- بيانات التواصل
-  contact_email text UNIQUE NOT NULL,
-  contact_phone text NOT NULL,
-
-  -- البيانات القانونية
-  commercial_registration text,
-  tax_card_number text,
-  owner_name text,
-  manager_name text,
-  license_number text,
-
-  package_id uuid REFERENCES public.packages(id) ON DELETE SET NULL,
-  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','suspended','rejected')),
-  quota_total integer NOT NULL DEFAULT 0 CHECK (quota_total >= 0),
-  quota_used integer NOT NULL DEFAULT 0 CHECK (quota_used >= 0 AND quota_used <= quota_total),
-  subscription_start timestamptz,
-  subscription_end timestamptz,
-
-  policy_accepted boolean NOT NULL DEFAULT false,
-  policy_accepted_at timestamptz,
-  data_accuracy_accepted boolean NOT NULL DEFAULT false,
-  data_accuracy_accepted_at timestamptz,
-
-  approved_at timestamptz,
-  approved_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
-  rejection_reason text,
-  notes text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS institutions_status_idx ON public.institutions(status);
-CREATE INDEX IF NOT EXISTS institutions_package_idx ON public.institutions(package_id);
-CREATE INDEX IF NOT EXISTS institutions_auth_user_idx ON public.institutions(auth_user_id);
-
--- ------------------------------------------------------------
--- Institution users / roles
--- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.institution_users (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  institution_id uuid NOT NULL REFERENCES public.institutions(id) ON DELETE CASCADE,
-  auth_user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  role text NOT NULL DEFAULT 'owner' CHECK (role IN ('owner','admin','staff','viewer')),
-  is_active boolean NOT NULL DEFAULT true,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(institution_id, auth_user_id)
-);
-
-CREATE INDEX IF NOT EXISTS institution_users_auth_idx ON public.institution_users(auth_user_id);
-
--- ------------------------------------------------------------
--- Accreditation requests
--- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.accreditation_requests (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  auth_user_id uuid UNIQUE REFERENCES auth.users(id) ON DELETE SET NULL,
-  institution_id uuid UNIQUE REFERENCES public.institutions(id) ON DELETE SET NULL,
-
-  institution_name text NOT NULL,
-  institution_type text NOT NULL,
-  governorate text NOT NULL,
-  address text NOT NULL,
-  contact_email text NOT NULL,
-  contact_name text NOT NULL,
-  contact_phone text NOT NULL,
-
-  commercial_registration text NOT NULL,
-  tax_card_number text NOT NULL,
-  owner_name text NOT NULL,
-  manager_name text NOT NULL,
-
-  package_requested uuid REFERENCES public.packages(id) ON DELETE SET NULL,
-  policy_accepted boolean NOT NULL DEFAULT false,
-  data_accuracy_accepted boolean NOT NULL DEFAULT false,
-
-  status text NOT NULL DEFAULT 'new' CHECK (status IN ('new','reviewing','approved','rejected','needs_update')),
-  reviewed_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
-  reviewed_at timestamptz,
-  admin_notes text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS accreditation_status_idx ON public.accreditation_requests(status);
-CREATE INDEX IF NOT EXISTS accreditation_email_idx ON public.accreditation_requests(contact_email);
-
--- ------------------------------------------------------------
--- Legal documents
--- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.institution_documents (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  institution_id uuid NOT NULL REFERENCES public.institutions(id) ON DELETE CASCADE,
-  document_type text NOT NULL CHECK (document_type IN ('commercial_registration','tax_card','institution_proof','other')),
-  file_name text NOT NULL,
-  storage_path text NOT NULL UNIQUE,
-  mime_type text,
-  file_size bigint,
-  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
-  reviewed_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
-  reviewed_at timestamptz,
-  rejection_reason text,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS institution_documents_inst_idx ON public.institution_documents(institution_id);
-
--- ------------------------------------------------------------
--- Subscriptions
--- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.subscriptions (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  institution_id uuid NOT NULL REFERENCES public.institutions(id) ON DELETE CASCADE,
-  package_id uuid NOT NULL REFERENCES public.packages(id),
-  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','active','expired','cancelled','suspended')),
-  billing_cycle text NOT NULL DEFAULT 'monthly' CHECK (billing_cycle IN ('monthly','yearly')),
-  amount numeric(10,2) NOT NULL DEFAULT 0 CHECK (amount >= 0),
-  start_at timestamptz,
-  end_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS subscriptions_inst_idx ON public.subscriptions(institution_id);
-DO $$ BEGIN
-  UPDATE public.subscriptions s SET status='cancelled', updated_at=now()
-  WHERE s.status='active' AND s.id NOT IN (
-    SELECT DISTINCT ON (institution_id) id FROM public.subscriptions WHERE status='active' ORDER BY institution_id,created_at DESC
+create or replace function public.is_platform_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path=public
+as $$
+  select exists(
+    select 1 from public.platform_admins
+    where auth_user_id=auth.uid() and status='active'
   );
-END $$;
-CREATE UNIQUE INDEX IF NOT EXISTS subscriptions_one_active_idx ON public.subscriptions(institution_id) WHERE status='active';
-
--- ------------------------------------------------------------
--- Certificates
--- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.certificates (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  institution_id uuid NOT NULL REFERENCES public.institutions(id) ON DELETE CASCADE,
-  cert_number text UNIQUE NOT NULL,
-  student_name text NOT NULL,
-  student_name_en text,
-  student_national_id text,
-  student_phone text,
-  course text NOT NULL,
-  specialization text,
-  issue_date date NOT NULL,
-  expiry_date date,
-  grade text,
-  grade_value numeric(5,2),
-  duration text,
-  governorate text,
-  pdf_url text,
-  qr_code text,
-  visible_to_companies boolean NOT NULL DEFAULT false,
-  consent_given_at timestamptz,
-  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','revoked','expired')),
-  added_by text NOT NULL DEFAULT 'institution' CHECK (added_by IN ('institution','admin')),
-  revoked_at timestamptz,
-  revoke_reason text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS certificates_institution_idx ON public.certificates(institution_id);
-CREATE INDEX IF NOT EXISTS certificates_status_idx ON public.certificates(status);
-CREATE INDEX IF NOT EXISTS certificates_number_idx ON public.certificates(cert_number);
-
--- ------------------------------------------------------------
--- Verification log
--- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.certificate_verifications (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  certificate_id uuid REFERENCES public.certificates(id) ON DELETE SET NULL,
-  cert_number text NOT NULL,
-  verifier_type text NOT NULL DEFAULT 'public' CHECK (verifier_type IN ('public','institution','company','admin')),
-  verifier_user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS verification_number_idx ON public.certificate_verifications(cert_number);
-
--- ------------------------------------------------------------
--- Companies / recruitment
--- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.companies (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  auth_user_id uuid UNIQUE REFERENCES auth.users(id) ON DELETE SET NULL,
-  company_name text NOT NULL,
-  contact_name text,
-  contact_email text UNIQUE NOT NULL,
-  contact_phone text,
-  industry text,
-  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','suspended')),
-  subscription_tier text NOT NULL DEFAULT 'free',
-  search_credits integer NOT NULL DEFAULT 10 CHECK (search_credits >= 0),
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS public.recruitment_requests (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  company_name text NOT NULL,
-  contact_name text NOT NULL,
-  contact_email text NOT NULL,
-  contact_phone text,
-  qualification text NOT NULL,
-  governorate text,
-  graduation_year text,
-  positions_needed integer NOT NULL DEFAULT 1 CHECK (positions_needed > 0),
-  message text,
-  status text NOT NULL DEFAULT 'new' CHECK (status IN ('new','processing','fulfilled','closed')),
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
--- ------------------------------------------------------------
--- Activity log / settings
--- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.activity_log (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  actor_id uuid,
-  actor_type text,
-  action text NOT NULL,
-  target_type text,
-  target_id uuid,
-  details jsonb NOT NULL DEFAULT '{}'::jsonb,
-  ip_address text,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS public.system_settings (
-  key text PRIMARY KEY,
-  value text,
-  description text,
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-
--- ------------------------------------------------------------
--- Repair existing installations: add fields introduced in V2.
--- CREATE TABLE IF NOT EXISTS does not alter an existing table, so
--- these ALTER statements make the migration safe for the current project.
--- ------------------------------------------------------------
-ALTER TABLE public.packages ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
-
-ALTER TABLE public.institutions ADD COLUMN IF NOT EXISTS commercial_registration text;
-ALTER TABLE public.institutions ADD COLUMN IF NOT EXISTS tax_card_number text;
-ALTER TABLE public.institutions ADD COLUMN IF NOT EXISTS owner_name text;
-ALTER TABLE public.institutions ADD COLUMN IF NOT EXISTS manager_name text;
-ALTER TABLE public.institutions ADD COLUMN IF NOT EXISTS data_accuracy_accepted boolean NOT NULL DEFAULT false;
-ALTER TABLE public.institutions ADD COLUMN IF NOT EXISTS data_accuracy_accepted_at timestamptz;
-ALTER TABLE public.institutions ADD COLUMN IF NOT EXISTS rejection_reason text;
-
-ALTER TABLE public.accreditation_requests ADD COLUMN IF NOT EXISTS auth_user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
-ALTER TABLE public.accreditation_requests ADD COLUMN IF NOT EXISTS institution_id uuid REFERENCES public.institutions(id) ON DELETE SET NULL;
-ALTER TABLE public.accreditation_requests ADD COLUMN IF NOT EXISTS contact_name text;
-ALTER TABLE public.accreditation_requests ADD COLUMN IF NOT EXISTS institution_type text;
-ALTER TABLE public.accreditation_requests ADD COLUMN IF NOT EXISTS address text;
-ALTER TABLE public.accreditation_requests ADD COLUMN IF NOT EXISTS commercial_registration text;
-ALTER TABLE public.accreditation_requests ADD COLUMN IF NOT EXISTS tax_card_number text;
-ALTER TABLE public.accreditation_requests ADD COLUMN IF NOT EXISTS owner_name text;
-ALTER TABLE public.accreditation_requests ADD COLUMN IF NOT EXISTS manager_name text;
-ALTER TABLE public.accreditation_requests ADD COLUMN IF NOT EXISTS data_accuracy_accepted boolean NOT NULL DEFAULT false;
-ALTER TABLE public.accreditation_requests ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
-
-ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS visible_to_companies boolean NOT NULL DEFAULT false;
-ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS student_phone text;
-ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS consent_given_at timestamptz;
-
--- ------------------------------------------------------------
--- Triggers
--- ------------------------------------------------------------
-DROP TRIGGER IF EXISTS institutions_updated_at ON public.institutions;
-CREATE TRIGGER institutions_updated_at BEFORE UPDATE ON public.institutions
-FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
-
-DROP TRIGGER IF EXISTS accreditation_updated_at ON public.accreditation_requests;
-CREATE TRIGGER accreditation_updated_at BEFORE UPDATE ON public.accreditation_requests
-FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
-
-DROP TRIGGER IF EXISTS packages_updated_at ON public.packages;
-CREATE TRIGGER packages_updated_at BEFORE UPDATE ON public.packages
-FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
-
-DROP TRIGGER IF EXISTS subscriptions_updated_at ON public.subscriptions;
-CREATE TRIGGER subscriptions_updated_at BEFORE UPDATE ON public.subscriptions
-FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
-
--- ------------------------------------------------------------
--- Secure certificate numbering
--- ------------------------------------------------------------
-CREATE SEQUENCE IF NOT EXISTS public.certificate_number_seq START 1;
-
-CREATE OR REPLACE FUNCTION public.generate_cert_number()
-RETURNS text
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  prefix text;
-BEGIN
-  SELECT COALESCE(value, 'SHD') INTO prefix
-  FROM public.system_settings WHERE key = 'cert_prefix';
-  RETURN prefix || '-' || TO_CHAR(now(), 'YYYY') || '-' || LPAD(nextval('public.certificate_number_seq')::text, 7, '0');
-END;
 $$;
 
--- ------------------------------------------------------------
--- Registration -> Auth user -> Institution
--- The browser only creates an accreditation request.
--- The auth trigger creates the institution server-side.
--- ------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.create_institution_from_registration()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  req public.accreditation_requests%ROWTYPE;
-  new_inst_id uuid;
-  pkg_quota integer := 0;
-BEGIN
-  IF NEW.raw_user_meta_data ? 'registration_request_id' THEN
-    SELECT * INTO req
-    FROM public.accreditation_requests
-    WHERE id = (NEW.raw_user_meta_data ->> 'registration_request_id')::uuid
-    LIMIT 1;
-
-    IF req.id IS NOT NULL AND req.auth_user_id IS NULL THEN
-      IF req.package_requested IS NOT NULL THEN
-        SELECT quota INTO pkg_quota FROM public.packages WHERE id = req.package_requested;
-      END IF;
-
-      INSERT INTO public.institutions (
-        auth_user_id, name, type, governorate, address,
-        contact_email, contact_phone,
-        commercial_registration, tax_card_number, owner_name, manager_name,
-        package_id, status, quota_total, quota_used,
-        policy_accepted, policy_accepted_at,
-        data_accuracy_accepted, data_accuracy_accepted_at
-      ) VALUES (
-        NEW.id, req.institution_name, req.institution_type, req.governorate, req.address,
-        req.contact_email, req.contact_phone,
-        req.commercial_registration, req.tax_card_number, req.owner_name, req.manager_name,
-        req.package_requested, 'pending', COALESCE(pkg_quota,0), 0,
-        req.policy_accepted, CASE WHEN req.policy_accepted THEN now() ELSE NULL END,
-        req.data_accuracy_accepted, CASE WHEN req.data_accuracy_accepted THEN now() ELSE NULL END
-      ) RETURNING id INTO new_inst_id;
-
-      INSERT INTO public.institution_users (institution_id, auth_user_id, role)
-      VALUES (new_inst_id, NEW.id, 'owner');
-
-      UPDATE public.accreditation_requests
-      SET auth_user_id = NEW.id,
-          institution_id = new_inst_id,
-          status = 'new',
-          updated_at = now()
-      WHERE id = req.id;
-    END IF;
-  END IF;
-  RETURN NEW;
-END;
+create or replace function public.is_institution_member(p_institution_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path=public
+as $$
+  select exists(
+    select 1 from public.institution_users
+    where institution_id=p_institution_id
+      and auth_user_id=auth.uid()
+      and status='active'
+  );
 $$;
 
-DROP TRIGGER IF EXISTS on_auth_user_registration ON auth.users;
-CREATE TRIGGER on_auth_user_registration
-AFTER INSERT ON auth.users
-FOR EACH ROW EXECUTE FUNCTION public.create_institution_from_registration();
+create or replace function public.has_institution_role(p_institution_id uuid,p_roles text[])
+returns boolean
+language sql
+stable
+security definer
+set search_path=public
+as $$
+  select exists(
+    select 1 from public.institution_users
+    where institution_id=p_institution_id
+      and auth_user_id=auth.uid()
+      and status='active'
+      and role=any(p_roles)
+  );
+$$;
+
+revoke all on function public.is_platform_admin() from public;
+grant execute on function public.is_platform_admin() to authenticated;
+revoke all on function public.is_institution_member(uuid) from public;
+grant execute on function public.is_institution_member(uuid) to authenticated;
+revoke all on function public.has_institution_role(uuid,text[]) from public;
+grant execute on function public.has_institution_role(uuid,text[]) to authenticated;
 
 -- ------------------------------------------------------------
--- RLS
+-- 4) Secure registration RPC
 -- ------------------------------------------------------------
-ALTER TABLE public.packages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.institutions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.institution_users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.accreditation_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.institution_documents ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.certificates ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.certificate_verifications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.recruitment_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.activity_log ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
-
--- Drop old policies where names are known, so this file can repair an existing DB.
-DO $$
-DECLARE p record;
-BEGIN
-  FOR p IN SELECT schemaname, tablename, policyname
-           FROM pg_policies
-           WHERE schemaname='public'
-             AND tablename IN ('packages','institutions','institution_users','accreditation_requests','institution_documents','subscriptions','certificates','certificate_verifications','companies','recruitment_requests','activity_log','system_settings')
-  LOOP
-    EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', p.policyname, p.schemaname, p.tablename);
-  END LOOP;
-END $$;
-
--- Public can only read active package catalog.
-CREATE POLICY packages_public_read ON public.packages
-FOR SELECT USING (is_active = true);
-
--- Registration request: public can create a pending request, never read it back.
-CREATE POLICY accreditation_public_insert ON public.accreditation_requests
-FOR INSERT WITH CHECK (
-  status = 'new'
-  AND policy_accepted = true
-  AND data_accuracy_accepted = true
-);
-CREATE POLICY accreditation_admin_all ON public.accreditation_requests
-FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
-
--- Institutions.
-CREATE POLICY institutions_self_read ON public.institutions
-FOR SELECT USING (auth.uid() = auth_user_id OR public.is_admin());
-CREATE POLICY institutions_self_update ON public.institutions
-FOR UPDATE USING (public.is_admin())
-WITH CHECK (public.is_admin());
-CREATE POLICY institutions_admin_insert ON public.institutions
-FOR INSERT WITH CHECK (public.is_admin());
-CREATE POLICY institutions_admin_all ON public.institutions
-FOR DELETE USING (public.is_admin());
-
--- Institution membership.
-CREATE POLICY institution_users_self_read ON public.institution_users
-FOR SELECT USING (auth.uid() = auth_user_id OR public.is_admin());
-CREATE POLICY institution_users_admin_all ON public.institution_users
-FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
-
--- Documents: private to owning institution and admins.
-CREATE POLICY institution_documents_owner_read ON public.institution_documents
-FOR SELECT USING (
-  public.is_admin() OR EXISTS (
-    SELECT 1 FROM public.institution_users iu
-    WHERE iu.institution_id = institution_documents.institution_id
-      AND iu.auth_user_id = auth.uid()
-      AND iu.is_active = true
-  )
-);
-CREATE POLICY institution_documents_owner_insert ON public.institution_documents
-FOR INSERT WITH CHECK (
-  EXISTS (
-    SELECT 1 FROM public.institution_users iu
-    WHERE iu.institution_id = institution_documents.institution_id
-      AND iu.auth_user_id = auth.uid()
-      AND iu.is_active = true
-  )
-);
-CREATE POLICY institution_documents_admin_update ON public.institution_documents
-FOR UPDATE USING (public.is_admin()) WITH CHECK (public.is_admin());
-CREATE POLICY institution_documents_admin_delete ON public.institution_documents
-FOR DELETE USING (public.is_admin());
-
--- Subscriptions.
-CREATE POLICY subscriptions_owner_read ON public.subscriptions
-FOR SELECT USING (
-  public.is_admin() OR EXISTS (
-    SELECT 1 FROM public.institution_users iu
-    WHERE iu.institution_id = subscriptions.institution_id
-      AND iu.auth_user_id = auth.uid()
-      AND iu.is_active = true
-  )
-);
-CREATE POLICY subscriptions_admin_all ON public.subscriptions
-FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
-
--- Certificates: no public SELECT on the raw table.
--- Public verification uses the safe RPC below so national ID/phone and other private
--- columns are never exposed by a table-wide anonymous SELECT.
-CREATE POLICY certificates_owner_read ON public.certificates
-FOR SELECT USING (
-  public.is_admin() OR EXISTS (
-    SELECT 1 FROM public.institution_users iu
-    WHERE iu.institution_id = certificates.institution_id
-      AND iu.auth_user_id = auth.uid()
-      AND iu.is_active = true
-  )
-);
-CREATE POLICY certificates_owner_insert ON public.certificates
-FOR INSERT WITH CHECK (false);
-CREATE OR REPLACE FUNCTION public.verify_certificate(p_cert_number text)
-RETURNS TABLE (
-  cert_number text,
-  student_name text,
-  course text,
-  specialization text,
-  issue_date date,
-  expiry_date date,
-  grade text,
-  duration text,
-  institution_name text,
-  institution_type text,
-  institution_governorate text,
-  status text
+create or replace function public.register_institution(
+  p_name text,
+  p_institution_type text,
+  p_governorate text,
+  p_address text,
+  p_commercial_registration_number text,
+  p_tax_card_number text,
+  p_owner_name text,
+  p_manager_name text,
+  p_contact_phone text,
+  p_package_id uuid
 )
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  INSERT INTO public.certificate_verifications(cert_number, verifier_type)
-  SELECT c.cert_number, 'public'
-  FROM public.certificates c
-  WHERE c.cert_number = trim(p_cert_number)
-  LIMIT 1;
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  v_uid uuid:=auth.uid();
+  v_email text;
+  v_inst uuid;
+  v_req text;
+  v_quota integer;
+  v_pkg record;
+begin
+  if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
 
-  RETURN QUERY
-  SELECT c.cert_number, c.student_name, c.course, c.specialization, c.issue_date,
-         c.expiry_date, c.grade, c.duration, i.name, i.type, i.governorate, c.status
-  FROM public.certificates c
-  JOIN public.institutions i ON i.id = c.institution_id
-  WHERE c.cert_number = trim(p_cert_number)
-  LIMIT 1;
-END;
+  select email into v_email from auth.users where id=v_uid;
+  if coalesce(trim(v_email),'')='' then raise exception 'EMAIL_REQUIRED'; end if;
+
+  if coalesce(trim(p_name),'')='' or coalesce(trim(p_institution_type),'')='' or
+     coalesce(trim(p_governorate),'')='' or coalesce(trim(p_address),'')='' or
+     coalesce(trim(p_commercial_registration_number),'')='' or
+     coalesce(trim(p_tax_card_number),'')='' or coalesce(trim(p_owner_name),'')='' or
+     coalesce(trim(p_manager_name),'')='' or coalesce(trim(p_contact_phone),'')='' then
+    raise exception 'REQUIRED_FIELDS';
+  end if;
+
+  if exists(select 1 from public.institutions where auth_user_id=v_uid) then
+    raise exception 'INSTITUTION_ALREADY_EXISTS';
+  end if;
+
+  select * into v_pkg from public.packages where id=p_package_id limit 1;
+  if not found then raise exception 'PACKAGE_NOT_FOUND'; end if;
+  v_quota:=coalesce(v_pkg.quota_limit,10);
+
+  v_req:='REQ-'||to_char(current_date,'YYYYMMDD')||'-'||
+         upper(substr(replace(v_uid::text,'-',''),1,8));
+
+  insert into public.institutions(
+    auth_user_id,name,institution_type,governorate,address,
+    contact_email,contact_phone,commercial_registration_number,
+    tax_card_number,owner_name,manager_name,package_id,status,
+    quota_used,quota_total,request_number,created_at,updated_at
+  ) values(
+    v_uid,trim(p_name),trim(p_institution_type),trim(p_governorate),trim(p_address),
+    lower(trim(v_email)),trim(p_contact_phone),trim(p_commercial_registration_number),
+    trim(p_tax_card_number),trim(p_owner_name),trim(p_manager_name),p_package_id,'pending',
+    0,v_quota,v_req,now(),now()
+  ) returning id into v_inst;
+
+  insert into public.institution_users(institution_id,auth_user_id,role,status)
+  values(v_inst,v_uid,'owner','active')
+  on conflict(institution_id,auth_user_id) do update
+  set role='owner',status='active';
+
+  return jsonb_build_object(
+    'success',true,
+    'institution_id',v_inst,
+    'request_number',v_req,
+    'status','pending',
+    'package_id',p_package_id,
+    'quota_total',v_quota
+  );
+end;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.verify_certificate(text) TO anon, authenticated;
+revoke all on function public.register_institution(text,text,text,text,text,text,text,text,text,uuid) from public;
+grant execute on function public.register_institution(text,text,text,text,text,text,text,text,text,uuid) to authenticated;
 
-CREATE POLICY certificates_owner_update ON public.certificates
-FOR UPDATE USING (
-  public.is_admin() OR EXISTS (
-    SELECT 1 FROM public.institution_users iu
-    WHERE iu.institution_id = certificates.institution_id
-      AND iu.auth_user_id = auth.uid()
-      AND iu.is_active = true
+-- ------------------------------------------------------------
+-- 5) Platform admin RPCs
+-- ------------------------------------------------------------
+create or replace function public.admin_update_institution_quota(p_institution_id uuid,p_quota_total integer)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare v_row public.institutions%rowtype;
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  if p_quota_total is null or p_quota_total<0 then raise exception 'INVALID_QUOTA'; end if;
+  update public.institutions set quota_total=p_quota_total,updated_at=now()
+  where id=p_institution_id returning * into v_row;
+  if not found then raise exception 'INSTITUTION_NOT_FOUND'; end if;
+  return jsonb_build_object('success',true,'institution_id',v_row.id,'quota_total',v_row.quota_total,'quota_used',v_row.quota_used);
+end; $$;
+
+create or replace function public.admin_list_certificates(p_search text default null)
+returns table(id uuid,cert_number text,student_name text,course text,specialization text,
+ issue_date date,duration text,grade text,status text,institution_id uuid,institution_name text,created_at timestamptz)
+language plpgsql security definer set search_path=public as $$
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  return query
+  select c.id,c.cert_number,c.student_name,c.course,c.specialization,c.issue_date,c.duration,c.grade,
+         c.status,c.institution_id,i.name,c.created_at
+  from public.certificates c left join public.institutions i on i.id=c.institution_id
+  where coalesce(nullif(trim(p_search),''),'')=''
+     or c.cert_number ilike '%'||trim(p_search)||'%'
+     or c.student_name ilike '%'||trim(p_search)||'%'
+     or c.course ilike '%'||trim(p_search)||'%'
+  order by c.created_at desc limit 100;
+end; $$;
+
+create or replace function public.admin_revoke_certificate(p_certificate_id uuid)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare v_cert public.certificates%rowtype;
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  update public.certificates set status='revoked',updated_at=now()
+  where id=p_certificate_id and status='active' returning * into v_cert;
+  if not found then raise exception 'CERTIFICATE_NOT_FOUND_OR_ALREADY_REVOKED'; end if;
+  return jsonb_build_object('success',true,'certificate_id',v_cert.id,'cert_number',v_cert.cert_number,'status',v_cert.status);
+end; $$;
+
+create or replace function public.admin_platform_stats()
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare a integer;p integer;c integer;ac integer;
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  select count(*)::int into a from public.institutions where status='approved';
+  select count(*)::int into p from public.institutions where status='pending';
+  select count(*)::int into c from public.certificates;
+  select count(*)::int into ac from public.certificates where status='active';
+  return jsonb_build_object('approved_institutions',a,'pending_institutions',p,'certificates',c,'active_certificates',ac);
+end; $$;
+
+create or replace function public.admin_list_institution_documents(p_institution_id uuid)
+returns table(id uuid,institution_id uuid,document_type text,file_name text,file_path text,status text,
+ rejection_reason text,uploaded_at timestamptz,reviewed_at timestamptz)
+language plpgsql security definer set search_path=public as $$
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  return query select d.id,d.institution_id,d.document_type,d.file_name,d.file_path,d.status,
+    d.rejection_reason,d.uploaded_at,d.reviewed_at
+  from public.institution_documents d where d.institution_id=p_institution_id order by d.uploaded_at desc;
+end; $$;
+
+create or replace function public.review_document(p_document_id uuid,p_status text,p_reason text default null)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare d public.institution_documents%rowtype;
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  if p_status not in ('pending','approved','rejected') then raise exception 'INVALID_DOCUMENT_STATUS'; end if;
+  if p_status='rejected' and coalesce(trim(p_reason),'')='' then raise exception 'REJECTION_REASON_REQUIRED'; end if;
+  update public.institution_documents set status=p_status,
+    rejection_reason=case when p_status='rejected' then trim(p_reason) else null end,
+    reviewed_by=auth.uid(),reviewed_at=now(),updated_at=now()
+  where id=p_document_id returning * into d;
+  if not found then raise exception 'DOCUMENT_NOT_FOUND'; end if;
+  return jsonb_build_object('success',true,'document_id',d.id,'status',d.status);
+end; $$;
+
+create or replace function public.admin_list_recruitment_requests(p_status text default null)
+returns setof public.recruitment_requests
+language plpgsql security definer set search_path=public as $$
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  return query select r.* from public.recruitment_requests r
+  where coalesce(nullif(trim(p_status),''),'')='' or r.status=trim(p_status)
+  order by r.created_at desc limit 500;
+end; $$;
+
+create or replace function public.admin_update_recruitment_status(p_request_id uuid,p_status text)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare r public.recruitment_requests%rowtype;
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  if p_status not in ('new','processing','fulfilled','closed') then raise exception 'INVALID_STATUS'; end if;
+  update public.recruitment_requests set status=p_status where id=p_request_id returning * into r;
+  if not found then raise exception 'REQUEST_NOT_FOUND'; end if;
+  return jsonb_build_object('success',true,'id',r.id,'status',r.status);
+end; $$;
+
+create or replace function public.admin_list_companies()
+returns setof public.companies
+language plpgsql security definer set search_path=public as $$
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  return query select c.* from public.companies c order by c.created_at desc limit 500;
+end; $$;
+
+create or replace function public.admin_update_company(p_company_id uuid,p_status text default null,p_search_credits integer default null)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare c public.companies%rowtype;
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  if p_status is not null and p_status not in ('pending','approved','suspended') then raise exception 'INVALID_STATUS'; end if;
+  if p_search_credits is not null and p_search_credits<0 then raise exception 'INVALID_CREDITS'; end if;
+  update public.companies set status=coalesce(p_status,status),search_credits=coalesce(p_search_credits,search_credits)
+  where id=p_company_id returning * into c;
+  if not found then raise exception 'COMPANY_NOT_FOUND'; end if;
+  return jsonb_build_object('success',true,'id',c.id,'status',c.status,'search_credits',c.search_credits);
+end; $$;
+
+grant execute on function public.admin_update_institution_quota(uuid,integer) to authenticated;
+grant execute on function public.admin_list_certificates(text) to authenticated;
+grant execute on function public.admin_revoke_certificate(uuid) to authenticated;
+grant execute on function public.admin_platform_stats() to authenticated;
+grant execute on function public.admin_list_institution_documents(uuid) to authenticated;
+grant execute on function public.review_document(uuid,text,text) to authenticated;
+grant execute on function public.admin_list_recruitment_requests(text) to authenticated;
+grant execute on function public.admin_update_recruitment_status(uuid,text) to authenticated;
+grant execute on function public.admin_list_companies() to authenticated;
+grant execute on function public.admin_update_company(uuid,text,integer) to authenticated;
+
+-- ------------------------------------------------------------
+-- 6) RLS helper policies for current model
+-- ------------------------------------------------------------
+alter table public.institutions enable row level security;
+alter table public.institution_users enable row level security;
+alter table public.institution_documents enable row level security;
+alter table public.subscriptions enable row level security;
+alter table public.certificates enable row level security;
+alter table public.certificate_verifications enable row level security;
+
+drop policy if exists institutions_select_member on public.institutions;
+create policy institutions_select_member on public.institutions for select to authenticated
+using (auth_user_id=auth.uid() or public.is_institution_member(id));
+
+drop policy if exists institutions_insert_self on public.institutions;
+create policy institutions_insert_self on public.institutions for insert to authenticated
+with check (auth_user_id=auth.uid());
+
+drop policy if exists institutions_update_manager on public.institutions;
+create policy institutions_update_manager on public.institutions for update to authenticated
+using (public.has_institution_role(id,array['owner','manager']))
+with check (public.has_institution_role(id,array['owner','manager']));
+
+drop policy if exists institution_users_select_member on public.institution_users;
+create policy institution_users_select_member on public.institution_users for select to authenticated
+using (auth_user_id=auth.uid() or public.has_institution_role(institution_id,array['owner','manager']));
+
+drop policy if exists institution_documents_select_member on public.institution_documents;
+create policy institution_documents_select_member on public.institution_documents for select to authenticated
+using (public.is_institution_member(institution_id));
+
+drop policy if exists institution_documents_insert_staff on public.institution_documents;
+create policy institution_documents_insert_staff on public.institution_documents for insert to authenticated
+with check (public.has_institution_role(institution_id,array['owner','manager','staff']));
+
+drop policy if exists institution_documents_update_manager on public.institution_documents;
+create policy institution_documents_update_manager on public.institution_documents for update to authenticated
+using (public.has_institution_role(institution_id,array['owner','manager']))
+with check (public.has_institution_role(institution_id,array['owner','manager']));
+
+drop policy if exists subscriptions_select_member on public.subscriptions;
+create policy subscriptions_select_member on public.subscriptions for select to authenticated
+using (public.is_institution_member(institution_id));
+
+drop policy if exists certificates_select_member on public.certificates;
+create policy certificates_select_member on public.certificates for select to authenticated
+using (public.is_institution_member(institution_id));
+
+drop policy if exists certificates_update_manager on public.certificates;
+create policy certificates_update_manager on public.certificates for update to authenticated
+using (public.has_institution_role(institution_id,array['owner','manager']))
+with check (public.has_institution_role(institution_id,array['owner','manager']));
+
+-- Public verification must use verify_certificate(), not direct table access.
+drop policy if exists certs_public_verify on public.certificates;
+drop policy if exists certs_own on public.certificates;
+
+-- ------------------------------------------------------------
+-- 7) Private document storage
+-- ------------------------------------------------------------
+insert into storage.buckets(id,name,public)
+values('institution-documents','institution-documents',false)
+on conflict(id) do update set public=false;
+
+drop policy if exists institution_docs_storage_read on storage.objects;
+create policy institution_docs_storage_read on storage.objects for select
+using (
+  bucket_id='institution-documents' and
+  (public.is_platform_admin() or exists(
+    select 1 from public.institution_users iu
+    where iu.institution_id::text=(storage.foldername(name))[1]
+      and iu.auth_user_id=auth.uid() and iu.status='active'
+  ))
+);
+
+drop policy if exists institution_docs_storage_insert on storage.objects;
+create policy institution_docs_storage_insert on storage.objects for insert
+with check (
+  bucket_id='institution-documents' and exists(
+    select 1 from public.institution_users iu
+    where iu.institution_id::text=(storage.foldername(name))[1]
+      and iu.auth_user_id=auth.uid() and iu.status='active'
+      and iu.role in ('owner','manager','staff')
   )
-) WITH CHECK (public.is_admin() OR EXISTS (
-    SELECT 1 FROM public.institution_users iu
-    WHERE iu.institution_id = certificates.institution_id
-      AND iu.auth_user_id = auth.uid()
-      AND iu.is_active = true
-));
-
-CREATE POLICY certificates_company_search ON public.certificates
-FOR SELECT USING (
-  visible_to_companies = true
-  AND EXISTS (
-    SELECT 1 FROM public.companies c
-    WHERE c.auth_user_id = auth.uid()
-      AND c.status = 'approved'
-  )
 );
 
--- Verification log: public can record a verification, nobody can read it except admin.
-CREATE POLICY verification_public_insert ON public.certificate_verifications
-FOR INSERT WITH CHECK (true);
-CREATE POLICY verification_admin_read ON public.certificate_verifications
-FOR SELECT USING (public.is_admin());
+drop policy if exists institution_docs_storage_update on storage.objects;
+create policy institution_docs_storage_update on storage.objects for update
+using (
+  bucket_id='institution-documents' and
+  (public.is_platform_admin() or exists(
+    select 1 from public.institution_users iu
+    where iu.institution_id::text=(storage.foldername(name))[1]
+      and iu.auth_user_id=auth.uid() and iu.status='active'
+      and iu.role in ('owner','manager','staff')
+  ))
+) with check(bucket_id='institution-documents');
 
--- Companies.
-CREATE POLICY companies_self_read ON public.companies
-FOR SELECT USING (auth.uid() = auth_user_id OR public.is_admin());
-CREATE POLICY companies_admin_all ON public.companies
-FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
-
--- Recruitment requests.
-CREATE POLICY recruitment_public_insert ON public.recruitment_requests
-FOR INSERT WITH CHECK (true);
-CREATE POLICY recruitment_admin_all ON public.recruitment_requests
-FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
-
--- Activity log / settings are admin-only.
-CREATE POLICY activity_admin_all ON public.activity_log
-FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
-CREATE POLICY settings_public_read ON public.system_settings
-FOR SELECT USING (true);
-CREATE POLICY settings_admin_all ON public.system_settings
-FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+drop policy if exists institution_docs_storage_delete on storage.objects;
+create policy institution_docs_storage_delete on storage.objects for delete
+using (
+  bucket_id='institution-documents' and
+  (public.is_platform_admin() or exists(
+    select 1 from public.institution_users iu
+    where iu.institution_id::text=(storage.foldername(name))[1]
+      and iu.auth_user_id=auth.uid() and iu.status='active'
+      and iu.role in ('owner','manager','staff')
+  ))
+);
 
 -- ------------------------------------------------------------
--- Seed packages: source of truth for register.html and packages.html
+-- 8) Remove stale V1 functions that could reintroduce old model.
+-- We intentionally keep legacy tables untouched to avoid data loss.
 -- ------------------------------------------------------------
-INSERT INTO public.packages (name,name_ar,quota,price_monthly,price_yearly,features,sort_order,is_active)
-VALUES
-('trial','تجريبية',10,0,0,'["تحقق رقمي","QR Code"]',0,true),
-('basic','أساسية',100,125,1499,'["QR لكل شهادة","لوحة تحكم"]',1,true),
-('bronze','برونزية',500,333,3999,'["رفع Excel","3 مستخدمين","دعم أولوية"]',2,true),
-('silver','فضية',2000,667,7999,'["10 مستخدمين","تقارير متقدمة"]',3,true),
-('gold','ذهبية',6000,1249,14999,'["API كامل","دعم VIP"]',4,true),
-('enterprise','مؤسسات',0,0,0,'["SLA مضمون","مدير حساب خاص"]',5,true)
-ON CONFLICT (name) DO UPDATE SET
-  name_ar=EXCLUDED.name_ar,
-  quota=EXCLUDED.quota,
-  price_monthly=EXCLUDED.price_monthly,
-  price_yearly=EXCLUDED.price_yearly,
-  features=EXCLUDED.features,
-  sort_order=EXCLUDED.sort_order,
-  is_active=EXCLUDED.is_active;
+drop function if exists public.create_institution_from_registration() cascade;
+drop function if exists public.review_institution(uuid,text,text);
+drop function if exists public.revoke_my_certificate(uuid);
+drop function if exists public.is_admin();
 
-INSERT INTO public.system_settings(key,value,description)
-VALUES
-('platform_name','شهادتي','اسم المنصة'),
-('platform_name_en','Shehadaty','اسم المنصة بالإنجليزية'),
-('support_email','support@shehadaty.com','بريد الدعم الفني'),
-('cert_prefix','SHD','بادئة أرقام الشهادات'),
-('maintenance_mode','false','وضع الصيانة')
-ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, description=EXCLUDED.description, updated_at=now();
-
--- ------------------------------------------------------------
--- Storage
--- Create these buckets from Storage if they do not already exist:
---   institution-documents (PRIVATE)
---   certificates (PUBLIC, only if public PDF delivery is desired)
--- ------------------------------------------------------------
-
--- IMPORTANT: Set an admin user's app_metadata role to "admin" from a trusted server/admin tool.
--- Do NOT put a service_role key in HTML/JavaScript.
-
--- ------------------------------------------------------------
--- Private legal-document storage
--- ------------------------------------------------------------
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('institution-documents', 'institution-documents', false)
-ON CONFLICT (id) DO UPDATE SET public = false;
-
-DROP POLICY IF EXISTS institution_docs_storage_read ON storage.objects;
-CREATE POLICY institution_docs_storage_read ON storage.objects
-FOR SELECT USING (
-  bucket_id = 'institution-documents'
-  AND (
-    public.is_admin()
-    OR EXISTS (
-      SELECT 1
-      FROM public.institution_users iu
-      WHERE iu.institution_id::text = (storage.foldername(name))[1]
-        AND iu.auth_user_id = auth.uid()
-        AND iu.is_active = true
-    )
-  )
-);
-
-DROP POLICY IF EXISTS institution_docs_storage_insert ON storage.objects;
-CREATE POLICY institution_docs_storage_insert ON storage.objects
-FOR INSERT WITH CHECK (
-  bucket_id = 'institution-documents'
-  AND EXISTS (
-    SELECT 1
-    FROM public.institution_users iu
-    WHERE iu.institution_id::text = (storage.foldername(name))[1]
-      AND iu.auth_user_id = auth.uid()
-      AND iu.is_active = true
-  )
-);
-
-DROP POLICY IF EXISTS institution_docs_storage_delete ON storage.objects;
-CREATE POLICY institution_docs_storage_delete ON storage.objects
-FOR DELETE USING (
-  bucket_id = 'institution-documents'
-  AND (
-    public.is_admin()
-    OR EXISTS (
-      SELECT 1
-      FROM public.institution_users iu
-      WHERE iu.institution_id::text = (storage.foldername(name))[1]
-        AND iu.auth_user_id = auth.uid()
-        AND iu.is_active = true
-    )
-  )
-);
-
--- ============================================================
--- SHAHADATY V3 FINAL WORKFLOW EXTENSIONS
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS public.payments (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  institution_id uuid NOT NULL REFERENCES public.institutions(id) ON DELETE CASCADE,
-  subscription_id uuid REFERENCES public.subscriptions(id) ON DELETE SET NULL,
-  amount numeric(10,2) NOT NULL DEFAULT 0 CHECK (amount >= 0),
-  currency text NOT NULL DEFAULT 'EGP',
-  provider text,
-  provider_reference text,
-  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid','failed','refunded','cancelled')),
-  paid_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS payments_inst_idx ON public.payments(institution_id);
-CREATE INDEX IF NOT EXISTS payments_status_idx ON public.payments(status);
-ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
-
-CREATE TABLE IF NOT EXISTS public.notifications (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  auth_user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
-  institution_id uuid REFERENCES public.institutions(id) ON DELETE CASCADE,
-  title text NOT NULL,
-  message text NOT NULL,
-  type text NOT NULL DEFAULT 'info',
-  is_read boolean NOT NULL DEFAULT false,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS notifications_user_idx ON public.notifications(auth_user_id, is_read, created_at DESC);
-ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
-
-CREATE TABLE IF NOT EXISTS public.graduate_profiles (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  auth_user_id uuid UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
-  full_name text NOT NULL,
-  email text,
-  phone text,
-  governorate text,
-  bio text,
-  profile_public boolean NOT NULL DEFAULT false,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE public.graduate_profiles ENABLE ROW LEVEL SECURITY;
-
-DROP TRIGGER IF EXISTS graduate_profiles_updated_at ON public.graduate_profiles;
-CREATE TRIGGER graduate_profiles_updated_at BEFORE UPDATE ON public.graduate_profiles
-FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
-
-CREATE OR REPLACE FUNCTION public.update_my_institution_contact(p_phone text)
-RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-BEGIN
-  UPDATE public.institutions SET contact_phone=trim(p_phone),updated_at=now() WHERE auth_user_id=auth.uid();
-  IF NOT FOUND THEN RAISE EXCEPTION 'NOT_ALLOWED'; END IF;
-  RETURN true;
-END;$$;
-GRANT EXECUTE ON FUNCTION public.update_my_institution_contact(text) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.revoke_my_certificate(p_certificate_id uuid,p_reason text DEFAULT NULL)
-RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-BEGIN
-  UPDATE public.certificates c SET status='revoked',revoked_at=now(),revoke_reason=p_reason,updated_at=now()
-  WHERE c.id=p_certificate_id AND EXISTS(SELECT 1 FROM public.institution_users iu WHERE iu.institution_id=c.institution_id AND iu.auth_user_id=auth.uid() AND iu.is_active=true AND iu.role IN ('owner','admin'));
-  IF NOT FOUND THEN RAISE EXCEPTION 'NOT_ALLOWED'; END IF;
-  INSERT INTO public.activity_log(actor_id,actor_type,action,target_type,target_id,details) VALUES(auth.uid(),'institution','certificate_revoked','certificate',p_certificate_id,jsonb_build_object('reason',p_reason));
-  RETURN true;
-END;$$;
-GRANT EXECUTE ON FUNCTION public.revoke_my_certificate(uuid,text) TO authenticated;
-
--- Atomic certificate issuing. The browser never generates certificate numbers or quota counters.
-CREATE OR REPLACE FUNCTION public.issue_certificate(p_payload jsonb)
-RETURNS TABLE(cert_id uuid, cert_number text)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  uid uuid := auth.uid();
-  inst_id uuid := (p_payload->>'institution_id')::uuid;
-  inst_row public.institutions%ROWTYPE;
-  new_id uuid;
-  new_number text;
-  issue_day date := COALESCE(NULLIF(p_payload->>'issue_date','')::date, CURRENT_DATE);
-BEGIN
-  IF uid IS NULL THEN RAISE EXCEPTION 'AUTH_REQUIRED'; END IF;
-  SELECT i.* INTO inst_row
-  FROM public.institutions i
-  JOIN public.institution_users iu ON iu.institution_id=i.id
-  WHERE i.id=inst_id AND iu.auth_user_id=uid AND iu.is_active=true
-    AND iu.role IN ('owner','admin','staff')
-  FOR UPDATE OF i;
-  IF NOT FOUND THEN RAISE EXCEPTION 'NOT_ALLOWED'; END IF;
-  IF inst_row.status <> 'approved' THEN RAISE EXCEPTION 'INSTITUTION_NOT_APPROVED'; END IF;
-  IF inst_row.quota_used >= inst_row.quota_total THEN RAISE EXCEPTION 'QUOTA_EXCEEDED'; END IF;
-  IF COALESCE(trim(p_payload->>'student_name'),'')='' OR COALESCE(trim(p_payload->>'course'),'')='' THEN
-    RAISE EXCEPTION 'REQUIRED_FIELDS';
-  END IF;
-
-  new_number := public.generate_cert_number();
-  INSERT INTO public.certificates(
-    institution_id, cert_number, student_name, student_name_en, student_national_id,
-    student_phone, course, specialization, issue_date, expiry_date, grade, grade_value,
-    duration, governorate, pdf_url, qr_code, visible_to_companies, consent_given_at,
-    status, added_by
-  ) VALUES (
-    inst_id, new_number, trim(p_payload->>'student_name'), NULLIF(trim(p_payload->>'student_name_en'),''),
-    NULLIF(trim(p_payload->>'student_national_id'),''), NULLIF(trim(p_payload->>'student_phone'),''),
-    trim(p_payload->>'course'), NULLIF(trim(p_payload->>'specialization'),''), issue_day,
-    NULLIF(p_payload->>'expiry_date','')::date, NULLIF(trim(p_payload->>'grade'),''),
-    NULLIF(p_payload->>'grade_value','')::numeric, NULLIF(trim(p_payload->>'duration'),''),
-    NULLIF(trim(p_payload->>'governorate'),''), NULLIF(trim(p_payload->>'pdf_url'),''),
-    NULLIF(trim(p_payload->>'qr_code'),''), COALESCE((p_payload->>'visible_to_companies')::boolean,false),
-    CASE WHEN COALESCE((p_payload->>'visible_to_companies')::boolean,false) THEN now() ELSE NULL END,
-    'active','institution'
-  ) RETURNING id INTO new_id;
-
-  UPDATE public.institutions
-  SET quota_used=quota_used+1, updated_at=now()
-  WHERE id=inst_id;
-
-  INSERT INTO public.activity_log(actor_id,actor_type,action,target_type,target_id,details)
-  VALUES(uid,'institution','certificate_issued','certificate',new_id,jsonb_build_object('cert_number',new_number,'institution_id',inst_id));
-
-  RETURN QUERY SELECT new_id,new_number;
-END;
-$$;
-GRANT EXECUTE ON FUNCTION public.issue_certificate(jsonb) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.issue_certificates_bulk(p_institution_id uuid, p_rows jsonb)
-RETURNS TABLE(success_count integer, failed_count integer, errors jsonb, numbers jsonb)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  r jsonb; ok integer:=0; bad integer:=0; errs jsonb:='[]'::jsonb; nums jsonb:='[]'::jsonb; result record;
-  needed integer:=jsonb_array_length(COALESCE(p_rows,'[]'::jsonb)); current_quota integer; current_used integer;
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM public.institution_users iu JOIN public.institutions i ON i.id=iu.institution_id
-    WHERE iu.institution_id=p_institution_id AND iu.auth_user_id=auth.uid() AND iu.is_active=true
-      AND iu.role IN ('owner','admin','staff') AND i.status='approved'
-  ) THEN RAISE EXCEPTION 'NOT_ALLOWED'; END IF;
-  SELECT quota_total,quota_used INTO current_quota,current_used FROM public.institutions WHERE id=p_institution_id FOR UPDATE;
-  IF current_used + needed > current_quota THEN RAISE EXCEPTION 'QUOTA_EXCEEDED'; END IF;
-  FOR r IN SELECT value FROM jsonb_array_elements(COALESCE(p_rows,'[]'::jsonb)) LOOP
-    BEGIN
-      SELECT * INTO result FROM public.issue_certificate(r || jsonb_build_object('institution_id',p_institution_id));
-      ok:=ok+1; nums:=nums || jsonb_build_array(result.cert_number);
-    EXCEPTION WHEN OTHERS THEN
-      bad:=bad+1; errs:=errs || jsonb_build_array(jsonb_build_object('row',r,'error',SQLERRM));
-    END;
-  END LOOP;
-  RETURN QUERY SELECT ok,bad,errs,nums;
-END;
-$$;
-GRANT EXECUTE ON FUNCTION public.issue_certificates_bulk(uuid,jsonb) TO authenticated;
-
--- Admin workflow: approve/reject institution and create/update subscription.
-CREATE OR REPLACE FUNCTION public.review_institution(p_institution_id uuid, p_status text, p_notes text DEFAULT NULL)
-RETURNS boolean
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE uid uuid:=auth.uid();
-BEGIN
-  IF NOT public.is_admin() THEN RAISE EXCEPTION 'ADMIN_REQUIRED'; END IF;
-  IF p_status NOT IN ('approved','rejected','suspended','pending') THEN RAISE EXCEPTION 'INVALID_STATUS'; END IF;
-  UPDATE public.institutions
-  SET status=p_status,
-      approved_at=CASE WHEN p_status='approved' THEN now() ELSE approved_at END,
-      approved_by=CASE WHEN p_status='approved' THEN uid ELSE approved_by END,
-      rejection_reason=CASE WHEN p_status='rejected' THEN p_notes ELSE NULL END,
-      notes=COALESCE(p_notes,notes), updated_at=now()
-  WHERE id=p_institution_id;
-  IF NOT FOUND THEN RAISE EXCEPTION 'NOT_FOUND'; END IF;
-  IF p_status='approved' THEN
-    INSERT INTO public.subscriptions(institution_id,package_id,status,billing_cycle,amount,start_at,end_at)
-    SELECT i.id,i.package_id,'active','monthly',COALESCE(p.price_monthly,0),now(),now()+interval '30 days'
-    FROM public.institutions i LEFT JOIN public.packages p ON p.id=i.package_id
-    WHERE i.id=p_institution_id
-    ON CONFLICT (institution_id) WHERE status='active' DO UPDATE SET package_id=EXCLUDED.package_id, amount=EXCLUDED.amount, start_at=EXCLUDED.start_at, end_at=EXCLUDED.end_at, updated_at=now();
-    INSERT INTO public.notifications(institution_id,title,message,type)
-    SELECT p_institution_id,'تم اعتماد المؤسسة','تم اعتماد مؤسستك ويمكنك الآن استخدام بوابة المؤسسات.','success';
-  ELSIF p_status='rejected' THEN
-    INSERT INTO public.notifications(institution_id,title,message,type)
-    VALUES(p_institution_id,'تم رفض طلب الاعتماد',COALESCE(p_notes,'يرجى مراجعة الإدارة لمزيد من التفاصيل.'),'error');
-  END IF;
-  INSERT INTO public.activity_log(actor_id,actor_type,action,target_type,target_id,details)
-  VALUES(uid,'admin','institution_reviewed','institution',p_institution_id,jsonb_build_object('status',p_status,'notes',p_notes));
-  RETURN true;
-END;
-$$;
-GRANT EXECUTE ON FUNCTION public.review_institution(uuid,text,text) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.review_document(p_document_id uuid,p_status text,p_reason text DEFAULT NULL)
-RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-BEGIN
-  IF NOT public.is_admin() THEN RAISE EXCEPTION 'ADMIN_REQUIRED'; END IF;
-  IF p_status NOT IN ('approved','rejected','pending') THEN RAISE EXCEPTION 'INVALID_STATUS'; END IF;
-  UPDATE public.institution_documents SET status=p_status,reviewed_by=auth.uid(),reviewed_at=now(),rejection_reason=CASE WHEN p_status='rejected' THEN p_reason ELSE NULL END WHERE id=p_document_id;
-  IF NOT FOUND THEN RAISE EXCEPTION 'NOT_FOUND'; END IF;
-  RETURN true;
-END;$$;
-GRANT EXECUTE ON FUNCTION public.review_document(uuid,text,text) TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.verify_certificate(p_cert_number text)
-RETURNS TABLE(cert_number text,student_name text,course text,specialization text,issue_date date,expiry_date date,grade text,duration text,institution_name text,institution_type text,institution_governorate text,status text)
-LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE c public.certificates%ROWTYPE; effective_status text;
-BEGIN
-  SELECT * INTO c FROM public.certificates WHERE cert_number=upper(trim(p_cert_number)) LIMIT 1;
-  IF c.id IS NULL THEN RETURN; END IF;
-  effective_status:=CASE WHEN c.status='revoked' THEN 'revoked' WHEN c.expiry_date IS NOT NULL AND c.expiry_date<CURRENT_DATE THEN 'expired' ELSE 'active' END;
-  INSERT INTO public.certificate_verifications(certificate_id,cert_number,verifier_type) VALUES(c.id,c.cert_number,'public');
-  RETURN QUERY SELECT c.cert_number,c.student_name,c.course,c.specialization,c.issue_date,c.expiry_date,c.grade,c.duration,i.name,i.type,i.governorate,effective_status
-  FROM public.institutions i WHERE i.id=c.institution_id AND i.status='approved';
-END;$$;
-GRANT EXECUTE ON FUNCTION public.verify_certificate(text) TO anon,authenticated;
-
-CREATE OR REPLACE FUNCTION public.graduate_my_certificates()
-RETURNS TABLE(cert_number text,course text,issue_date date,grade text)
-LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE uid uuid:=auth.uid(); phone text;
-BEGIN
-  IF uid IS NULL THEN RAISE EXCEPTION 'AUTH_REQUIRED'; END IF;
-  SELECT gp.phone INTO phone FROM public.graduate_profiles gp WHERE gp.auth_user_id=uid;
-  IF phone IS NULL OR phone='' THEN RETURN; END IF;
-  RETURN QUERY SELECT c.cert_number,c.course,c.issue_date,c.grade
-  FROM public.certificates c JOIN public.institutions i ON i.id=c.institution_id
-  WHERE c.student_phone=phone AND c.status='active' AND i.status='approved' ORDER BY c.issue_date DESC;
-END;$$;
-GRANT EXECUTE ON FUNCTION public.graduate_my_certificates() TO authenticated;
-
-CREATE OR REPLACE FUNCTION public.company_search_candidates(p_qualification text DEFAULT NULL,p_governorate text DEFAULT NULL,p_year text DEFAULT NULL)
-RETURNS TABLE(student_name text,course text,grade text,issue_date date,governorate text,student_phone text,institution_name text)
-LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE uid uuid:=auth.uid();
-BEGIN
-  IF NOT EXISTS(SELECT 1 FROM public.companies WHERE auth_user_id=uid AND status='approved' AND search_credits>0) THEN RAISE EXCEPTION 'COMPANY_NOT_ALLOWED'; END IF;
-  UPDATE public.companies SET search_credits=search_credits-1 WHERE auth_user_id=uid;
-  RETURN QUERY SELECT c.student_name,c.course,c.grade,c.issue_date,c.governorate,c.student_phone,i.name
-  FROM public.certificates c JOIN public.institutions i ON i.id=c.institution_id
-  WHERE c.status='active' AND c.visible_to_companies=true
-    AND (p_qualification IS NULL OR c.course ILIKE '%'||p_qualification||'%')
-    AND (p_governorate IS NULL OR c.governorate=p_governorate)
-    AND (p_year IS NULL OR EXTRACT(YEAR FROM c.issue_date)::text=p_year)
-  ORDER BY c.issue_date DESC LIMIT 30;
-END;$$;
-GRANT EXECUTE ON FUNCTION public.company_search_candidates(text,text,text) TO authenticated;
-
--- Replace overly broad raw-company candidate access with the secure search function.
-DROP POLICY IF EXISTS certificates_company_search ON public.certificates;
-
-CREATE POLICY payments_owner_read ON public.payments FOR SELECT USING (public.is_admin() OR EXISTS(SELECT 1 FROM public.institution_users iu WHERE iu.institution_id=payments.institution_id AND iu.auth_user_id=auth.uid() AND iu.is_active=true));
-CREATE POLICY payments_admin_all ON public.payments FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
-CREATE POLICY notifications_self_read ON public.notifications FOR SELECT USING (auth.uid()=auth_user_id OR public.is_admin() OR EXISTS(SELECT 1 FROM public.institution_users iu WHERE iu.institution_id=notifications.institution_id AND iu.auth_user_id=auth.uid() AND iu.is_active=true));
-CREATE POLICY notifications_self_update ON public.notifications FOR UPDATE USING (auth.uid()=auth_user_id OR public.is_admin()) WITH CHECK (auth.uid()=auth_user_id OR public.is_admin());
-CREATE POLICY graduate_self_read ON public.graduate_profiles FOR SELECT USING (auth.uid()=auth_user_id OR public.is_admin() OR profile_public=true);
-CREATE POLICY graduate_self_insert ON public.graduate_profiles FOR INSERT WITH CHECK (auth.uid()=auth_user_id);
-CREATE POLICY graduate_self_update ON public.graduate_profiles FOR UPDATE USING (auth.uid()=auth_user_id OR public.is_admin()) WITH CHECK (auth.uid()=auth_user_id OR public.is_admin());
-
--- Atomic trigger-safe constraint: quota can never exceed total.
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='institutions_quota_consistency') THEN
-    ALTER TABLE public.institutions ADD CONSTRAINT institutions_quota_consistency CHECK (quota_used <= quota_total);
-  END IF;
-END $$;
-
--- Keep certificate sequence above existing numeric suffixes when repairing an old database.
-DO $$ DECLARE max_n bigint; BEGIN
-  SELECT COALESCE(MAX((substring(cert_number from '([0-9]+)$'))::bigint),0) INTO max_n FROM public.certificates WHERE cert_number ~ '[0-9]+$';
-  IF max_n > 0 THEN PERFORM setval('public.certificate_number_seq', max_n, true); END IF;
-EXCEPTION WHEN OTHERS THEN NULL; END $$;
-
-
-CREATE OR REPLACE FUNCTION public.public_platform_stats()
-RETURNS TABLE(institutions_count bigint, certificates_count bigint, verifications_count bigint)
-LANGUAGE sql SECURITY DEFINER SET search_path=public AS $$
-  SELECT
-    (SELECT count(*) FROM public.institutions WHERE status='approved'),
-    (SELECT count(*) FROM public.certificates WHERE status='active'),
-    (SELECT count(*) FROM public.certificate_verifications);
-$$;
-GRANT EXECUTE ON FUNCTION public.public_platform_stats() TO anon,authenticated;
+-- End of final alignment.
