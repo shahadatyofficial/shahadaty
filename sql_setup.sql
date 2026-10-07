@@ -331,6 +331,158 @@ $;
 grant execute on function public.issue_certificate(jsonb) to authenticated;
 
 -- ------------------------------------------------------------
+-- 5A) Missing current frontend RPCs
+-- ------------------------------------------------------------
+create or replace function public.admin_list_institutions(p_status text default null)
+returns table(
+  id uuid,name text,contact_email text,contact_phone text,institution_type text,
+  governorate text,address text,status text,package_id uuid,package_name_ar text,
+  quota_used integer,quota_total integer,request_number text,created_at timestamptz,updated_at timestamptz
+)
+language plpgsql security definer set search_path=public
+as $
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  return query
+  select i.id,i.name,i.contact_email,i.contact_phone,i.institution_type,i.governorate,i.address,
+         i.status,i.package_id,p.name_ar,i.quota_used,i.quota_total,i.request_number,i.created_at,i.updated_at
+  from public.institutions i
+  left join public.packages p on p.id=i.package_id
+  where coalesce(nullif(trim(p_status),''),'')='' or i.status=trim(p_status)
+  order by i.created_at desc
+  limit 500;
+end; $;
+
+create or replace function public.admin_approve_institution(
+  p_institution_id uuid,
+  p_billing_cycle text default 'monthly',
+  p_payment_status text default 'unpaid'
+)
+returns jsonb
+language plpgsql security definer set search_path=public
+as $
+declare
+  v_i public.institutions%rowtype;
+  v_p public.packages%rowtype;
+  v_sub_id uuid;
+  v_amount integer;
+  v_quota integer;
+  v_starts timestamptz:=now();
+  v_ends timestamptz;
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  if p_billing_cycle not in ('monthly','yearly') then raise exception 'INVALID_BILLING_CYCLE'; end if;
+  if p_payment_status not in ('unpaid','pending','paid','failed','refunded') then raise exception 'INVALID_PAYMENT_STATUS'; end if;
+
+  select * into v_i from public.institutions where id=p_institution_id for update;
+  if not found then raise exception 'INSTITUTION_NOT_FOUND'; end if;
+  select * into v_p from public.packages where id=v_i.package_id;
+  if not found then raise exception 'PACKAGE_NOT_FOUND'; end if;
+
+  v_amount:=case when p_billing_cycle='yearly' then coalesce(v_p.price_yearly,0) else coalesce(v_p.price_monthly,0) end;
+  v_quota:=coalesce(v_p.quota_limit,v_i.quota_total,10);
+  v_ends:=case when p_billing_cycle='yearly' then v_starts+interval '1 year' else v_starts+interval '1 month' end;
+
+  update public.institutions
+  set status='approved',approved_at=now(),approved_by=auth.uid(),rejection_reason=null,
+      quota_total=greatest(quota_used,v_quota),updated_at=now()
+  where id=v_i.id;
+
+  select id into v_sub_id from public.subscriptions
+  where institution_id=v_i.id and status='active'
+  order by created_at desc limit 1;
+
+  if v_sub_id is null then
+    insert into public.subscriptions(
+      institution_id,package_id,billing_cycle,status,starts_at,ends_at,
+      quota_limit,quota_used,amount,currency,payment_status
+    ) values(
+      v_i.id,v_i.package_id,p_billing_cycle,'active',v_starts,v_ends,
+      v_quota,0,v_amount,'EGP',p_payment_status
+    ) returning id into v_sub_id;
+  else
+    update public.subscriptions set package_id=v_i.package_id,billing_cycle=p_billing_cycle,
+      starts_at=v_starts,ends_at=v_ends,quota_limit=v_quota,amount=v_amount,
+      payment_status=p_payment_status,updated_at=now()
+    where id=v_sub_id;
+  end if;
+
+  return jsonb_build_object('success',true,'institution_id',v_i.id,'subscription_id',v_sub_id,
+    'status','approved','quota_total',greatest(v_i.quota_used,v_quota));
+end; $;
+
+create or replace function public.admin_reject_institution(
+  p_institution_id uuid,
+  p_rejection_reason text
+)
+returns jsonb
+language plpgsql security definer set search_path=public
+as $
+declare v_i public.institutions%rowtype;
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  if coalesce(trim(p_rejection_reason),'')='' then raise exception 'REJECTION_REASON_REQUIRED'; end if;
+  update public.institutions
+  set status='rejected',rejection_reason=trim(p_rejection_reason),updated_at=now()
+  where id=p_institution_id returning * into v_i;
+  if not found then raise exception 'INSTITUTION_NOT_FOUND'; end if;
+  return jsonb_build_object('success',true,'institution_id',v_i.id,'status',v_i.status);
+end; $;
+
+create or replace function public.update_my_institution_contact(p_phone text)
+returns jsonb
+language plpgsql security definer set search_path=public
+as $
+declare v_id uuid; v_phone text:=trim(p_phone);
+begin
+  if auth.uid() is null then raise exception 'AUTH_REQUIRED'; end if;
+  if v_phone='' then raise exception 'PHONE_REQUIRED'; end if;
+  select i.id into v_id from public.institutions i
+  join public.institution_users iu on iu.institution_id=i.id
+  where iu.auth_user_id=auth.uid() and iu.status='active'
+    and iu.role in ('owner','manager') order by i.created_at desc limit 1;
+  if v_id is null then raise exception 'NOT_ALLOWED'; end if;
+  update public.institutions set contact_phone=v_phone,updated_at=now() where id=v_id;
+  return jsonb_build_object('success',true,'institution_id',v_id,'contact_phone',v_phone);
+end; $;
+
+create or replace function public.issue_certificates_bulk(p_institution_id uuid,p_rows jsonb)
+returns table(success_count integer,failed_count integer,errors jsonb,numbers jsonb)
+language plpgsql security definer set search_path=public
+as $
+declare
+  r jsonb; ok integer:=0; bad integer:=0; errs jsonb:='[]'::jsonb; nums jsonb:='[]'::jsonb;
+  needed integer:=jsonb_array_length(coalesce(p_rows,'[]'::jsonb));
+  v_used integer; v_total integer; result record;
+begin
+  if not exists(
+    select 1 from public.institution_users iu join public.institutions i on i.id=iu.institution_id
+    where iu.institution_id=p_institution_id and iu.auth_user_id=auth.uid()
+      and iu.status='active' and iu.role in ('owner','manager','staff') and i.status='approved'
+  ) then raise exception 'NOT_ALLOWED'; end if;
+
+  select quota_used,quota_total into v_used,v_total
+  from public.institutions where id=p_institution_id for update;
+  if v_used+needed>v_total then raise exception 'QUOTA_EXCEEDED'; end if;
+
+  for r in select value from jsonb_array_elements(coalesce(p_rows,'[]'::jsonb)) loop
+    begin
+      select * into result from public.issue_certificate(r || jsonb_build_object('institution_id',p_institution_id));
+      ok:=ok+1; nums:=nums||jsonb_build_array(result.cert_number);
+    exception when others then
+      bad:=bad+1; errs:=errs||jsonb_build_array(jsonb_build_object('row',r,'error',sqlerrm));
+    end;
+  end loop;
+  return query select ok,bad,errs,nums;
+end; $;
+
+grant execute on function public.admin_list_institutions(text) to authenticated;
+grant execute on function public.admin_approve_institution(uuid,text,text) to authenticated;
+grant execute on function public.admin_reject_institution(uuid,text) to authenticated;
+grant execute on function public.update_my_institution_contact(text) to authenticated;
+grant execute on function public.issue_certificates_bulk(uuid,jsonb) to authenticated;
+
+-- ------------------------------------------------------------
 -- 5) Platform admin RPCs
 -- ------------------------------------------------------------
 create or replace function public.admin_update_institution_quota(p_institution_id uuid,p_quota_total integer)
