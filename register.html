@@ -621,18 +621,21 @@ async function submitFinal(){
 async function uploadRegistrationDocuments(institutionId){
   if(!institutionId)return 0;
   const docs=[
-    {key:'commercial',type:'commercial_registration'},
-    {key:'tax',type:'tax_card'},
-    {key:'other',type:'institution_proof'}
+    {key:'commercial',type:'commercial_registration',required:true},
+    {key:'tax',type:'tax_card',required:true},
+    {key:'other',type:'institution_proof',required:false}
   ];
   let count=0;
   for(const d of docs){
     const file=formData['doc_'+d.key];
-    if(!file)continue;
+    if(!file){
+      if(d.required) throw new Error(`المستند المطلوب غير مرفق: ${d.key==='commercial'?'السجل التجاري':'البطاقة الضريبية'}`);
+      continue;
+    }
     const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
     const path=`${institutionId}/${crypto.randomUUID()}-${safeName}`;
     const {error:uploadErr}=await sb.storage.from('institution-documents').upload(path,file,{contentType:file.type||'application/octet-stream',upsert:false});
-    if(uploadErr)continue;
+    if(uploadErr) throw new Error(`تعذر رفع المستند ${file.name}: ${uploadErr.message}`);
     const {error:rowErr}=await sb.from('institution_documents').insert({
       institution_id:institutionId,
       document_type:d.type,
@@ -641,7 +644,8 @@ async function uploadRegistrationDocuments(institutionId){
       status:'pending',
       uploaded_by:(await sb.auth.getUser()).data.user?.id||null
     });
-    if(!rowErr)count++;
+    if(rowErr) throw new Error(`تعذر تسجيل المستند ${file.name}: ${rowErr.message}`);
+    count++;
   }
   return count;
 }
