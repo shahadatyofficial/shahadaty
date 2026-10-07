@@ -267,6 +267,71 @@ revoke all on function public.register_institution(text,text,text,text,text,text
 grant execute on function public.register_institution(text,text,text,text,text,text,text,text,text,uuid) to authenticated;
 
 -- ------------------------------------------------------------
+-- 5) Secure certificate issuance
+-- ------------------------------------------------------------
+create or replace function public.issue_certificate(p_payload jsonb)
+returns table(cert_id uuid,cert_number text)
+language plpgsql
+security definer
+set search_path=public
+as $
+declare
+  v_uid uuid:=auth.uid();
+  v_inst uuid:=(p_payload->>'institution_id')::uuid;
+  v_inst_row public.institutions%rowtype;
+  v_id uuid;
+  v_number text;
+  v_day date:=coalesce(nullif(p_payload->>'issue_date','')::date,current_date);
+begin
+  if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
+
+  select i.* into v_inst_row
+  from public.institutions i
+  join public.institution_users iu on iu.institution_id=i.id
+  where i.id=v_inst and iu.auth_user_id=v_uid and iu.status='active'
+    and iu.role in ('owner','manager','staff')
+  for update of i;
+
+  if not found then raise exception 'NOT_ALLOWED'; end if;
+  if v_inst_row.status<>'approved' then raise exception 'INSTITUTION_NOT_APPROVED'; end if;
+  if v_inst_row.quota_used>=v_inst_row.quota_total then raise exception 'QUOTA_EXCEEDED'; end if;
+  if coalesce(trim(p_payload->>'student_name'),'')='' or coalesce(trim(p_payload->>'course'),'')='' then
+    raise exception 'REQUIRED_FIELDS';
+  end if;
+
+  v_number:=public.generate_certificate_number();
+
+  insert into public.certificates(
+    institution_id,cert_number,student_name,student_name_en,student_national_id,
+    student_phone,course,specialization,issue_date,expiry_date,grade,grade_value,
+    duration,governorate,pdf_url,qr_code,visible_to_companies,consent_given_at,status,added_by
+  ) values(
+    v_inst,v_number,trim(p_payload->>'student_name'),nullif(trim(p_payload->>'student_name_en'),''),
+    nullif(trim(p_payload->>'student_national_id'),''),nullif(trim(p_payload->>'student_phone'),''),
+    trim(p_payload->>'course'),nullif(trim(p_payload->>'specialization'),''),v_day,
+    nullif(p_payload->>'expiry_date','')::date,nullif(trim(p_payload->>'grade'),''),
+    nullif(p_payload->>'grade_value','')::numeric,nullif(trim(p_payload->>'duration'),''),
+    nullif(trim(p_payload->>'governorate'),''),nullif(trim(p_payload->>'pdf_url'),''),
+    nullif(trim(p_payload->>'qr_code'),''),coalesce((p_payload->>'visible_to_companies')::boolean,false),
+    case when coalesce((p_payload->>'visible_to_companies')::boolean,false) then now() else null end,
+    'active','institution'
+  ) returning id into v_id;
+
+  update public.institutions set quota_used=quota_used+1,updated_at=now() where id=v_inst;
+
+  if to_regclass('public.activity_log') is not null then
+    insert into public.activity_log(actor_id,actor_type,action,target_type,target_id,details)
+    values(v_uid,'institution','certificate_issued','certificate',v_id,
+           jsonb_build_object('cert_number',v_number,'institution_id',v_inst));
+  end if;
+
+  return query select v_id,v_number;
+end;
+$;
+
+grant execute on function public.issue_certificate(jsonb) to authenticated;
+
+-- ------------------------------------------------------------
 -- 5) Platform admin RPCs
 -- ------------------------------------------------------------
 create or replace function public.admin_update_institution_quota(p_institution_id uuid,p_quota_total integer)
