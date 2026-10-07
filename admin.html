@@ -469,7 +469,7 @@ async function loadRequestDocs(instId){
       <div><div style="font-weight:800;font-size:12px">${d.document_type||'مستند'}</div><div style="font-size:10px;color:var(--muted)">${d.file_name||'—'} · ${d.status||'pending'}</div></div>
       <div style="display:flex;gap:6px">
         <button class="btn-s" style="font-size:10px;padding:5px 8px" onclick="openDoc('${String(d.file_path||'').replace(/'/g,"\\'")}')">عرض</button>
-        ${d.status==='pending'?'<button class="btn-p" style="font-size:10px;padding:5px 8px" onclick="reviewDoc(\\''+d.id+'\\',\\'approved\\')">اعتماد</button><button class="btn-d" style="font-size:10px;padding:5px 8px" onclick="reviewDoc(\\''+d.id+'\\',\\'rejected\\')">رفض</button>':''}
+        ${d.status==='pending'? `<button class="btn-p" style="font-size:10px;padding:5px 8px" onclick="reviewDoc('${d.id}','approved')">اعتماد</button><button class="btn-d" style="font-size:10px;padding:5px 8px" onclick="reviewDoc('${d.id}','rejected')">رفض</button>` : ''}
       </div>
     </div>`).join('');
 }
