@@ -164,3 +164,85 @@ grant execute on function public.admin_update_institution_quota(uuid, integer) t
 grant execute on function public.admin_list_certificates(text) to authenticated;
 grant execute on function public.admin_revoke_certificate(uuid) to authenticated;
 grant execute on function public.admin_platform_stats() to authenticated;
+
+
+create or replace function public.admin_list_institution_documents(
+  p_institution_id uuid
+)
+returns table(
+  id uuid,
+  institution_id uuid,
+  document_type text,
+  file_name text,
+  file_path text,
+  status text,
+  rejection_reason text,
+  uploaded_at timestamptz,
+  reviewed_at timestamptz
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_platform_admin() then
+    raise exception 'NOT_ALLOWED';
+  end if;
+
+  return query
+  select d.id,d.institution_id,d.document_type,d.file_name,d.file_path,
+         d.status,d.rejection_reason,d.uploaded_at,d.reviewed_at
+  from public.institution_documents d
+  where d.institution_id = p_institution_id
+  order by d.uploaded_at desc;
+end;
+$$;
+
+create or replace function public.review_document(
+  p_document_id uuid,
+  p_status text,
+  p_reason text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_doc public.institution_documents%rowtype;
+begin
+  if not public.is_platform_admin() then
+    raise exception 'NOT_ALLOWED';
+  end if;
+
+  if p_status not in ('pending','approved','rejected') then
+    raise exception 'INVALID_DOCUMENT_STATUS';
+  end if;
+
+  if p_status = 'rejected' and coalesce(trim(p_reason),'') = '' then
+    raise exception 'REJECTION_REASON_REQUIRED';
+  end if;
+
+  update public.institution_documents
+     set status = p_status,
+         rejection_reason = case when p_status='rejected' then trim(p_reason) else null end,
+         reviewed_by = auth.uid(),
+         reviewed_at = now(),
+         updated_at = now()
+   where id = p_document_id
+   returning * into v_doc;
+
+  if not found then
+    raise exception 'DOCUMENT_NOT_FOUND';
+  end if;
+
+  return jsonb_build_object(
+    'success', true,
+    'document_id', v_doc.id,
+    'status', v_doc.status
+  );
+end;
+$$;
+
+grant execute on function public.admin_list_institution_documents(uuid) to authenticated;
+grant execute on function public.review_document(uuid,text,text) to authenticated;
