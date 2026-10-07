@@ -330,6 +330,38 @@ $;
 
 grant execute on function public.issue_certificate(jsonb) to authenticated;
 
+create or replace function public.verify_certificate(p_cert_number text)
+returns table(
+  cert_number text,student_name text,course text,specialization text,
+  issue_date date,grade text,duration text,status text,institution_name text
+)
+language plpgsql security definer set search_path=public
+as $
+declare
+  v_cert public.certificates%rowtype;
+  v_inst public.institutions%rowtype;
+begin
+  select c.* into v_cert
+  from public.certificates c
+  where upper(trim(c.cert_number))=upper(trim(p_cert_number))
+  limit 1;
+  if not found then raise exception 'CERTIFICATE_NOT_FOUND'; end if;
+
+  select * into v_inst from public.institutions where id=v_cert.institution_id;
+  if not found or v_inst.status<>'approved' then raise exception 'CERTIFICATE_NOT_FOUND'; end if;
+
+  if to_regclass('public.certificate_verifications') is not null then
+    insert into public.certificate_verifications(cert_number,certificate_id,result,checked_at)
+    values(v_cert.cert_number,v_cert.id,
+      case when v_cert.status='active' then 'valid' else 'invalid' end,now());
+  end if;
+
+  return query select v_cert.cert_number,v_cert.student_name,v_cert.course,v_cert.specialization,
+    v_cert.issue_date,v_cert.grade,v_cert.duration,v_cert.status,v_inst.name;
+end; $;
+
+grant execute on function public.verify_certificate(text) to anon,authenticated;
+
 -- ------------------------------------------------------------
 -- 5A) Missing current frontend RPCs
 -- ------------------------------------------------------------
