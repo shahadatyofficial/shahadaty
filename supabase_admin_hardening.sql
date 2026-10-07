@@ -309,3 +309,73 @@ FOR DELETE USING (
     )
   )
 );
+
+-- ============================================================
+-- ADMIN COMPANY / RECRUITMENT WORKFLOW
+-- ============================================================
+create or replace function public.admin_list_recruitment_requests(p_status text default null)
+returns setof public.recruitment_requests
+language plpgsql security definer set search_path=public
+as $$
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  return query
+    select r.* from public.recruitment_requests r
+    where coalesce(nullif(trim(p_status),''),'')=''
+       or r.status=trim(p_status)
+    order by r.created_at desc
+    limit 500;
+end;
+$$;
+
+create or replace function public.admin_update_recruitment_status(p_request_id uuid,p_status text)
+returns jsonb
+language plpgsql security definer set search_path=public
+as $$
+declare v_row public.recruitment_requests%rowtype;
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  if p_status not in ('new','processing','fulfilled','closed') then raise exception 'INVALID_STATUS'; end if;
+  update public.recruitment_requests set status=p_status
+  where id=p_request_id returning * into v_row;
+  if not found then raise exception 'REQUEST_NOT_FOUND'; end if;
+  return jsonb_build_object('success',true,'id',v_row.id,'status',v_row.status);
+end;
+$$;
+
+create or replace function public.admin_list_companies()
+returns setof public.companies
+language plpgsql security definer set search_path=public
+as $$
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  return query select c.* from public.companies c order by c.created_at desc limit 500;
+end;
+$$;
+
+create or replace function public.admin_update_company(
+  p_company_id uuid,
+  p_status text default null,
+  p_search_credits integer default null
+)
+returns jsonb
+language plpgsql security definer set search_path=public
+as $$
+declare v_row public.companies%rowtype;
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  if p_status is not null and p_status not in ('pending','approved','suspended') then raise exception 'INVALID_STATUS'; end if;
+  if p_search_credits is not null and p_search_credits < 0 then raise exception 'INVALID_CREDITS'; end if;
+  update public.companies
+     set status=coalesce(p_status,status),
+         search_credits=coalesce(p_search_credits,search_credits)
+   where id=p_company_id returning * into v_row;
+  if not found then raise exception 'COMPANY_NOT_FOUND'; end if;
+  return jsonb_build_object('success',true,'id',v_row.id,'status',v_row.status,'search_credits',v_row.search_credits);
+end;
+$$;
+
+grant execute on function public.admin_list_recruitment_requests(text) to authenticated;
+grant execute on function public.admin_update_recruitment_status(uuid,text) to authenticated;
+grant execute on function public.admin_list_companies() to authenticated;
+grant execute on function public.admin_update_company(uuid,text,integer) to authenticated;
