@@ -445,7 +445,7 @@ async function setInstSt(id,status){
   }
   loadInstitutions();loadBadges();loadReqs();loadOverview();
 }
-async function editQuota(id,current){const q=prompt('الكوتا الجديدة:',current);if(!q||isNaN(q))return;await sb.from('institutions').update({quota_total:parseInt(q)}).eq('id',id);toast('تم تعديل الكوتا','ok');loadInstitutions();}
+async function editQuota(id,current){const q=prompt('الكوتا الجديدة:',current);if(q===null||q===''||isNaN(q)||parseInt(q)<0)return;const{error}=await sb.rpc('admin_update_institution_quota',{p_institution_id:id,p_quota_total:parseInt(q)});if(error){toast(error.message,'err');return;}toast('تم تعديل الكوتا بنجاح','ok');loadInstitutions();}
 
 // ── REQUESTS ──────────────────────────────────────────────────
 async function loadReqs(){
@@ -474,10 +474,9 @@ async function reviewDoc(id,status){const reason=status==='rejected'?prompt('س�
 async function loadAdminCerts(){
   const q=document.getElementById('certsSearch').value.trim();
   if(q.length<2){document.getElementById('certsTable').innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">أدخل كلمة بحث (حرفان على الأقل)</td></tr>';return;}
-  let query=sb.from('certificates').select('*,institutions(name)').order('created_at',{ascending:false}).limit(50);
-  if(q.startsWith('SHD'))query=query.ilike('cert_number',`%${q}%`);else query=query.ilike('student_name',`%${q}%`);
-  const{data}=await query;
-  allAdminCerts=data||[];
+  const{data,error}=await sb.rpc('admin_list_certificates',{p_search:q});
+  if(error){toast(error.message,'err');return;}
+  allAdminCerts=(data||[]).map(c=>({...c,institutions:{name:c.institution_name}}));
   document.getElementById('certsTable').innerHTML=!allAdminCerts.length?'<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج</td></tr>':allAdminCerts.map(c=>`<tr>
     <td>${c.student_name}</td><td style="font-family:monospace;font-size:11px">${c.cert_number}</td><td>${c.course}</td>
     <td>${c.institutions?.name||'—'}</td><td>${new Date(c.issue_date).toLocaleDateString('ar-EG')}</td>
@@ -488,18 +487,20 @@ async function loadAdminCerts(){
     </div></td>
   </tr>`).join('');
 }
-async function revokeCert(id){if(!confirm('هل تريد إلغاء هذه الشهادة؟'))return;await sb.from('certificates').update({status:'revoked'}).eq('id',id);toast('تم إلغاء الشهادة','err');loadAdminCerts();}
+async function revokeCert(id){if(!confirm('هل تريد إلغاء هذه الشهادة؟'))return;const{error}=await sb.rpc('admin_revoke_certificate',{p_certificate_id:id});if(error){toast(error.message,'err');return;}toast('تم إلغاء الشهادة','err');loadAdminCerts();}
 function exportAdminCerts(){const ws=XLSX.utils.json_to_sheet(allAdminCerts.map(c=>({'الطالب':c.student_name,'رقم الشهادة':c.cert_number,'الدورة':c.course,'التاريخ':c.issue_date,'الحالة':c.status})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الشهادات');XLSX.writeFile(wb,'تقرير_الشهادات.xlsx');}
 
 // ── VERIFY ────────────────────────────────────────────────────
 async function adminVerify(){
   const q=document.getElementById('vInp').value.trim().toUpperCase();
-  const{data}=await sb.from('certificates').select('*,institutions(name)').eq('cert_number',q).single();
+  const{data,error}=await sb.rpc('verify_certificate',{p_cert_number:q});
   const res=document.getElementById('vResult');
-  if(!data){res.innerHTML='<div style="background:#fff5f5;color:#dc2626;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600">❌ لم يتم العثور على الشهادة</div>';return;}
+  const row=Array.isArray(data)?data[0]:data;
+  if(error){res.innerHTML='<div style="background:#fff5f5;color:#dc2626;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600">❌ '+error.message+'</div>';return;}
+  if(!row){res.innerHTML='<div style="background:#fff5f5;color:#dc2626;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600">❌ لم يتم العثور على الشهادة</div>';return;}
   res.innerHTML=`<div style="background:var(--bg);border:2px solid var(--blue);border-radius:12px;padding:18px">
-    <div style="font-size:15px;font-weight:800;color:var(--blue);margin-bottom:12px">✓ شهادة موثقة — ${data.status==='active'?'نشطة':'ملغاة'}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[['الطالب',data.student_name],['الدورة',data.course],['التاريخ',new Date(data.issue_date).toLocaleDateString('ar-EG')],['المؤسسة',data.institutions?.name||'—']].map(([l,v])=>`<div style="background:#fff;border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${l}</div><div style="font-size:13px;font-weight:700;color:var(--navy)">${v}</div></div>`).join('')}</div>
+    <div style="font-size:15px;font-weight:800;color:var(--blue);margin-bottom:12px">✓ شهادة موثقة — ${row.status==='active'?'نشطة':'ملغاة'}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[['الطالب',row.student_name],['الدورة',row.course],['التاريخ',new Date(row.issue_date).toLocaleDateString('ar-EG')],['المؤسسة',row.institution_name||row.institution?.name||'—']].map(([l,v])=>`<div style="background:#fff;border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${l}</div><div style="font-size:13px;font-weight:700;color:var(--navy)">${v||'—'}</div></div>`).join('')}</div>
   </div>`;
 }
 
@@ -580,18 +581,13 @@ async function loadPkgs(){
 
 // ── REPORTS ───────────────────────────────────────────────────
 async function loadReports(){
-  const today=new Date().toISOString().split('T')[0];
-  const month=new Date().toISOString().slice(0,7);
-  const[a,b,c,d]=await Promise.all([
-    sb.from('certificates').select('id',{count:'exact',head:true}).gte('created_at',today),
-    sb.from('certificates').select('id',{count:'exact',head:true}).gte('created_at',month+'-01'),
-    sb.from('institutions').select('id',{count:'exact',head:true}).eq('status','approved'),
-    sb.from('activity_log').select('id',{count:'exact',head:true})
-  ]);
-  document.getElementById('rep_today').textContent=a.count||0;
-  document.getElementById('rep_month').textContent=b.count||0;
-  document.getElementById('rep_rev').textContent=((c.count||0)*333).toLocaleString('ar');
-  document.getElementById('rep_verify').textContent=(d.count||0).toLocaleString('ar');
+  const{data,error}=await sb.rpc('admin_platform_stats');
+  if(error){toast(error.message,'err');return;}
+  const s=data||{};
+  document.getElementById('rep_today').textContent=s.active_certificates??0;
+  document.getElementById('rep_month').textContent=s.certificates??0;
+  document.getElementById('rep_rev').textContent=s.approved_institutions??0;
+  document.getElementById('rep_verify').textContent=s.pending_institutions??0;
 }
 async function exportReport(table){
   const{data}=await sb.from(table).select('*').limit(1000);
@@ -610,7 +606,12 @@ function toast(msg,type='ok'){const t=document.getElementById('toast');t.textCon
 // ── INIT ──────────────────────────────────────────────────────
 window.addEventListener('load',async()=>{
   const{data:{session}}=await sb.auth.getSession();
-  if(session){document.getElementById('loginScreen').style.display='none';document.getElementById('adminEmail').textContent=session.user.email;loadOverview();loadBadges();}
+  if(!session)return;
+  const{data:isAdmin,error}=await sb.rpc('is_platform_admin');
+  if(error||!isAdmin){await sb.auth.signOut();return;}
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('adminEmail').textContent=session.user.email||'';
+  loadOverview();loadBadges();
 });
 </script>
 </body>
