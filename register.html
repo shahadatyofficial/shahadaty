@@ -479,8 +479,8 @@ function renderStep4(){
         <div class="pkg-option ${p.popular?'popular':''} ${formData.package_id===p.id?'selected':''}" onclick="selectPkg('${p.id}','${p.name}')">
           <span class="pkg-emoji">${p.emoji}</span>
           <div class="pkg-name" style="color:${p.color}">${p.name}</div>
-          <div class="pkg-price" style="color:${p.color}">${p.price===null?'تواصل':`<sup>ج</sup>${p.price.toLocaleString()}`}</div>
-          <div class="pkg-period">${p.period}</div>
+          <div class="pkg-price" style="color:${p.color}">${p.price===null?'تواصل':`<sup>ج</sup>${p.price.toLocaleString()} <span style="font-size:10px;font-weight:700">شهريًا</span>`}</div>
+          <div class="pkg-period">${p.price===null?'تواصل معنا':`<span style="font-weight:700">سنويًا: </span>${p.yearlyPrice===0?'مجاني':p.yearlyPrice.toLocaleString()+' ج'}`}</div>
           <div class="pkg-quota">${p.quota}</div>
           ${p.feats.map(f=>`<div class="pkg-feat"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>${f}</div>`).join('')}
           <div class="pkg-check"></div>
