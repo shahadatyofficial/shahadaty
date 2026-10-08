@@ -207,7 +207,7 @@ const FALLBACK_PACKAGES=[
 
 async function loadPackages(){
   const {data,error}=await sb.from('packages').select('id,name,name_ar,price_monthly,price_yearly,quota_limit,sort_order').order('sort_order');
-  if(error || !data?.length){ PACKAGES=FALLBACK_PACKAGES; return; }
+  if(error || !data?.length){ PACKAGES=FALLBACK_PACKAGES.map(p=>({...p,dbId:null})); return; }
   PACKAGES=data.map(p=>{
     const meta=PACKAGE_META[p.name]||{emoji:'📦',color:'#0c2d4e'};
     const quota=Number(p.quota_limit||0);
@@ -584,38 +584,55 @@ async function submitFinal(){
   errT.style.display='none';
   const selectedPackage=PACKAGES.find(p=>p.id===formData.package_id);
   if(!selectedPackage){return showSubmitError('الباقة المختارة غير متاحة حالياً. أعد تحميل الصفحة وحاول مرة أخرى.');}
+  if(!selectedPackage.dbId){return showSubmitError('تعذر تحميل الباقات من قاعدة البيانات. لم يتم إنشاء الحساب. أعد تحميل الصفحة وحاول مرة أخرى.');}
   document.getElementById('mainContent').innerHTML=`<div style="text-align:center;padding:60px"><div class="spinner"></div><div style="font-size:15px;font-weight:700;color:var(--muted);margin-top:16px">جاري إنشاء الحساب وإرسال طلب التسجيل...</div></div>`;
   try{
-    // 1) Create the authentication account first.
-    const {data:authData,error:authErr}=await sb.auth.signUp({
-      email:formData.email.toLowerCase(),
-      password:formData.password
-    });
+    const {data:authData,error:authErr}=await sb.auth.signUp({email:formData.email.toLowerCase(),password:formData.password});
     if(authErr) throw authErr;
     if(!authData?.user) throw new Error('تعذر إنشاء حساب المستخدم.');
-    if(!authData.session) throw new Error('تم إنشاء الحساب، لكن يلزم تأكيد البريد الإلكتروني أولاً ثم تسجيل الدخول لإكمال طلب المؤسسة.');
-    
-    // 2) Create the institution through the secured backend RPC.
-    const {data:regData,error:regErr}=await sb.rpc('register_institution',{
-      p_name:formData.inst_name,
-      p_institution_type:formData.inst_type,
-      p_governorate:formData.governorate,
-      p_address:formData.address,
-      p_commercial_registration_number:formData.commercial_reg,
-      p_tax_card_number:formData.tax_num,
-      p_owner_name:formData.owner_name,
-      p_manager_name:formData.manager_name,
-      p_contact_phone:formData.phone,
-      p_package_id:selectedPackage.dbId
-    });
-    if(regErr) throw regErr;
+    if(!authData.session){
+      document.getElementById('mainContent').innerHTML=`<div class="card"><div class="card-body" style="text-align:center;padding:40px">
+        <div style="font-size:48px">✉️</div><h3 style="font-size:18px;font-weight:900;margin:12px 0">أكد بريدك الإلكتروني</h3>
+        <p style="line-height:1.9;color:var(--muted)">تم إنشاء حساب الدخول. افتح رسالة التأكيد المرسلة إلى ${formData.email}، ثم ارجع واضغط الزر أدناه لإكمال تسجيل المؤسسة ورفع المستندات. لا تعِد تعبئة النموذج.</p>
+        <button class="btn-next" onclick="resumeRegistrationAfterConfirmation()" style="margin:18px auto 0">أكدت البريد — أكمل التسجيل</button>
+      </div></div>`;
+      return;
+    }
+    await createInstitutionAndDocuments(selectedPackage);
+  }catch(err){showSubmitError(err.message||'تعذر إرسال طلب التسجيل. يرجى المحاولة مرة أخرى.');}
+}
 
-    // 3) Upload the legal documents against the newly created institution.
-    const uploadedDocs=await uploadRegistrationDocuments(regData?.institution_id);
-    renderSuccess({emailConfirmationRequired:false,uploadedDocs,requestNumber:regData?.request_number});
-  }catch(err){
-    showSubmitError(err.message||'تعذر إرسال طلب التسجيل. يرجى المحاولة مرة أخرى.');
-  }
+async function resumeRegistrationAfterConfirmation(){
+  const main=document.getElementById('mainContent');
+  main.innerHTML='<div style="text-align:center;padding:60px"><div class="spinner"></div><div style="margin-top:16px">جاري التحقق من البريد وإكمال الطلب...</div></div>';
+  try{
+    const {error}=await sb.auth.signInWithPassword({email:formData.email.toLowerCase(),password:formData.password});
+    if(error) throw new Error('لم يتم تأكيد البريد بعد أو تعذر تسجيل الدخول. افتح رسالة التأكيد ثم حاول مرة أخرى.');
+    const selectedPackage=PACKAGES.find(p=>p.id===formData.package_id);
+    if(!selectedPackage?.dbId) throw new Error('تعذر تحديد الباقة من قاعدة البيانات.');
+    await createInstitutionAndDocuments(selectedPackage);
+  }catch(err){showSubmitError(err.message||'تعذر إكمال التسجيل.');}
+}
+
+let pendingInstitutionId=null;
+let pendingRequestNumber=null;
+async function createInstitutionAndDocuments(selectedPackage){
+  try{
+    if(!pendingInstitutionId){
+      const {data:regData,error:regErr}=await sb.rpc('register_institution',{
+        p_name:formData.inst_name,p_institution_type:formData.inst_type,p_governorate:formData.governorate,
+        p_address:formData.address,p_commercial_registration_number:formData.commercial_reg,
+        p_tax_card_number:formData.tax_num,p_owner_name:formData.owner_name,p_manager_name:formData.manager_name,
+        p_contact_phone:formData.phone,p_package_id:selectedPackage.dbId
+      });
+      if(regErr) throw regErr;
+      pendingInstitutionId=regData?.institution_id||null;
+      pendingRequestNumber=regData?.request_number||null;
+      if(!pendingInstitutionId) throw new Error('تم الدخول لكن لم يُرجع النظام رقم المؤسسة. تواصل مع الدعم قبل إعادة التسجيل.');
+    }
+    const uploadedDocs=await uploadRegistrationDocuments(pendingInstitutionId);
+    renderSuccess({emailConfirmationRequired:false,uploadedDocs,requestNumber:pendingRequestNumber});
+  }catch(err){showSubmitError(err.message||'تم حفظ جزء من الطلب. اضغط إعادة المحاولة لإكمال رفع المستندات دون إنشاء مؤسسة مكررة.',true);}
 }
 
 async function uploadRegistrationDocuments(institutionId){
@@ -625,8 +642,12 @@ async function uploadRegistrationDocuments(institutionId){
     {key:'tax',type:'tax_card',required:true},
     {key:'other',type:'institution_proof',required:false}
   ];
-  let count=0;
+  const {data:existingDocs,error:existingErr}=await sb.from('institution_documents').select('document_type').eq('institution_id',institutionId);
+  if(existingErr) throw new Error('تعذر فحص المستندات المرفوعة: '+existingErr.message);
+  const completed=new Set((existingDocs||[]).map(x=>x.document_type));
+  let count=completed.size;
   for(const d of docs){
+    if(completed.has(d.type)) continue;
     const file=formData['doc_'+d.key];
     if(!file){
       if(d.required) throw new Error(`المستند المطلوب غير مرفق: ${d.key==='commercial'?'السجل التجاري':'البطاقة الضريبية'}`);
@@ -650,11 +671,12 @@ async function uploadRegistrationDocuments(institutionId){
   return count;
 }
 
-function showSubmitError(message){
+function showSubmitError(message,canRetry=false){
   document.getElementById('mainContent').innerHTML=`<div class="card"><div class="card-body" style="text-align:center;padding:40px">
     <div style="font-size:48px;margin-bottom:16px">❌</div>
     <h3 style="font-size:18px;font-weight:900;color:#dc2626;margin-bottom:8px">تعذر إرسال الطلب</h3>
     <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.8">${String(message).replace(/[<>]/g,'')}</p>
+    ${canRetry&&pendingInstitutionId?'<button onclick="createInstitutionAndDocuments(PACKAGES.find(p=>p.id===formData.package_id))" class="btn-next" style="margin:0 auto 12px">إعادة المحاولة وإكمال المستندات</button>':''}
     <button onclick="currentStep=4;renderProgress();renderStep5()" class="btn-next" style="margin:auto">← العودة للمراجعة</button>
   </div></div>`;
 }
