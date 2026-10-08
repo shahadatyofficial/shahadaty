@@ -273,7 +273,7 @@ returns table(cert_id uuid,cert_number text)
 language plpgsql
 security definer
 set search_path=public
-as $
+as $fn$
 declare
   v_uid uuid:=auth.uid();
   v_inst uuid:=(p_payload->>'institution_id')::uuid;
@@ -336,7 +336,7 @@ returns table(
   issue_date date,grade text,duration text,status text,institution_name text
 )
 language plpgsql security definer set search_path=public
-as $
+as $fn$
 declare
   v_cert public.certificates%rowtype;
   v_inst public.institutions%rowtype;
@@ -358,7 +358,7 @@ begin
 
   return query select v_cert.cert_number,v_cert.student_name,v_cert.course,v_cert.specialization,
     v_cert.issue_date,v_cert.grade,v_cert.duration,v_cert.status,v_inst.name;
-end; $;
+end; $fn$;
 
 grant execute on function public.verify_certificate(text) to anon,authenticated;
 
@@ -372,7 +372,7 @@ returns table(
   quota_used integer,quota_total integer,request_number text,created_at timestamptz,updated_at timestamptz
 )
 language plpgsql security definer set search_path=public
-as $
+as $fn$
 begin
   if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
   return query
@@ -383,7 +383,7 @@ begin
   where coalesce(nullif(trim(p_status),''),'')='' or i.status=trim(p_status)
   order by i.created_at desc
   limit 500;
-end; $;
+end; $fn$;
 
 create or replace function public.admin_approve_institution(
   p_institution_id uuid,
@@ -392,7 +392,7 @@ create or replace function public.admin_approve_institution(
 )
 returns jsonb
 language plpgsql security definer set search_path=public
-as $
+as $fn$
 declare
   v_i public.institutions%rowtype;
   v_p public.packages%rowtype;
@@ -441,7 +441,7 @@ begin
 
   return jsonb_build_object('success',true,'institution_id',v_i.id,'subscription_id',v_sub_id,
     'status','approved','quota_total',greatest(v_i.quota_used,v_quota));
-end; $;
+end; $fn$;
 
 create or replace function public.admin_reject_institution(
   p_institution_id uuid,
@@ -449,7 +449,7 @@ create or replace function public.admin_reject_institution(
 )
 returns jsonb
 language plpgsql security definer set search_path=public
-as $
+as $fn$
 declare v_i public.institutions%rowtype;
 begin
   if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
@@ -459,12 +459,12 @@ begin
   where id=p_institution_id returning * into v_i;
   if not found then raise exception 'INSTITUTION_NOT_FOUND'; end if;
   return jsonb_build_object('success',true,'institution_id',v_i.id,'status',v_i.status);
-end; $;
+end; $fn$;
 
 create or replace function public.update_my_institution_contact(p_phone text)
 returns jsonb
 language plpgsql security definer set search_path=public
-as $
+as $fn$
 declare v_id uuid; v_phone text:=trim(p_phone);
 begin
   if auth.uid() is null then raise exception 'AUTH_REQUIRED'; end if;
@@ -476,12 +476,12 @@ begin
   if v_id is null then raise exception 'NOT_ALLOWED'; end if;
   update public.institutions set contact_phone=v_phone,updated_at=now() where id=v_id;
   return jsonb_build_object('success',true,'institution_id',v_id,'contact_phone',v_phone);
-end; $;
+end; $fn$;
 
 create or replace function public.issue_certificates_bulk(p_institution_id uuid,p_rows jsonb)
 returns table(success_count integer,failed_count integer,errors jsonb,numbers jsonb)
 language plpgsql security definer set search_path=public
-as $
+as $fn$
 declare
   r jsonb; ok integer:=0; bad integer:=0; errs jsonb:='[]'::jsonb; nums jsonb:='[]'::jsonb;
   needed integer:=jsonb_array_length(coalesce(p_rows,'[]'::jsonb));
@@ -506,7 +506,7 @@ begin
     end;
   end loop;
   return query select ok,bad,errs,nums;
-end; $;
+end; $fn$;
 
 grant execute on function public.admin_list_institutions(text) to authenticated;
 grant execute on function public.admin_approve_institution(uuid,text,text) to authenticated;
