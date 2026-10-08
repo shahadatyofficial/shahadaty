@@ -330,6 +330,8 @@ $fn$;
 
 grant execute on function public.issue_certificate(jsonb) to authenticated;
 
+drop function if exists public.verify_certificate(text);
+
 create or replace function public.verify_certificate(p_cert_number text)
 returns table(
   cert_number text,student_name text,course text,specialization text,
