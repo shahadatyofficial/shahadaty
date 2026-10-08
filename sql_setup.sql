@@ -484,6 +484,8 @@ begin
   return jsonb_build_object('success',true,'institution_id',v_id,'contact_phone',v_phone);
 end; $fn$;
 
+drop function if exists public.issue_certificates_bulk(uuid,jsonb);
+
 create or replace function public.issue_certificates_bulk(p_institution_id uuid,p_rows jsonb)
 returns table(success_count integer,failed_count integer,errors jsonb,numbers jsonb)
 language plpgsql security definer set search_path=public
