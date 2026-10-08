@@ -60,6 +60,9 @@ update public.subscriptions set quota_limit=coalesce(quota_limit,0) where quota_
 alter table public.subscriptions drop constraint if exists subscriptions_billing_cycle_check;
 alter table public.subscriptions add constraint subscriptions_billing_cycle_check
   check (billing_cycle in ('monthly','yearly'));
+alter table public.subscriptions drop constraint if exists subscriptions_status_check;
+alter table public.subscriptions add constraint subscriptions_status_check
+  check (status in ('pending','active','expired','cancelled','suspended'));
 alter table public.subscriptions drop constraint if exists subscriptions_payment_status_check;
 alter table public.subscriptions add constraint subscriptions_payment_status_check
   check (payment_status in ('unpaid','pending','paid','failed','refunded'));
