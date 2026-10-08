@@ -467,6 +467,31 @@ begin
   return jsonb_build_object('success',true,'institution_id',v_i.id,'status',v_i.status);
 end; $fn$;
 
+create or replace function public.admin_suspend_institution(
+  p_institution_id uuid,
+  p_reason text default null
+)
+returns jsonb
+language plpgsql security definer set search_path=public
+as $fn$
+declare v_i public.institutions%rowtype;
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  update public.institutions
+  set status='suspended', rejection_reason=nullif(trim(coalesce(p_reason,'')),''), updated_at=now()
+  where id=p_institution_id and status='approved'
+  returning * into v_i;
+  if not found then
+    if not exists(select 1 from public.institutions where id=p_institution_id) then
+      raise exception 'INSTITUTION_NOT_FOUND';
+    end if;
+    raise exception 'INSTITUTION_NOT_APPROVED';
+  end if;
+  update public.subscriptions set status='suspended',updated_at=now()
+  where institution_id=p_institution_id and status='active';
+  return jsonb_build_object('success',true,'institution_id',v_i.id,'status',v_i.status);
+end; $fn$;
+
 create or replace function public.update_my_institution_contact(p_phone text)
 returns jsonb
 language plpgsql security definer set search_path=public
@@ -519,6 +544,7 @@ end; $fn$;
 grant execute on function public.admin_list_institutions(text) to authenticated;
 grant execute on function public.admin_approve_institution(uuid,text,text) to authenticated;
 grant execute on function public.admin_reject_institution(uuid,text) to authenticated;
+grant execute on function public.admin_suspend_institution(uuid,text) to authenticated;
 grant execute on function public.update_my_institution_contact(text) to authenticated;
 grant execute on function public.issue_certificates_bulk(uuid,jsonb) to authenticated;
 
