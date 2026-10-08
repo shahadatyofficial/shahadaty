@@ -268,6 +268,8 @@ grant execute on function public.register_institution(text,text,text,text,text,t
 -- ------------------------------------------------------------
 -- 5) Secure certificate issuance
 -- ------------------------------------------------------------
+drop function if exists public.issue_certificate(jsonb);
+
 create or replace function public.issue_certificate(p_payload jsonb)
 returns table(cert_id uuid,cert_number text)
 language plpgsql
@@ -367,6 +369,8 @@ grant execute on function public.verify_certificate(text) to anon,authenticated;
 -- ------------------------------------------------------------
 -- 5A) Missing current frontend RPCs
 -- ------------------------------------------------------------
+drop function if exists public.admin_list_institutions(text);
+
 create or replace function public.admin_list_institutions(p_status text default null)
 returns table(
   id uuid,name text,contact_email text,contact_phone text,institution_type text,
@@ -531,6 +535,8 @@ begin
   return jsonb_build_object('success',true,'institution_id',v_row.id,'quota_total',v_row.quota_total,'quota_used',v_row.quota_used);
 end; $$;
 
+drop function if exists public.admin_list_certificates(text);
+
 create or replace function public.admin_list_certificates(p_search text default null)
 returns table(id uuid,cert_number text,student_name text,course text,specialization text,
  issue_date date,duration text,grade text,status text,institution_id uuid,institution_name text,created_at timestamptz)
@@ -571,6 +577,8 @@ begin
   return jsonb_build_object('approved_institutions',a,'pending_institutions',p,'certificates',c,'active_certificates',ac);
 end; $$;
 
+drop function if exists public.admin_list_institution_documents(uuid);
+
 create or replace function public.admin_list_institution_documents(p_institution_id uuid)
 returns table(id uuid,institution_id uuid,document_type text,file_name text,file_path text,status text,
  rejection_reason text,uploaded_at timestamptz,reviewed_at timestamptz)
@@ -597,6 +605,8 @@ begin
   return jsonb_build_object('success',true,'document_id',d.id,'status',d.status);
 end; $$;
 
+drop function if exists public.admin_list_recruitment_requests(text);
+
 create or replace function public.admin_list_recruitment_requests(p_status text default null)
 returns setof public.recruitment_requests
 language plpgsql security definer set search_path=public as $$
@@ -617,6 +627,8 @@ begin
   if not found then raise exception 'REQUEST_NOT_FOUND'; end if;
   return jsonb_build_object('success',true,'id',r.id,'status',r.status);
 end; $$;
+
+drop function if exists public.admin_list_companies();
 
 create or replace function public.admin_list_companies()
 returns setof public.companies
