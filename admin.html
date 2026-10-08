@@ -431,9 +431,16 @@ async function setInstSt(id,status){
   }else if(status==='rejected'){
     const reason=prompt('سبب الرفض:','');
     if(reason===null)return;
+    if(!reason.trim()){toast('اكتب سبب الرفض أولاً','err');return;}
     const{error}=await sb.rpc('admin_reject_institution',{p_institution_id:id,p_rejection_reason:reason});
     if(error){toast(error.message,'err');return;}
     toast('تم رفض الطلب','ok');
+  }else if(status==='suspended'){
+    const reason=prompt('سبب إيقاف المؤسسة (اختياري):','');
+    if(reason===null)return;
+    const{error}=await sb.rpc('admin_suspend_institution',{p_institution_id:id,p_reason:reason});
+    if(error){toast(error.message,'err');return;}
+    toast('تم إيقاف المؤسسة والاشتراك النشط','ok');
   }else{
     toast('هذا الإجراء غير متاح من الواجهة الحالية','err');return;
   }
