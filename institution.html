@@ -652,7 +652,7 @@ async function loadInst(){
   const n=data.name;
   document.getElementById('sbAvatar').textContent=n.charAt(0);
   document.getElementById('sbInstName').textContent=n;
-  document.getElementById('sbInstStatus').textContent=data.status==='approved'?'✓ معتمد':'قيد المراجعة';
+  document.getElementById('sbInstStatus').textContent=data.status==='approved'?'✓ معتمد':data.status==='suspended'?'⛔ موقوف':data.status==='rejected'?'✕ مرفوض':'قيد المراجعة';
   document.getElementById('sbPkgName').textContent=data.packages?.name_ar||'—';
   const pct=data.quota_total>0?Math.round(data.quota_used/data.quota_total*100):0;
   const fill=document.getElementById('sbPkgFill');
