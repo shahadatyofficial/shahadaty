@@ -326,7 +326,7 @@ begin
 
   return query select v_id,v_number;
 end;
-$;
+$fn$;
 
 grant execute on function public.issue_certificate(jsonb) to authenticated;
 
