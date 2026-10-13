@@ -729,6 +729,7 @@ function renderTs(){
   for(let i=0;i<pages;i++)h+=`<div class="pg-dot ${i===tsPage?'active':''}" onclick="tsGo(${i})"></div>`;
   h+=`<button class="pg-btn" onclick="tsGo(${tsPage+1})" ${tsPage===pages-1?'style="opacity:.3;pointer-events:none"':''}>‹</button>`;
   pg.innerHTML=h;
+  if(currentLang==='en')applyLanguage('en');
 }
 function tsGo(p){if(p<0||p>=Math.ceil(tsCur.length/tsPerPage))return;tsPage=p;renderTs();}
 function filterTs(type,el){
@@ -769,11 +770,12 @@ function switchFaq(key,el){
 }
 function renderFaq(){
   document.getElementById('faqList').innerHTML=faqs[faqKey].map((f,i)=>`<div class="faq-item ${faqIdx===i?'open':''}"><div class="faq-q" onclick="toggleFaq(${i})"><span>${f.q}</span><div class="faq-icon">+</div></div><div class="faq-a ${faqIdx===i?'show':''}">${f.a}</div></div>`).join('');
+  if(currentLang==='en')applyLanguage('en');
 }
 function toggleFaq(i){faqIdx=faqIdx===i?-1:i;renderFaq();}
 
 const EN_TRANSLATIONS = {
-'الرئيسية':'Home','المميزات':'Features','القطاعات':'Sectors','الباقات':'Plans','الأسئلة':'FAQ','تواصل معنا':'Contact',
+'العربية':'Arabic','الرئيسية':'Home','المميزات':'Features','القطاعات':'Sectors','الباقات':'Plans','الأسئلة':'FAQ','تواصل معنا':'Contact',
 'تحقق من شهادة':'Verify a Certificate','بوابة المؤسسات':'Institution Portal','ابدأ مجاناً':'Get Started Free',
 'منصة التحقق الرقمي الأولى في مصر والوطن العربي':'The leading digital verification platform in Egypt and the Arab world',
 'الثقة تبدأ من':'Trust begins with','شهادتك':'your certificate','امتلك سجلًا رقميًا لشهادتك، واحمِ مستقبلك.':'Own a digital record of your certificate and protect your future.',
