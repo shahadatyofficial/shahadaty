@@ -48,6 +48,13 @@ body{font-family:'Cairo',sans-serif;direction:rtl;color:var(--navy);background:#
 .s-icon{display:flex;align-items:center;padding:0 14px;color:#94a3b8;}
 .s-icon svg{width:22px;height:22px;}
 .s-inp{flex:1;border:none;outline:none;font-size:16px;color:var(--navy);background:transparent;font-family:'Cairo',sans-serif;padding:6px 0;}
+/* Blue verification laser inside the certificate-number field */
+.laser-input-wrap{flex:1;min-width:0;height:54px;position:relative;display:flex;align-items:center;overflow:hidden;border-radius:12px;}
+.laser-input-wrap .s-inp{width:100%;height:100%;position:relative;z-index:1;padding-inline:8px;}
+.laser-beam{position:absolute;left:0;right:0;top:5px;height:2px;z-index:2;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(14,165,233,.25),#38bdf8,#fff,#38bdf8,rgba(14,165,233,.25),transparent);box-shadow:0 0 8px #38bdf8,0 0 18px rgba(14,165,233,.75);animation:certLaserSweep 2.4s ease-in-out infinite alternate;opacity:.85;}
+.laser-beam::after{content:'';position:absolute;left:0;right:0;top:3px;height:9px;background:linear-gradient(180deg,rgba(56,189,248,.2),transparent);filter:blur(2px);}
+@keyframes certLaserSweep{from{top:5px;opacity:.55;}to{top:calc(100% - 7px);opacity:1;}}
+@media(prefers-reduced-motion:reduce){.laser-beam{animation:none;top:50%;}}
 .s-inp::placeholder{color:#94a3b8;}
 .qr-btn{width:54px;height:54px;border-radius:14px;border:1.5px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s;}
 .qr-btn:hover,.qr-btn.on{border-color:var(--blue);background:#e0f4ff;}
@@ -354,7 +361,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;color:var(--navy);background:#
   <div class="search-outer">
     <div class="search-card">
       <div class="s-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>
-      <input class="s-inp" id="sInp" placeholder="أدخل رقم الشهادة للتحقق الفوري..." onkeydown="if(event.key==='Enter')doSearch()">
+      <div class="laser-input-wrap">      <input class="s-inp" id="sInp" placeholder="أدخل رقم الشهادة للتحقق الفوري..." onkeydown="if(event.key==='Enter')doSearch()"><span class="laser-beam" aria-hidden="true"></span></div>
       <button class="qr-btn" id="qrBtn" onclick="toggleScanner()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><rect x="19" y="14" width="2" height="2"/><rect x="14" y="19" width="2" height="2"/><rect x="18" y="18" width="3" height="3"/></svg>
       </button>
@@ -765,12 +772,46 @@ function renderFaq(){
 }
 function toggleFaq(i){faqIdx=faqIdx===i?-1:i;renderFaq();}
 
-function setLang(lang){
-  document.getElementById('btnAr').classList.toggle('active',lang==='ar');
-  document.getElementById('btnEn').classList.toggle('active',lang==='en');
-  document.getElementById('logoName').textContent=lang==='ar'?'شهادتي':'Shahadaty';
+const EN_TRANSLATIONS = {
+'الرئيسية':'Home','المميزات':'Features','القطاعات':'Sectors','الباقات':'Plans','الأسئلة':'FAQ','تواصل معنا':'Contact',
+'تحقق من شهادة':'Verify a Certificate','بوابة المؤسسات':'Institution Portal','ابدأ مجاناً':'Get Started Free',
+'منصة التحقق الرقمي الأولى في مصر والوطن العربي':'The leading digital verification platform in Egypt and the Arab world',
+'الثقة تبدأ من':'Trust begins with','شهادتك':'your certificate','امتلك سجلًا رقميًا لشهادتك، واحمِ مستقبلك.':'Own a digital record of your certificate and protect your future.',
+'منصة رقمية للتحقق من الشهادات الأكاديمية والمهنية، بسرعة وأمان.':'A digital platform to verify academic and professional certificates quickly and securely.',
+'أدخل رقم الشهادة للتحقق الفوري...':'Enter certificate number for instant verification...',
+'وقت التحقق':'Verification Time','أقل من 3 ثوانٍ':'Under 3 seconds','لماذا شهادتي؟':'Why Shahadaty?',
+'منصة واحدة —':'One platform —','حلول لكل طرف':'Solutions for everyone',
+'شهادتي مش بس للمراكز التدريبية — هي منظومة متكاملة للجهة التدريبية والخريج والشركات':'Shahadaty is more than a training-center platform — it serves institutions, graduates, and companies.',
+'للجهة التدريبية':'For Institutions','للخريج':'For Graduates','للشركات والمستشفيات':'For Companies & Hospitals',
+'تحقق فوري في ثوانٍ':'Instant verification in seconds',
+'أي شركة أو مستشفى تقدر تتحقق من شهادة موظفك بضغطة واحدة — من غير مكالمات ولا انتظار.':'Any company or hospital can verify an employee certificate with one click — no calls or waiting.',
+'رفع Excel بدل الإدخال اليدوي':'Upload Excel instead of manual entry',
+'ارفع كل شهاداتك مرة واحدة بملف Excel — المنصة بتنظمها وتنشرها أوتوماتيك.':'Upload all your certificates in one Excel file — the platform organizes and publishes them automatically.',
+'القطاعات التي نخدمها':'Sectors We Serve','الباقات والأسعار':'Plans & Pricing','اختر الباقة المناسبة لك':'Choose the plan that suits you',
+'شهري':'Monthly','سنوي':'Yearly','وفر':'Save','شهادة مسجلة':'Registered Certificates','مؤسسة معتمدة':'Approved Institutions','دقة التحقق':'Verification Accuracy',
+'آراء عملائنا':'What Our Clients Say','الأسئلة الشائعة':'Frequently Asked Questions','هل المنصة آمنة؟':'Is the platform secure?',
+'ابدأ رحلتك مع شهادتي اليوم':'Start your journey with Shahadaty today','انضم إلى المؤسسات التي تثق في شهادتي':'Join the institutions that trust Shahadaty',
+'جميع الحقوق محفوظة':'All rights reserved','سياسة الخصوصية':'Privacy Policy','الشروط والأحكام':'Terms & Conditions',
+'عرض المزيد':'Learn More','اعرف المزيد':'Learn More','التفاصيل':'Details','مميزات المنصة':'Platform Features',
+'المؤسسات':'Institutions','الخريجون':'Graduates','الشركات':'Companies','المستشفيات':'Hospitals','الدعم الفني':'Technical Support',
+'سجل الآن':'Register Now','ابدأ رحلتك':'Start Your Journey','التحقق من الشهادات':'Certificate Verification','سريع وآمن':'Fast & Secure',
+'التسجيل مجاني':'Free Registration','تسجيل مؤسسة':'Register an Institution','عرض الباقات':'View Plans','السابق':'Previous','التالي':'Next','لا توجد بيانات':'No data available'
+};
+let currentLang='ar';
+function applyLanguage(lang){
+  currentLang=lang;
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT); let node;
+  const keys=Object.keys(EN_TRANSLATIONS).sort((a,b)=>b.length-a.length);
+  while((node=walker.nextNode())){ if(!Object.prototype.hasOwnProperty.call(node,'__arabicOriginal'))node.__arabicOriginal=node.nodeValue; let value=node.__arabicOriginal; if(lang==='en')keys.forEach(ar=>{value=value.split(ar).join(EN_TRANSLATIONS[ar]);}); node.nodeValue=value; }
+  document.querySelectorAll('[placeholder]').forEach(el=>{if(!el.dataset.arPlaceholder)el.dataset.arPlaceholder=el.getAttribute('placeholder');let value=el.dataset.arPlaceholder;if(lang==='en')keys.forEach(ar=>{value=value.split(ar).join(EN_TRANSLATIONS[ar]);});el.setAttribute('placeholder',value);});
+  document.documentElement.lang=lang; document.documentElement.dir=lang==='ar'?'rtl':'ltr'; document.body.style.direction=lang==='ar'?'rtl':'ltr';
+  document.body.style.fontFamily=lang==='ar'?"'Cairo',sans-serif":"Arial, sans-serif";
   document.getElementById('mainNav').style.direction=lang==='ar'?'rtl':'ltr';
+  document.getElementById('logoName').textContent=lang==='ar'?'شهادتي':'Shahadaty';
+  document.getElementById('btnAr').classList.toggle('active',lang==='ar'); document.getElementById('btnEn').classList.toggle('active',lang==='en');
+  document.title=lang==='ar'?'شهادتي — الثقة تبدأ من شهادتك':'Shahadaty — Trust Begins with Your Certificate';
 }
+function setLang(lang){applyLanguage(lang);if(typeof renderTs==='function')renderTs();if(typeof renderFaq==='function')renderFaq();if(lang==='en')applyLanguage('en');}
 
 window.addEventListener('load',()=>{
   renderTs();renderFaq();
