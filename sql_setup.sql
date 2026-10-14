@@ -157,7 +157,7 @@ update public.certificates set visible_to_companies=false where visible_to_compa
 -- Existing projects may contain duplicate package names. Do not abort the
 -- entire schema migration in that case; retain lookup performance and warn so
 -- the package rows can be reconciled without guessing which price is canonical.
-do $
+do $$
 begin
   if exists (
     select 1 from public.packages
@@ -169,7 +169,7 @@ begin
     create unique index if not exists packages_name_unique_idx on public.packages(name);
   end if;
 end;
-$;
+$$;
 create unique index if not exists institutions_auth_user_id_unique_idx
   on public.institutions(auth_user_id) where auth_user_id is not null;
 create unique index if not exists certificates_cert_number_unique_idx on public.certificates(cert_number);
@@ -843,7 +843,7 @@ grant execute on function public.admin_update_company(uuid,text,integer) to auth
 -- Drop stale legacy policies on these application tables before defining the
 -- intended least-privilege policy set below. This prevents permissive old
 -- policies from silently overriding the new access model.
-do $$
+do $$$
 declare p record;
 begin
   for p in
@@ -949,7 +949,7 @@ drop policy if exists certs_own on public.certificates;
 -- ------------------------------------------------------------
 -- Remove legacy storage policies that mention this private bucket so no old
 -- public policy can bypass the bucket-specific access rules below.
-do $$
+do $$$
 declare p record;
 begin
   for p in
@@ -1504,7 +1504,7 @@ grant execute on function public.admin_update_company(uuid,text,integer) to auth
 -- Drop stale legacy policies on these application tables before defining the
 -- intended least-privilege policy set below. This prevents permissive old
 -- policies from silently overriding the new access model.
-do $$
+do $$$
 declare p record;
 begin
   for p in
@@ -1610,7 +1610,7 @@ drop policy if exists certs_own on public.certificates;
 -- ------------------------------------------------------------
 -- Remove legacy storage policies that mention this private bucket so no old
 -- public policy can bypass the bucket-specific access rules below.
-do $$
+do $$$
 declare p record;
 begin
   for p in
