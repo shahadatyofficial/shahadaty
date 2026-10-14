@@ -460,7 +460,10 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
               <div><label class="form-lbl">التقدير العام</label><select id="fi_grade" class="form-inp2" style="background:#f0f9ff"><option value="">اختر</option><option>ممتاز</option><option>جيد جداً</option><option>جيد</option><option>مقبول</option></select></div>
             </div>
             <div class="form-row">
+              <div><label class="form-lbl">بريد الطالب الإلكتروني (لربط ملف الخريج)</label><input type="email" id="fi_email" class="form-inp2" dir="ltr" placeholder="student@example.com"></div>
               <div><label class="form-lbl">رقم الهاتف (اختياري)</label><input type="tel" id="fi_phone" class="form-inp2" dir="ltr" placeholder="01xxxxxxxxx"></div>
+            </div>
+            <div class="form-row">
               <div><label class="form-lbl">المحافظة</label><input type="text" id="fi_gov" class="form-inp2" placeholder="المحافظة"></div>
             </div>
             <div class="consent-row">
@@ -603,7 +606,10 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
         <div><label class="form-lbl">التقدير</label><select id="mi_grade" class="form-inp2" style="background:#f0f9ff"><option value="">اختر</option><option>ممتاز</option><option>جيد جداً</option><option>جيد</option><option>مقبول</option></select></div>
       </div>
       <div class="form-row">
+        <div><label class="form-lbl">بريد الطالب الإلكتروني (لربط ملف الخريج)</label><input type="email" id="mi_email" class="form-inp2" dir="ltr" placeholder="student@example.com"></div>
         <div><label class="form-lbl">رقم الهاتف</label><input type="tel" id="mi_phone" class="form-inp2" dir="ltr" placeholder="01xxxxxxxxx"></div>
+      </div>
+      <div class="form-row">
         <div><label class="form-lbl">المحافظة</label><input type="text" id="mi_gov" class="form-inp2" placeholder="المحافظة"></div>
       </div>
       <div class="consent-row">
@@ -745,7 +751,7 @@ async function issueCertModal(){
   const res=document.getElementById('mi_result');
   if(!student||!course||!date){showRes(res,'يرجى تعبئة الحقول المطلوبة *','err');return;}
   try{
-    const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('mi_grade').value,student_phone:document.getElementById('mi_phone').value,governorate:document.getElementById('mi_gov').value,visible_to_companies:document.getElementById('mi_consent').checked});
+    const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('mi_grade').value,student_email:document.getElementById('mi_email').value.trim().toLowerCase(),student_phone:document.getElementById('mi_phone').value,governorate:document.getElementById('mi_gov').value,visible_to_companies:document.getElementById('mi_consent').checked});
     showRes(res,`✓ تم الإصدار — رقم الشهادة: <b>${row.cert_number}</b><br><a href="certificate.html?id=${encodeURIComponent(row.cert_number)}" target="_blank" style="color:var(--blue)">عرض الشهادة</a>`,'ok');
     await loadInst(); toast('✓ تم إصدار الشهادة بنجاح','ok'); setTimeout(closeIssueModal,1800);
   }catch(e){showRes(res,dbErrorMessage(e),'err');}
@@ -754,14 +760,14 @@ async function issueFullCert(){
   const student=document.getElementById('fi_student').value.trim(), course=document.getElementById('fi_course').value.trim(), date=document.getElementById('fi_date').value, res=document.getElementById('fi_result');
   if(!student||!course||!date){showRes(res,'يرجى تعبئة الحقول المطلوبة *','err');return;}
   try{
-    const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('fi_grade').value,specialization:document.getElementById('fi_spec').value,student_phone:document.getElementById('fi_phone').value,governorate:document.getElementById('fi_gov').value,visible_to_companies:document.getElementById('fi_consent').checked});
+    const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('fi_grade').value,specialization:document.getElementById('fi_spec').value,student_email:document.getElementById('fi_email').value.trim().toLowerCase(),student_phone:document.getElementById('fi_phone').value,governorate:document.getElementById('fi_gov').value,visible_to_companies:document.getElementById('fi_consent').checked});
     showRes(res,`✓ تم الإصدار بنجاح — رقم الشهادة: <strong>${row.cert_number}</strong> — <a href="certificate.html?id=${encodeURIComponent(row.cert_number)}" target="_blank" style="color:var(--blue)">عرض الشهادة ↗</a>`,'ok');
     clearIssueForm(); await loadInst();
   }catch(e){showRes(res,dbErrorMessage(e),'err');}
 }
-function clearIssueForm(){['fi_student','fi_certnum','fi_course','fi_spec','fi_phone','fi_gov'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});const g=document.getElementById('fi_grade');if(g)g.value='';const c=document.getElementById('fi_consent');if(c)c.checked=false;}
+function clearIssueForm(){['fi_student','fi_certnum','fi_course','fi_spec','fi_email','fi_phone','fi_gov'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});const g=document.getElementById('fi_grade');if(g)g.value='';const c=document.getElementById('fi_consent');if(c)c.checked=false;}
 function openIssueModal(){document.getElementById('issueModal').style.display='flex';}
-function closeIssueModal(){document.getElementById('issueModal').style.display='none';['mi_student','mi_course','mi_phone','mi_gov'].forEach(id=>document.getElementById(id).value='');document.getElementById('mi_grade').value='';document.getElementById('mi_consent').checked=false;document.getElementById('mi_result').style.display='none';}
+function closeIssueModal(){document.getElementById('issueModal').style.display='none';['mi_student','mi_course','mi_email','mi_phone','mi_gov'].forEach(id=>document.getElementById(id).value='');document.getElementById('mi_grade').value='';document.getElementById('mi_consent').checked=false;document.getElementById('mi_result').style.display='none';}
 
 // ── Certs List ─────────────────────────────────────────────────
 async function loadCerts(){
@@ -792,7 +798,7 @@ function showBulkPreview(rows){
 async function confirmBulk(){
   const btn=document.querySelector('#bulkPreview .btn-submit'); if(!bulkData.length||btn.disabled)return;
   btn.disabled=true; document.getElementById('bulkProgress').style.display='block';
-  const rows=bulkData.map(r=>({student_name:String(r['اسم الطالب']||r['student_name']||'').trim(),course:String(r['الدورة']||r['course']||'').trim(),issue_date:String(r['التاريخ']||r['issue_date']||new Date().toISOString().slice(0,10)),grade:String(r['التقدير']||r['grade']||''),governorate:String(r['المحافظة']||r['governorate']||''),visible_to_companies:false}));
+  const rows=bulkData.map(r=>({student_name:String(r['اسم الطالب']||r['student_name']||'').trim(),student_email:String(r['البريد الإلكتروني']||r['student_email']||r['email']||'').trim().toLowerCase(),course:String(r['الدورة']||r['course']||'').trim(),issue_date:String(r['التاريخ']||r['issue_date']||new Date().toISOString().slice(0,10)),grade:String(r['التقدير']||r['grade']||''),governorate:String(r['المحافظة']||r['governorate']||''),visible_to_companies:false}));
   try{
     const {data,error}=await sb.rpc('issue_certificates_bulk',{p_institution_id:inst.id,p_rows:rows});
     if(error)throw error;
@@ -813,7 +819,7 @@ async function confirmBulk(){
   }catch(e){toast(dbErrorMessage(e),'err');btn.disabled=false;}
 }
 function cancelBulk(){document.getElementById('bulkPreview').style.display='none';document.getElementById('fileInput').value='';bulkData=[];}
-function downloadTemplate(){const ws=XLSX.utils.aoa_to_sheet([['اسم الطالب','الدورة','التاريخ','التقدير','المحافظة'],['محمد علي حسن','هندسة الحاسبات','2024-06-01','ممتاز','القاهرة']]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الشهادات');XLSX.writeFile(wb,'نموذج_شهادتي.xlsx');}
+function downloadTemplate(){const ws=XLSX.utils.aoa_to_sheet([['اسم الطالب','البريد الإلكتروني','الدورة','التاريخ','التقدير','المحافظة'],['محمد علي حسن','student@example.com','هندسة الحاسبات','2024-06-01','ممتاز','القاهرة']]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الشهادات');XLSX.writeFile(wb,'نموذج_شهادتي.xlsx');}
 
 // ── Verify ─────────────────────────────────────────────────────
 async function doVerify(){
