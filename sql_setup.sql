@@ -785,6 +785,38 @@ alter table public.subscriptions enable row level security;
 alter table public.certificates enable row level security;
 alter table public.certificate_verifications enable row level security;
 
+alter table public.graduate_profiles enable row level security;
+alter table public.recruitment_requests enable row level security;
+alter table public.companies enable row level security;
+
+drop policy if exists graduate_profiles_select_own on public.graduate_profiles;
+create policy graduate_profiles_select_own on public.graduate_profiles
+for select to authenticated using (auth_user_id=auth.uid());
+
+drop policy if exists graduate_profiles_insert_own on public.graduate_profiles;
+create policy graduate_profiles_insert_own on public.graduate_profiles
+for insert to authenticated with check (auth_user_id=auth.uid());
+
+drop policy if exists graduate_profiles_update_own on public.graduate_profiles;
+create policy graduate_profiles_update_own on public.graduate_profiles
+for update to authenticated using (auth_user_id=auth.uid())
+with check (auth_user_id=auth.uid());
+
+drop policy if exists recruitment_requests_public_insert on public.recruitment_requests;
+create policy recruitment_requests_public_insert on public.recruitment_requests
+for insert to anon, authenticated
+with check (
+  coalesce(trim(company_name),'')<>'' and
+  coalesce(trim(contact_name),'')<>'' and
+  coalesce(trim(contact_email),'')<>'' and
+  coalesce(trim(qualification),'')<>'' and
+  coalesce(positions_needed,0)>=1 and
+  status='new'
+);
+
+grant select,insert,update on public.graduate_profiles to authenticated;
+grant insert on public.recruitment_requests to anon,authenticated;
+
 drop policy if exists institutions_select_member on public.institutions;
 create policy institutions_select_member on public.institutions for select to authenticated
 using (auth_user_id=auth.uid() or public.is_institution_member(id));
