@@ -797,6 +797,27 @@ grant execute on function public.admin_list_companies() to authenticated;
 grant execute on function public.admin_update_company(uuid,text,integer) to authenticated;
 
 -- ------------------------------------------------------------
+-- Drop stale legacy policies on these application tables before defining the
+-- intended least-privilege policy set below. This prevents permissive old
+-- policies from silently overriding the new access model.
+do $
+declare p record;
+begin
+  for p in
+    select schemaname, tablename, policyname
+    from pg_policies
+    where schemaname='public'
+      and tablename in (
+        'institutions','institution_users','institution_documents',
+        'subscriptions','certificates','certificate_verifications',
+        'graduate_profiles','recruitment_requests','companies'
+      )
+  loop
+    execute format('drop policy if exists %I on %I.%I',p.policyname,p.schemaname,p.tablename);
+  end loop;
+end;
+$;
+
 -- 6) RLS helper policies for current model
 -- ------------------------------------------------------------
 alter table public.institutions enable row level security;
