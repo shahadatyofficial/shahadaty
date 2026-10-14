@@ -843,7 +843,7 @@ grant execute on function public.admin_update_company(uuid,text,integer) to auth
 -- Drop stale legacy policies on these application tables before defining the
 -- intended least-privilege policy set below. This prevents permissive old
 -- policies from silently overriding the new access model.
-do $
+do $$
 declare p record;
 begin
   for p in
@@ -949,7 +949,7 @@ drop policy if exists certs_own on public.certificates;
 -- ------------------------------------------------------------
 -- Remove legacy storage policies that mention this private bucket so no old
 -- public policy can bypass the bucket-specific access rules below.
-do $
+do $$
 declare p record;
 begin
   for p in
@@ -1504,7 +1504,7 @@ grant execute on function public.admin_update_company(uuid,text,integer) to auth
 -- Drop stale legacy policies on these application tables before defining the
 -- intended least-privilege policy set below. This prevents permissive old
 -- policies from silently overriding the new access model.
-do $
+do $$
 declare p record;
 begin
   for p in
@@ -1610,7 +1610,7 @@ drop policy if exists certs_own on public.certificates;
 -- ------------------------------------------------------------
 -- Remove legacy storage policies that mention this private bucket so no old
 -- public policy can bypass the bucket-specific access rules below.
-do $
+do $$
 declare p record;
 begin
   for p in
