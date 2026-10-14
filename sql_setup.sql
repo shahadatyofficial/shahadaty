@@ -1918,3 +1918,19 @@ revoke select,update,delete on table public.recruitment_requests from anon;
 
 -- Disable the legacy certificate RPC that accepts a caller-supplied institution ID without membership validation.
 revoke execute on function public.issue_certificate(uuid,text,text,text,date,text,text,text,text,text,boolean,boolean) from public, anon, authenticated;
+
+-- Harden trigger helper search paths; qualify the request sequence explicitly.
+create or replace function public.generate_request_number()
+returns trigger
+language plpgsql
+set search_path = ''
+as $function$
+begin
+  new.request_number := 'REQ-' || to_char(now(), 'YYYY') || '-' || lpad(nextval('public.request_number_seq')::text, 5, '0');
+  return new;
+end;
+$function$;
+alter function public.set_institutions_updated_at() set search_path = '';
+alter function public.set_institution_documents_updated_at() set search_path = '';
+alter function public.set_institution_users_updated_at() set search_path = '';
+alter function public.set_subscriptions_updated_at() set search_path = '';
