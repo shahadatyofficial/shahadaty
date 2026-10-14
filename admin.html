@@ -549,10 +549,13 @@ async function loadRec(){
 }
 async function setRecSt(id,status){const{error}=await sb.rpc('admin_update_recruitment_status',{p_request_id:id,p_status:status});if(error){toast(error.message,'err');return;}toast('تم التحديث','ok');loadRec();}
 async function srchRec(qual,gov,year){
-  let q=sb.from('certificates').select('student_name,course,grade,issue_date,governorate,student_phone,institutions(name)').eq('visible_to_companies',true).eq('status','active');
-  if(qual)q=q.ilike('course',`%${qual}%`);if(gov)q=q.eq('governorate',gov);
-  if(year)q=q.gte('issue_date',`${year}-01-01`).lte('issue_date',`${year}-12-31`);
-  const{data}=await q.limit(30);
+  const {data,error}=await sb.rpc('admin_search_candidates',{
+    p_qualification:qual||null,
+    p_governorate:gov||null,
+    p_graduation_year:year?parseInt(year,10):null,
+    p_limit:30
+  });
+  if(error){toast(error.message,'err');return;}
   if(!data?.length){toast('لا توجد نتائج مطابقة','err');return;}
   const m=document.createElement('div');
   m.style.cssText='position:fixed;inset:0;background:rgba(12,45,78,0.6);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -562,7 +565,7 @@ async function srchRec(qual,gov,year){
       <button onclick="this.closest('[style*=fixed]').remove()" style="width:32px;height:32px;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--bg)">✕</button>
     </div>
     ${data.map(c=>`<div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
-      <div><div style="font-size:13px;font-weight:800;color:var(--navy)">${c.student_name}</div><div style="font-size:11px;color:var(--muted)">${c.course} · ${c.governorate||'—'} · ${new Date(c.issue_date).getFullYear()}</div><div style="font-size:10px;color:#94a3b8">${c.institutions?.name||''}</div></div>
+      <div><div style="font-size:13px;font-weight:800;color:var(--navy)">${c.student_name}</div><div style="font-size:11px;color:var(--muted)">${c.course} · ${c.governorate||'—'} · ${new Date(c.issue_date).getFullYear()}</div><div style="font-size:10px;color:#94a3b8">${c.institution_name||''}</div></div>
       <div style="text-align:left"><div style="font-size:14px;font-weight:800;color:var(--blue);direction:ltr">${c.student_phone||'غير متاح'}</div><div style="font-size:11px;color:var(--gold);font-weight:700">${c.grade||'ناجح'}</div></div>
     </div>`).join('')}
   </div>`;
