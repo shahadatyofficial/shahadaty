@@ -583,6 +583,21 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
             <button class="btn-submit" onclick="saveSettings()"><span class="material-symbols-outlined">save</span>حفظ التغييرات</button>
           </div>
         </div>
+        <div class="card" style="margin-top:18px">
+          <div class="card-head"><span class="card-title">المستندات القانونية</span></div>
+          <div class="card-body">
+            <p style="font-size:12px;line-height:1.8;color:var(--muted);margin-bottom:14px">يجب اعتماد السجل التجاري والبطاقة الضريبية قبل تفعيل المؤسسة. إذا رُفض مستند، يمكنك رفع نسخة جديدة من هنا.</p>
+            <div id="myDocsList" style="margin-bottom:16px">جاري تحميل المستندات...</div>
+            <div class="form-row">
+              <div><label class="form-lbl">السجل التجاري (PDF أو صورة)</label><input type="file" id="myCommercialFile" class="form-inp2" accept=".pdf,.png,.jpg,.jpeg"></div>
+              <div style="display:flex;align-items:end"><button class="btn-submit" style="width:100%" onclick="uploadMyDoc('commercial_registration','myCommercialFile')">رفع السجل التجاري</button></div>
+            </div>
+            <div class="form-row">
+              <div><label class="form-lbl">البطاقة الضريبية (PDF أو صورة)</label><input type="file" id="myTaxFile" class="form-inp2" accept=".pdf,.png,.jpg,.jpeg"></div>
+              <div style="display:flex;align-items:end"><button class="btn-submit" style="width:100%" onclick="uploadMyDoc('tax_card','myTaxFile')">رفع البطاقة الضريبية</button></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -838,6 +853,7 @@ function showPage(name,el){
   document.getElementById('page-'+name).classList.add('active');
   if(el)el.classList.add('active');
   if(name==='certs')loadCerts();
+  if(name==='settings')loadMyDocs();
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -845,6 +861,37 @@ function escapeHtml(v){return String(v??'').replace(/[&<>\"']/g,ch=>({'&':'&amp;
 function showRes(el,msg,type){el.style.display='block';el.style.background=type==='ok'?'#f0f9ff':'#fff5f5';el.style.color=type==='ok'?'#0369a1':'#dc2626';el.innerHTML=msg;}
 function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=type==='ok'?'#0369a1':'#dc2626';t.style.display='block';setTimeout(()=>t.style.display='none',3500);}
 
+async function loadMyDocs(){
+  if(!inst)return;
+  const el=document.getElementById('myDocsList');if(!el)return;
+  const {data,error}=await sb.from('institution_documents').select('document_type,file_name,status,rejection_reason,uploaded_at').eq('institution_id',inst.id).order('uploaded_at',{ascending:false});
+  if(error){el.textContent='تعذر تحميل المستندات: '+error.message;return;}
+  const docs=data||[];
+  if(!docs.length){el.innerHTML='<div style="padding:12px;border-radius:9px;background:#f8fbff;color:var(--muted);font-size:12px">لم يتم رفع مستندات بعد.</div>';return;}
+  const label={commercial_registration:'السجل التجاري',tax_card:'البطاقة الضريبية',institution_proof:'إثبات المؤسسة'};
+  const status={pending:'قيد المراجعة',approved:'معتمد',rejected:'مرفوض'};
+  el.innerHTML=docs.map(d=>`<div style="padding:10px 12px;border:1px solid var(--border);border-radius:9px;margin-bottom:8px;background:#fff"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b style="font-size:12px">${escapeHtml(label[d.document_type]||d.document_type)} — ${escapeHtml(d.file_name||'مستند')}</b><span style="font-size:11px;font-weight:800;color:${d.status==='approved'?'#047857':d.status==='rejected'?'#b91c1c':'#b45309'}">${escapeHtml(status[d.status]||d.status||'قيد المراجعة')}</span></div>${d.status==='rejected'&&d.rejection_reason?`<div style="font-size:11px;color:#b91c1c;margin-top:6px">سبب الرفض: ${escapeHtml(d.rejection_reason)}</div>`:''}<div style="font-size:10px;color:var(--muted);margin-top:4px">${d.uploaded_at?new Date(d.uploaded_at).toLocaleDateString('ar-EG'):''}</div></div>`).join('');
+}
+async function uploadMyDoc(type,inputId){
+  if(!inst)return;
+  const input=document.getElementById(inputId),file=input?.files?.[0];
+  if(!file){toast('اختر المستند أولاً','err');return;}
+  if(file.size>10*1024*1024){toast('حجم الملف يجب ألا يتجاوز 10 ميجابايت','err');return;}
+  const allowed=['application/pdf','image/png','image/jpeg'];
+  if(file.type&&!allowed.includes(file.type)){toast('الملف يجب أن يكون PDF أو PNG أو JPG','err');return;}
+  const {data:existing,error:readErr}=await sb.from('institution_documents').select('status').eq('institution_id',inst.id).eq('document_type',type).order('uploaded_at',{ascending:false});
+  if(readErr){toast(readErr.message,'err');return;}
+  if((existing||[]).some(d=>d.status==='approved')){toast('هذا المستند معتمد بالفعل؛ تواصل مع الإدارة إذا احتجت إلى تغييره.','err');return;}
+  if((existing||[]).some(d=>d.status==='pending')){toast('يوجد مستند من هذا النوع قيد المراجعة بالفعل.','err');return;}
+  const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const path=`${inst.id}/${crypto.randomUUID()}-${safeName}`;
+  const {error:uploadErr}=await sb.storage.from('institution-documents').upload(path,file,{contentType:file.type||'application/octet-stream',upsert:false});
+  if(uploadErr){toast(uploadErr.message,'err');return;}
+  const {data:{user}}=await sb.auth.getUser();
+  const {error:insertErr}=await sb.from('institution_documents').insert({institution_id:inst.id,document_type:type,file_name:file.name,file_path:path,status:'pending',uploaded_by:user?.id||null});
+  if(insertErr){await sb.storage.from('institution-documents').remove([path]);toast(insertErr.message,'err');return;}
+  input.value='';toast('تم رفع المستند وإرساله للمراجعة','ok');loadMyDocs();
+}
 async function saveSettings(){
   const phone=document.getElementById('set_phone').value.trim();
   const {error}=await sb.rpc('update_my_institution_contact',{p_phone:phone});
