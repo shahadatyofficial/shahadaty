@@ -163,6 +163,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);min-heigh
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 
 const STEPS=[
   {icon:'🏢',label:'بيانات المؤسسة'},
@@ -256,7 +257,7 @@ function renderStep1(){
     <div class="card-body">
       <div class="form-row full"><div class="form-group">
         <label class="form-label"><span>*</span> اسم المؤسسة</label>
-        <input class="form-inp" id="inst_name" placeholder="مثال: مركز شهادتي للتدريب" value="${formData.inst_name}">
+        <input class="form-inp" id="inst_name" placeholder="مثال: مركز شهادتي للتدريب" value="${escapeHtml(formData.inst_name)}">
         <div class="form-err" id="err_inst_name">الرجاء إدخال اسم المؤسسة</div>
       </div></div>
       <div class="form-row">
@@ -279,7 +280,7 @@ function renderStep1(){
       </div>
       <div class="form-row full"><div class="form-group">
         <label class="form-label"><span>*</span> العنوان بالتفصيل</label>
-        <input class="form-inp" id="address" placeholder="الشارع، الحي، المدينة..." value="${formData.address}">
+        <input class="form-inp" id="address" placeholder="الشارع، الحي، المدينة..." value="${escapeHtml(formData.address)}">
         <div class="form-err" id="err_address">الرجاء إدخال العنوان</div>
       </div></div>
       <div class="btn-row">
@@ -316,24 +317,24 @@ function renderStep2(){
       <div class="form-row">
         <div class="form-group">
           <label class="form-label"><span>*</span> رقم السجل التجاري</label>
-          <input class="form-inp" id="commercial_reg" placeholder="مثال: 123456" value="${formData.commercial_reg}">
+          <input class="form-inp" id="commercial_reg" placeholder="مثال: 123456" value="${escapeHtml(formData.commercial_reg)}">
           <div class="form-err" id="err_commercial_reg">الرجاء إدخال رقم السجل التجاري</div>
         </div>
         <div class="form-group">
           <label class="form-label"><span>*</span> رقم البطاقة الضريبية</label>
-          <input class="form-inp" id="tax_num" placeholder="مثال: 789012" value="${formData.tax_num}">
+          <input class="form-inp" id="tax_num" placeholder="مثال: 789012" value="${escapeHtml(formData.tax_num)}">
           <div class="form-err" id="err_tax_num">الرجاء إدخال رقم البطاقة الضريبية</div>
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label"><span>*</span> اسم المالك</label>
-          <input class="form-inp" id="owner_name" placeholder="الاسم الكامل" value="${formData.owner_name}">
+          <input class="form-inp" id="owner_name" placeholder="الاسم الكامل" value="${escapeHtml(formData.owner_name)}">
           <div class="form-err" id="err_owner_name">الرجاء إدخال اسم المالك</div>
         </div>
         <div class="form-group">
           <label class="form-label"><span>*</span> اسم المدير المسؤول</label>
-          <input class="form-inp" id="manager_name" placeholder="الاسم الكامل" value="${formData.manager_name}">
+          <input class="form-inp" id="manager_name" placeholder="الاسم الكامل" value="${escapeHtml(formData.manager_name)}">
           <div class="form-err" id="err_manager_name">الرجاء إدخال اسم المدير</div>
         </div>
       </div>
@@ -422,12 +423,12 @@ function renderStep3(){
       <div class="form-row">
         <div class="form-group">
           <label class="form-label"><span>*</span> البريد الإلكتروني الرسمي</label>
-          <input class="form-inp" id="email" type="email" placeholder="example@institution.com" dir="ltr" value="${formData.email}">
+          <input class="form-inp" id="email" type="email" placeholder="example@institution.com" dir="ltr" value="${escapeHtml(formData.email)}">
           <div class="form-err" id="err_email">الرجاء إدخال بريد إلكتروني صحيح</div>
         </div>
         <div class="form-group">
           <label class="form-label"><span>*</span> رقم الهاتف</label>
-          <input class="form-inp" id="phone" type="tel" placeholder="01XXXXXXXXX" dir="ltr" value="${formData.phone}">
+          <input class="form-inp" id="phone" type="tel" placeholder="01XXXXXXXXX" dir="ltr" value="${escapeHtml(formData.phone)}">
           <div class="form-err" id="err_phone">الرجاء إدخال رقم الهاتف</div>
         </div>
       </div>
@@ -531,35 +532,35 @@ function renderStep5(){
       <div class="review-section">
         <div class="review-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/></svg>بيانات المؤسسة <span class="review-edit" onclick="goBack(0)">تعديل</span></div>
         <div class="review-grid">
-          <div class="review-item"><div class="review-lbl">اسم المؤسسة</div><div class="review-val">${formData.inst_name}</div></div>
-          <div class="review-item"><div class="review-lbl">نوع المؤسسة</div><div class="review-val">${formData.inst_type}</div></div>
-          <div class="review-item"><div class="review-lbl">المحافظة</div><div class="review-val">${formData.governorate}</div></div>
-          <div class="review-item"><div class="review-lbl">العنوان</div><div class="review-val">${formData.address}</div></div>
+          <div class="review-item"><div class="review-lbl">اسم المؤسسة</div><div class="review-val">${escapeHtml(formData.inst_name)}</div></div>
+          <div class="review-item"><div class="review-lbl">نوع المؤسسة</div><div class="review-val">${escapeHtml(formData.inst_type)}</div></div>
+          <div class="review-item"><div class="review-lbl">المحافظة</div><div class="review-val">${escapeHtml(formData.governorate)}</div></div>
+          <div class="review-item"><div class="review-lbl">العنوان</div><div class="review-val">${escapeHtml(formData.address)}</div></div>
         </div>
       </div>
 
       <div class="review-section">
         <div class="review-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>البيانات القانونية <span class="review-edit" onclick="goBack(1)">تعديل</span></div>
         <div class="review-grid">
-          <div class="review-item"><div class="review-lbl">رقم السجل التجاري</div><div class="review-val">${formData.commercial_reg}</div></div>
-          <div class="review-item"><div class="review-lbl">رقم البطاقة الضريبية</div><div class="review-val">${formData.tax_num}</div></div>
-          <div class="review-item"><div class="review-lbl">اسم المالك</div><div class="review-val">${formData.owner_name}</div></div>
-          <div class="review-item"><div class="review-lbl">اسم المدير</div><div class="review-val">${formData.manager_name}</div></div>
+          <div class="review-item"><div class="review-lbl">رقم السجل التجاري</div><div class="review-val">${escapeHtml(formData.commercial_reg)}</div></div>
+          <div class="review-item"><div class="review-lbl">رقم البطاقة الضريبية</div><div class="review-val">${escapeHtml(formData.tax_num)}</div></div>
+          <div class="review-item"><div class="review-lbl">اسم المالك</div><div class="review-val">${escapeHtml(formData.owner_name)}</div></div>
+          <div class="review-item"><div class="review-lbl">اسم المدير</div><div class="review-val">${escapeHtml(formData.manager_name)}</div></div>
         </div>
       </div>
 
       <div class="review-section">
         <div class="review-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>بيانات التواصل <span class="review-edit" onclick="goBack(2)">تعديل</span></div>
         <div class="review-grid">
-          <div class="review-item"><div class="review-lbl">البريد الإلكتروني</div><div class="review-val" dir="ltr" style="text-align:right">${formData.email}</div></div>
-          <div class="review-item"><div class="review-lbl">رقم الهاتف</div><div class="review-val" dir="ltr" style="text-align:right">${formData.phone}</div></div>
+          <div class="review-item"><div class="review-lbl">البريد الإلكتروني</div><div class="review-val" dir="ltr" style="text-align:right">${escapeHtml(formData.email)}</div></div>
+          <div class="review-item"><div class="review-lbl">رقم الهاتف</div><div class="review-val" dir="ltr" style="text-align:right">${escapeHtml(formData.phone)}</div></div>
         </div>
       </div>
 
       <div class="review-section">
         <div class="review-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/></svg>الباقة المختارة <span class="review-edit" onclick="goBack(3)">تعديل</span></div>
         <div class="review-grid">
-          <div class="review-item"><div class="review-lbl">الباقة</div><div class="review-val">${pkg?.emoji} ${formData.package_name}</div></div>
+          <div class="review-item"><div class="review-lbl">الباقة</div><div class="review-val">${pkg?.emoji} ${escapeHtml(formData.package_name)}</div></div>
           <div class="review-item"><div class="review-lbl">السعر</div><div class="review-val">${pkg?.price===null?'تواصل معنا':pkg?.price===0?'مجاني':pkg?.price+' ج / شهر'}</div></div>
         </div>
       </div>
@@ -602,7 +603,7 @@ async function submitFinal(){
     if(!authData.session){
       document.getElementById('mainContent').innerHTML=`<div class="card"><div class="card-body" style="text-align:center;padding:40px">
         <div style="font-size:48px">✉️</div><h3 style="font-size:18px;font-weight:900;margin:12px 0">أكد بريدك الإلكتروني</h3>
-        <p style="line-height:1.9;color:var(--muted)">تم إنشاء حساب الدخول. افتح رسالة التأكيد المرسلة إلى ${formData.email}، ثم ارجع واضغط الزر أدناه لإكمال تسجيل المؤسسة ورفع المستندات. لا تعِد تعبئة النموذج.</p>
+        <p style="line-height:1.9;color:var(--muted)">تم إنشاء حساب الدخول. افتح رسالة التأكيد المرسلة إلى ${escapeHtml(formData.email)}، ثم ارجع واضغط الزر أدناه لإكمال تسجيل المؤسسة ورفع المستندات. لا تعِد تعبئة النموذج.</p>
         <button class="btn-next" onclick="resumeRegistrationAfterConfirmation()" style="margin:18px auto 0">أكدت البريد — أكمل التسجيل</button>
       </div></div>`;
       return;
@@ -685,7 +686,7 @@ function showSubmitError(message,canRetry=false){
   document.getElementById('mainContent').innerHTML=`<div class="card"><div class="card-body" style="text-align:center;padding:40px">
     <div style="font-size:48px;margin-bottom:16px">❌</div>
     <h3 style="font-size:18px;font-weight:900;color:#dc2626;margin-bottom:8px">تعذر إرسال الطلب</h3>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.8">${String(message).replace(/[<>]/g,'')}</p>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.8">${escapeHtml(message)}</p>
     ${canRetry&&pendingInstitutionId?'<button onclick="createInstitutionAndDocuments(PACKAGES.find(p=>p.id===formData.package_id))" class="btn-next" style="margin:0 auto 12px">إعادة المحاولة وإكمال المستندات</button>':''}
     <button onclick="currentStep=4;renderProgress();renderStep5()" class="btn-next" style="margin:auto">← العودة للمراجعة</button>
   </div></div>`;
@@ -694,7 +695,7 @@ function showSubmitError(message,canRetry=false){
 function renderSuccess({emailConfirmationRequired=false,uploadedDocs=0,requestNumber=null}={}){
   currentStep=5;renderProgress();
   const emailText=emailConfirmationRequired
-    ? `تم إنشاء الحساب وإرسال رسالة تأكيد إلى ${formData.email}. افتح الرسالة وأكّد بريدك الإلكتروني لإكمال الدخول.`
+    ? `تم إنشاء الحساب وإرسال رسالة تأكيد إلى ${escapeHtml(formData.email)}. افتح الرسالة وأكّد بريدك الإلكتروني لإكمال الدخول.`
     : `تم إنشاء الحساب واستلام طلب المؤسسة${requestNumber?` رقم ${requestNumber}`:''}. تم رفع ${uploadedDocs} مستندات قانونية وسيقوم فريقنا بمراجعتها.`;
   document.getElementById('mainContent').innerHTML=`
   <div class="card">
