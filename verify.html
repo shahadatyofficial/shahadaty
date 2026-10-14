@@ -218,7 +218,7 @@ async function doSearch(){
         <a href="certificate.html?id=${encodeURIComponent(data.cert_number)}" class="btn-view" target="_blank">
           <span class="material-symbols-outlined" style="font-size:18px">open_in_new</span> عرض الشهادة الرقمية
         </a>
-        <button class="btn-share" onclick="share('${esc(data.cert_number)}')">
+        <button class="btn-share" onclick="share(this.dataset.cert)" data-cert="${esc(data.cert_number)}">
           <span class="material-symbols-outlined">share</span> مشاركة
         </button>
         <button class="btn-share" onclick="reset()">
