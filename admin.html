@@ -461,10 +461,15 @@ async function loadReqs(){
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
       ${[['النوع',r.institution_type||r.type],['المحافظة',r.governorate],['العنوان',r.address],['السجل التجاري',r.commercial_registration_number||r.commercial_registration],['البطاقة الضريبية',r.tax_card_number],['المالك',r.owner_name],['المدير',r.manager_name],['الباقة',r.package_name_ar||r.package_name]].map(x=>`<div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${x[0]}</div><div style="font-size:12px;font-weight:700;color:var(--navy);word-break:break-word">${x[1]||'—'}</div></div>`).join('')}
     </div>
+    <div style="background:#f8fbff;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:900;color:var(--navy);margin-bottom:8px">المستندات القانونية</div>
+      <div id="docs-${r.id}" style="font-size:12px;color:var(--muted)">جاري تحميل المستندات...</div>
+    </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       ${r.status==='pending'?'<button onclick="setInstSt(\''+r.id+'\',\'approved\')" class="btn-p">✓ اعتماد</button><button onclick="setInstSt(\''+r.id+'\',\'rejected\')" class="btn-d">رفض</button>':''}
     </div>
   </div>`).join('');
+  rows.forEach(r=>loadRequestDocs(r.id));
 }
 async function loadRequestDocs(instId){
   const el=document.getElementById('docs-'+instId); if(!el)return;
