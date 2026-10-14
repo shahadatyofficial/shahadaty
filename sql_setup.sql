@@ -388,7 +388,11 @@ begin
     raise exception 'REQUIRED_FIELDS';
   end if;
   if nullif(trim(p_payload->>'student_email'),'') is not null
-     and trim(p_payload->>'student_email') !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+
+     and position('@' in trim(p_payload->>'student_email'))=0 then
+    raise exception 'INVALID_STUDENT_EMAIL';
+  end if;
+
+  v_number:=public.generate_certificate_number();
 
   insert into public.certificates(
     institution_id,cert_number,student_name,student_name_en,student_national_id,
@@ -1080,41 +1084,6 @@ end;
 $$;
 revoke all on function public.admin_search_candidates(text,text,integer,integer) from public;
 grant execute on function public.admin_search_candidates(text,text,integer,integer) to authenticated;
- then
-    raise exception 'INVALID_STUDENT_EMAIL';
-  end if;
-
-  v_number:=public.generate_certificate_number();
-
-  insert into public.certificates(
-    institution_id,cert_number,student_name,student_name_en,student_national_id,
-    student_phone,student_email,course,specialization,issue_date,expiry_date,grade,grade_value,
-    duration,governorate,pdf_url,qr_code,visible_to_companies,consent_given_at,status,added_by
-  ) values(
-    v_inst,v_number,trim(p_payload->>'student_name'),nullif(trim(p_payload->>'student_name_en'),''),
-    nullif(trim(p_payload->>'student_national_id'),''),nullif(trim(p_payload->>'student_phone'),''),
-    nullif(lower(trim(p_payload->>'student_email')),''),trim(p_payload->>'course'),nullif(trim(p_payload->>'specialization'),''),v_day,
-    nullif(p_payload->>'expiry_date','')::date,nullif(trim(p_payload->>'grade'),''),
-    nullif(p_payload->>'grade_value','')::numeric,nullif(trim(p_payload->>'duration'),''),
-    nullif(trim(p_payload->>'governorate'),''),nullif(trim(p_payload->>'pdf_url'),''),
-    nullif(trim(p_payload->>'qr_code'),''),coalesce((p_payload->>'visible_to_companies')::boolean,false),
-    case when coalesce((p_payload->>'visible_to_companies')::boolean,false) then now() else null end,
-    'active','institution'
-  ) returning id into v_id;
-
-  update public.institutions set quota_used=quota_used+1,updated_at=now() where id=v_inst;
-
-  if to_regclass('public.activity_log') is not null then
-    insert into public.activity_log(actor_id,actor_type,action,target_type,target_id,details)
-    values(v_uid,'institution','certificate_issued','certificate',v_id,
-           jsonb_build_object('cert_number',v_number,'institution_id',v_inst));
-  end if;
-
-  return query select v_id,v_number;
-end;
-$fn$;
-
-grant execute on function public.issue_certificate(jsonb) to authenticated;
 
 drop function if exists public.verify_certificate(text);
 
