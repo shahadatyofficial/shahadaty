@@ -978,11 +978,12 @@ begin
   return query
   select c.cert_number, c.course, c.issue_date, c.grade
   from public.graduate_profiles gp
+  join auth.users u on u.id=gp.auth_user_id
   join public.certificates c
-    on lower(trim(coalesce(gp.email,'')))=lower(trim(coalesce(c.student_email,'')))
+    on lower(trim(coalesce(u.email,'')))=lower(trim(coalesce(c.student_email,'')))
   join public.institutions i on i.id=c.institution_id
   where gp.auth_user_id=auth.uid()
-    and nullif(trim(coalesce(gp.email,'')),'') is not null
+    and nullif(trim(coalesce(u.email,'')),'') is not null
     and nullif(trim(coalesce(c.student_email,'')),'') is not null
     and i.status='approved'
     and c.status='active'
