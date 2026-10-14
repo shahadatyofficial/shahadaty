@@ -458,7 +458,8 @@ drop function if exists public.admin_list_institutions(text);
 create or replace function public.admin_list_institutions(p_status text default null)
 returns table(
   id uuid,name text,contact_email text,contact_phone text,institution_type text,
-  governorate text,address text,status text,package_id uuid,package_name_ar text,
+  governorate text,address text,commercial_registration_number text,tax_card_number text,
+  owner_name text,manager_name text,status text,package_id uuid,package_name_ar text,
   quota_used integer,quota_total integer,request_number text,created_at timestamptz,updated_at timestamptz
 )
 language plpgsql security definer set search_path=public
@@ -467,6 +468,7 @@ begin
   if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
   return query
   select i.id,i.name,i.contact_email,i.contact_phone,i.institution_type,i.governorate,i.address,
+         i.commercial_registration_number,i.tax_card_number,i.owner_name,i.manager_name,
          i.status,i.package_id,p.name_ar,i.quota_used,i.quota_total,i.request_number,i.created_at,i.updated_at
   from public.institutions i
   left join public.packages p on p.id=i.package_id
