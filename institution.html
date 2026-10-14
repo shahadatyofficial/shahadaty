@@ -233,7 +233,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <button class="btn-login" id="loginBtn" onclick="doLogin()">
       <span class="material-symbols-outlined">login</span> دخول
     </button>
-    <div class="login-back"><a href="landing.html">← العودة للرئيسية</a> &nbsp;|&nbsp; <a href="register.html">مؤسسة جديدة؟ سجل الاعتماد</a></div>
+    <div class="login-back"><a href="index.html">← العودة للرئيسية</a> &nbsp;|&nbsp; <a href="register.html">مؤسسة جديدة؟ سجل الاعتماد</a></div>
   </div>
 </div>
 
@@ -286,7 +286,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       <div class="sb-pkg-bar"><div class="sb-pkg-fill" id="sbPkgFill" style="width:0%"></div></div>
       <div class="sb-pkg-num" id="sbPkgNum">— / — شهادة</div>
     </div>
-    <button class="btn-upgrade" onclick="location.href='landing.html#packages'">
+    <button class="btn-upgrade" onclick="location.href='index.html#packages'">
       <span class="material-symbols-outlined" style="font-size:16px">upgrade</span> إضافة رصيد
     </button>
     <div class="sb-item" onclick="doLogout()" style="margin-top:8px">
@@ -306,7 +306,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       </div>
     </div>
     <div class="topbar-left">
-      <a href="landing.html#hero" class="topbar-verify"><span class="material-symbols-outlined">verified</span>التحقق المباشر</a>
+      <a href="index.html#hero" class="topbar-verify"><span class="material-symbols-outlined">verified</span>التحقق المباشر</a>
       <span class="topbar-support" onclick="showPage('settings',null)">الدعم الفني</span>
       <div class="topbar-bell"><span class="material-symbols-outlined">notifications</span><div class="bell-dot"></div></div>
       <button class="btn-issue" onclick="openIssueModal()">
@@ -720,7 +720,7 @@ async function loadQuotaDetails(){
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>مستخدم: ${inst.quota_used}</span><span>الكلي: ${inst.quota_total||'غير محدود'}</span></div>
       ${sub?.ends_at?`<div style="margin-top:10px;font-size:11px;color:var(--muted)">ينتهي الاشتراك: ${new Date(sub.ends_at).toLocaleDateString('ar-EG')}</div>`:''}
     </div>
-    <button onclick="location.href='landing.html#packages'" style="display:inline-flex;align-items:center;gap:7px;background:var(--blue);color:#fff;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;padding:11px 22px;border-radius:10px;border:none;cursor:pointer"><span class="material-symbols-outlined" style="font-size:18px">upgrade</span> ترقية الباقة</button>`;
+    <button onclick="location.href='index.html#packages'" style="display:inline-flex;align-items:center;gap:7px;background:var(--blue);color:#fff;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;padding:11px 22px;border-radius:10px;border:none;cursor:pointer"><span class="material-symbols-outlined" style="font-size:18px">upgrade</span> ترقية الباقة</button>`;
 }
 
 // ── Issue Certificate ──────────────────────────────────────────
