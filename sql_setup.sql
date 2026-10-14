@@ -1844,3 +1844,67 @@ with check (
   and coalesce(positions_needed,0) >= 1
   and status = 'new'
 );
+
+
+-- ------------------------------------------------------------
+-- Final private-storage and internal-table lockdown
+-- ------------------------------------------------------------
+drop policy if exists institution_docs_storage_read on storage.objects;
+drop policy if exists institution_docs_storage_insert on storage.objects;
+drop policy if exists institution_docs_storage_update on storage.objects;
+drop policy if exists institution_docs_storage_delete on storage.objects;
+
+create policy institution_docs_storage_read on storage.objects
+for select to authenticated
+using (
+  bucket_id='institution-documents'
+  and (
+    public.is_platform_admin()
+    or exists (
+      select 1 from public.institution_users iu
+      where iu.institution_id::text=(storage.foldername(name))[1]
+        and iu.auth_user_id=auth.uid() and iu.status='active'
+    )
+  )
+);
+
+create policy institution_docs_storage_insert on storage.objects
+for insert to authenticated
+with check (
+  bucket_id='institution-documents'
+  and exists (
+    select 1 from public.institution_users iu
+    where iu.institution_id::text=(storage.foldername(name))[1]
+      and iu.auth_user_id=auth.uid() and iu.status='active'
+      and iu.role in ('owner','manager','staff')
+  )
+);
+
+create policy institution_docs_storage_update on storage.objects
+for update to authenticated
+using (bucket_id='institution-documents' and public.is_platform_admin())
+with check (bucket_id='institution-documents' and public.is_platform_admin());
+
+create policy institution_docs_storage_delete on storage.objects
+for delete to authenticated
+using (
+  bucket_id='institution-documents'
+  and (
+    public.is_platform_admin()
+    or exists (
+      select 1 from public.institution_users iu
+      where iu.institution_id::text=(storage.foldername(name))[1]
+        and iu.auth_user_id=auth.uid() and iu.status='active'
+        and iu.role in ('owner','manager','staff')
+        and not exists (
+          select 1 from public.institution_documents d
+          where d.file_path=storage.objects.name
+        )
+    )
+  )
+);
+
+drop policy if exists accreditation_all on public.accreditation_requests;
+revoke all on table public.accreditation_requests from anon, authenticated;
+drop policy if exists activity_own on public.activity_log;
+revoke all on table public.activity_log from anon, authenticated;
