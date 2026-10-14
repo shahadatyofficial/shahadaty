@@ -149,7 +149,26 @@ alter table public.subscriptions add constraint subscriptions_payment_status_che
 alter table public.certificates add column if not exists visible_to_companies boolean not null default false;
 alter table public.certificates add column if not exists consent_given_at timestamptz;
 alter table public.certificates add column if not exists student_phone text;
+alter table public.certificates add column if not exists student_email text;
+alter table public.certificates add column if not exists student_name_en text;
+alter table public.certificates add column if not exists expiry_date date;
+alter table public.certificates add column if not exists grade_value numeric;
+alter table public.certificates add column if not exists pdf_url text;
+alter table public.certificates add column if not exists qr_code text;
+alter table public.certificates add column if not exists added_by text;
 update public.certificates set visible_to_companies=false where visible_to_companies is null;
+
+-- Align the optional activity log with certificate issuance without assuming the table exists.
+do $
+begin
+  if to_regclass('public.activity_log') is not null then
+    alter table public.activity_log add column if not exists actor_id uuid;
+    alter table public.activity_log add column if not exists actor_type text;
+    alter table public.activity_log add column if not exists target_type text;
+    alter table public.activity_log add column if not exists target_id uuid;
+  end if;
+end;
+$;
 
 -- ------------------------------------------------------------
 -- 2) Indexes / numbering
@@ -421,7 +440,8 @@ begin
     where s.institution_id=v_inst and s.status='active'
       and (s.starts_at is null or s.starts_at<=now())
       and (s.ends_at is null or s.ends_at>now())
-  ) then raise exception 'SUBSCRIPTION_INACTIVE'; end if;
+      and (coalesce(s.amount,0)=0 or s.payment_status='paid')
+  ) then raise exception 'SUBSCRIPTION_INACTIVE_OR_UNPAID'; end if;
   if v_inst_row.quota_used>=v_inst_row.quota_total then raise exception 'QUOTA_EXCEEDED'; end if;
   if coalesce(trim(p_payload->>'student_name'),'')='' or coalesce(trim(p_payload->>'course'),'')='' then
     raise exception 'REQUIRED_FIELDS';
@@ -454,7 +474,7 @@ begin
   if to_regclass('public.activity_log') is not null then
     insert into public.activity_log(actor_id,actor_type,action,target_type,target_id,details)
     values(v_uid,'institution','certificate_issued','certificate',v_id,
-           jsonb_build_object('cert_number',v_number,'institution_id',v_inst));
+           jsonb_build_object('cert_number',v_number,'institution_id',v_inst)::text);
   end if;
 
   return query select v_id,v_number;
@@ -1799,6 +1819,7 @@ grant execute on function public.public_platform_stats() to anon, authenticated;
 revoke execute on function public.get_next_certificate_number() from public, anon, authenticated;
 revoke execute on function public.generate_certificate_number() from public, anon, authenticated;
 revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
+revoke execute on function public.issue_certificate(uuid,text,text,text,date,text,text,text,text,text,boolean,boolean) from public, anon, authenticated;
 
 -- Direct writes to company/recruitment tables are insert-only and constrained.
 drop policy if exists companies_all on public.companies;
