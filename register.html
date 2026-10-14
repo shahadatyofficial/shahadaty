@@ -208,7 +208,16 @@ const FALLBACK_PACKAGES=[
 async function loadPackages(){
   const {data,error}=await sb.from('packages').select('id,name,name_ar,price_monthly,price_yearly,quota_limit,sort_order').order('sort_order');
   if(error || !data?.length){ PACKAGES=FALLBACK_PACKAGES.map(p=>({...p,dbId:null})); return; }
-  PACKAGES=data.map(p=>{
+  // Older database versions may contain duplicate rows for the same package key.
+  // Keep one canonical row aligned with the public pricing table instead of showing duplicates.
+  const canonical=new Map();
+  for(const p of data){
+    const previous=canonical.get(p.name);
+    const annual=Number(p.price_yearly||0), previousAnnual=Number(previous?.price_yearly||0);
+    const monthly=Number(p.price_monthly||0), previousMonthly=Number(previous?.price_monthly||0);
+    if(!previous || annual>previousAnnual || (annual===previousAnnual && monthly>previousMonthly)) canonical.set(p.name,p);
+  }
+  PACKAGES=[...canonical.values()].map(p=>{
     const meta=PACKAGE_META[p.name]||{emoji:'📦',color:'#0c2d4e'};
     const quota=Number(p.quota_limit||0);
     return {
