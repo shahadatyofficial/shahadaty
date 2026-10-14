@@ -793,7 +793,8 @@ function processFile(f){const r=new FileReader();r.onload=e=>{const wb=XLSX.read
 function showBulkPreview(rows){
   document.getElementById('bulkPreview').style.display='block';
   document.getElementById('bulkCount').textContent=rows.length+' سجل';
-  document.getElementById('bulkTable').innerHTML='<thead><tr><th>الحالة</th><th>اسم الطالب</th><th>الدورة</th><th>التاريخ</th><th>التقدير</th></tr></thead><tbody>'+rows.slice(0,20).map(r=>`<tr><td><span class="badge badge-warn">جاهز</span></td><td>${r['اسم الطالب']||r['student_name']||'—'}</td><td>${r['الدورة']||r['course']||'—'}</td><td>${r['التاريخ']||r['issue_date']||'—'}</td><td>${r['التقدير']||r['grade']||'—'}</td></tr>`).join('')+'</tbody>';
+  const cell=(v)=>escapeHtml(v||'—');
+  document.getElementById('bulkTable').innerHTML='<thead><tr><th>الحالة</th><th>اسم الطالب</th><th>البريد الإلكتروني</th><th>الدورة</th><th>التاريخ</th><th>التقدير</th></tr></thead><tbody>'+rows.slice(0,20).map(r=>`<tr><td><span class="badge badge-warn">جاهز</span></td><td>${cell(r['اسم الطالب']||r['student_name'])}</td><td dir="ltr">${cell(r['البريد الإلكتروني']||r['student_email']||r['email'])}</td><td>${cell(r['الدورة']||r['course'])}</td><td>${cell(r['التاريخ']||r['issue_date'])}</td><td>${cell(r['التقدير']||r['grade'])}</td></tr>`).join('')+'</tbody>';
 }
 async function confirmBulk(){
   const btn=document.querySelector('#bulkPreview .btn-submit'); if(!bulkData.length||btn.disabled)return;
@@ -840,6 +841,7 @@ function showPage(name,el){
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
+function escapeHtml(v){return String(v??'').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[ch]));}
 function showRes(el,msg,type){el.style.display='block';el.style.background=type==='ok'?'#f0f9ff':'#fff5f5';el.style.color=type==='ok'?'#0369a1':'#dc2626';el.innerHTML=msg;}
 function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=type==='ok'?'#0369a1':'#dc2626';t.style.display='block';setTimeout(()=>t.style.display='none',3500);}
 
