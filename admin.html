@@ -483,7 +483,7 @@ async function loadRequestDocs(instId){
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
       <div><div style="font-weight:800;font-size:12px">${escHtml(d.document_type||'مستند')}</div><div style="font-size:10px;color:var(--muted)">${escHtml(d.file_name||'—')} · ${escHtml(d.status||'pending')}</div></div>
       <div style="display:flex;gap:6px">
-        <button class="btn-s" style="font-size:10px;padding:5px 8px" onclick="openDoc(&quot;${String(d.file_path||'')}&quot;)">عرض</button>
+        <button class="btn-s" style="font-size:10px;padding:5px 8px" onclick="openDoc(${JSON.stringify(d.file_path||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')})">عرض</button>
         ${d.status==='pending'? `<button class="btn-p" style="font-size:10px;padding:5px 8px" onclick="reviewDoc('${d.id}','approved')">اعتماد</button><button class="btn-d" style="font-size:10px;padding:5px 8px" onclick="reviewDoc('${d.id}','rejected')">رفض</button>` : ''}
       </div>
     </div>`).join('');
@@ -550,7 +550,7 @@ async function loadRec(){
     <div style="display:flex;gap:8px">
       <button onclick="setRecSt('${r.id}','processing')" class="btn-p" style="font-size:11px">قيد المعالجة</button>
       <button onclick="setRecSt('${r.id}','fulfilled')" class="btn-s" style="font-size:11px">تم التنفيذ</button>
-      <button onclick="srchRec(&quot;${r.qualification||''}&quot;,&quot;${r.governorate||''}&quot;,&quot;${r.graduation_year||''}&quot;)" class="btn-s" style="font-size:11px;border-color:var(--gold);color:#8a6a20"><span class="material-symbols-outlined" style="font-size:14px">search</span>بحث تلقائي</button>
+      <button onclick="srchRec(${JSON.stringify(r.qualification||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')},${JSON.stringify(r.governorate||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')},${JSON.stringify(r.graduation_year||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')})" class="btn-s" style="font-size:11px;border-color:var(--gold);color:#8a6a20"><span class="material-symbols-outlined" style="font-size:14px">search</span>بحث تلقائي</button>
     </div>
   </div>`).join('');
 }
