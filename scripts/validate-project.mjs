@@ -51,6 +51,12 @@ const rpcDefinitions = new Set(
     .map((match) => match[1])
 );
 const rpcCalls = new Set();
+if (!/create\s+table\s+if\s+not\s+exists\s+public\.platform_admins/i.test(sql)) {
+  errors.push('Missing platform_admins table required by is_platform_admin()');
+}
+if (!/revoke all on function public\.get_next_certificate_number\(\) from public, anon, authenticated/i.test(sql)) {
+  errors.push('Certificate sequence helper is not restricted from direct client calls');
+}
 for (const [file, source] of pages) {
   for (const match of source.matchAll(/\.rpc\(\s*['"]([a-zA-Z0-9_]+)['"]/g)) {
     rpcCalls.add(match[1]);
