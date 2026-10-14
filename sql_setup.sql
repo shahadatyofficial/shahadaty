@@ -159,16 +159,10 @@ alter table public.certificates add column if not exists added_by text;
 update public.certificates set visible_to_companies=false where visible_to_companies is null;
 
 -- Align the optional activity log with certificate issuance without assuming the table exists.
-do $
-begin
-  if to_regclass('public.activity_log') is not null then
-    alter table public.activity_log add column if not exists actor_id uuid;
-    alter table public.activity_log add column if not exists actor_type text;
-    alter table public.activity_log add column if not exists target_type text;
-    alter table public.activity_log add column if not exists target_id uuid;
-  end if;
-end;
-$;
+alter table if exists public.activity_log add column if not exists actor_id uuid;
+alter table if exists public.activity_log add column if not exists actor_type text;
+alter table if exists public.activity_log add column if not exists target_type text;
+alter table if exists public.activity_log add column if not exists target_id uuid;
 
 -- ------------------------------------------------------------
 -- 2) Indexes / numbering
