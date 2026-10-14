@@ -119,6 +119,10 @@ alter table public.institution_users add constraint institution_users_status_che
 
 alter table public.institution_documents add column if not exists file_path text;
 alter table public.institution_documents add column if not exists file_url text;
+alter table public.institution_documents add column if not exists status text not null default 'pending';
+alter table public.institution_documents add column if not exists rejection_reason text;
+alter table public.institution_documents add column if not exists reviewed_by uuid references auth.users(id) on delete set null;
+alter table public.institution_documents add column if not exists reviewed_at timestamptz;
 alter table public.institution_documents add column if not exists uploaded_by uuid references auth.users(id) on delete set null;
 alter table public.institution_documents add column if not exists uploaded_at timestamptz not null default now();
 alter table public.institution_documents add column if not exists updated_at timestamptz not null default now();
