@@ -858,7 +858,7 @@ function showPage(name,el){
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
-function escapeHtml(v){return String(v??'').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[ch]));}
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
 function showRes(el,msg,type){el.style.display='block';el.style.background=type==='ok'?'#f0f9ff':'#fff5f5';el.style.color=type==='ok'?'#0369a1':'#dc2626';el.innerHTML=msg;}
 function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=type==='ok'?'#0369a1':'#dc2626';t.style.display='block';setTimeout(()=>t.style.display='none',3500);}
 
