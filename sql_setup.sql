@@ -912,6 +912,22 @@ drop policy if exists certs_public_verify on public.certificates;
 drop policy if exists certs_own on public.certificates;
 
 -- ------------------------------------------------------------
+-- Remove legacy storage policies that mention this private bucket so no old
+-- public policy can bypass the bucket-specific access rules below.
+do $
+declare p record;
+begin
+  for p in
+    select policyname
+    from pg_policies
+    where schemaname='storage' and tablename='objects'
+      and (coalesce(qual,'')||' '||coalesce(with_check,'')) ilike '%institution-documents%'
+  loop
+    execute format('drop policy if exists %I on storage.objects',p.policyname);
+  end loop;
+end;
+$;
+
 -- 7) Private document storage
 -- ------------------------------------------------------------
 insert into storage.buckets(id,name,public)
