@@ -501,6 +501,20 @@ begin
   select * into v_p from public.packages where id=v_i.package_id;
   if not found then raise exception 'PACKAGE_NOT_FOUND'; end if;
 
+  if not exists(
+    select 1 from public.institution_documents d
+    where d.institution_id=v_i.id
+      and d.document_type='commercial_registration'
+      and d.status='approved'
+  ) or not exists(
+    select 1 from public.institution_documents d
+    where d.institution_id=v_i.id
+      and d.document_type='tax_card'
+      and d.status='approved'
+  ) then
+    raise exception 'REQUIRED_DOCUMENTS_NOT_APPROVED';
+  end if;
+
   v_amount:=case when p_billing_cycle='yearly' then coalesce(v_p.price_yearly,0) else coalesce(v_p.price_monthly,0) end;
   v_quota:=coalesce(v_p.quota_limit,v_i.quota_total,10);
   v_ends:=case when lower(coalesce(v_p.name,''))='trial' then v_starts+interval '14 days'
