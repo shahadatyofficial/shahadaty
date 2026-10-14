@@ -884,16 +884,8 @@ with check (
   and status='pending' and reviewed_by is null
 );
 
+-- Institution users submit new document versions; only the admin RPC may change review status.
 drop policy if exists institution_documents_update_manager on public.institution_documents;
-create policy institution_documents_update_manager on public.institution_documents for update to authenticated
-using (
-  public.has_institution_role(institution_id,array['owner','manager'])
-  and status='pending' and reviewed_by is null
-)
-with check (
-  public.has_institution_role(institution_id,array['owner','manager'])
-  and status='pending' and reviewed_by is null
-);
 
 drop policy if exists subscriptions_select_member on public.subscriptions;
 create policy subscriptions_select_member on public.subscriptions for select to authenticated
