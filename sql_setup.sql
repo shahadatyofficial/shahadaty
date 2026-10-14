@@ -950,35 +950,12 @@ with check (
 
 drop policy if exists institution_docs_storage_update on storage.objects;
 create policy institution_docs_storage_update on storage.objects for update
-using (
-  bucket_id='institution-documents' and
-  (public.is_platform_admin() or exists(
-    select 1 from public.institution_users iu
-    where iu.institution_id::text=(storage.foldername(name))[1]
-      and iu.auth_user_id=auth.uid() and iu.status='active'
-      and iu.role in ('owner','manager','staff')
-  ))
-) with check (
-  bucket_id='institution-documents' and
-  (public.is_platform_admin() or exists(
-    select 1 from public.institution_users iu
-    where iu.institution_id::text=(storage.foldername(name))[1]
-      and iu.auth_user_id=auth.uid() and iu.status='active'
-      and iu.role in ('owner','manager','staff')
-  ))
-);
+using (bucket_id='institution-documents' and public.is_platform_admin())
+with check (bucket_id='institution-documents' and public.is_platform_admin());
 
 drop policy if exists institution_docs_storage_delete on storage.objects;
 create policy institution_docs_storage_delete on storage.objects for delete
-using (
-  bucket_id='institution-documents' and
-  (public.is_platform_admin() or exists(
-    select 1 from public.institution_users iu
-    where iu.institution_id::text=(storage.foldername(name))[1]
-      and iu.auth_user_id=auth.uid() and iu.status='active'
-      and iu.role in ('owner','manager','staff')
-  ))
-);
+using (bucket_id='institution-documents' and public.is_platform_admin());
 
 -- ------------------------------------------------------------
 -- 8) Remove stale V1 functions that could reintroduce old model.
