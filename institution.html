@@ -719,7 +719,7 @@ function initCharts(rows, active, revoked){
 async function loadActivity(){
   const{data}=await sb.from('certificates').select('student_name,course,created_at').eq('institution_id',inst.id).order('created_at',{ascending:false}).limit(5);
   const icons=[{ic:'description',bg:'#eff6ff',c:'#0369a1'},{ic:'upload_file',bg:'#f0fdf4',c:'#059669'},{ic:'verified',bg:'#f0f9ff',c:'#0284c7'},{ic:'group_add',bg:'#fef9ee',c:'#b08d48'},{ic:'settings',bg:'#fdf4ff',c:'#7c3aed'}];
-  document.getElementById('activityList').innerHTML=(data||[]).length?data.map((c,i)=>{const ic=icons[i%5];return`<div class="activity-item"><div class="act-icon" style="background:${ic.bg}"><span class="material-symbols-outlined" style="color:${ic.c};font-size:17px">${ic.ic}</span></div><div><div class="act-text">تم إصدار شهادة جديدة — ${c.student_name}</div><div class="act-time">${new Date(c.created_at).toLocaleString('ar-EG',{hour:'2-digit',minute:'2-digit'})}</div></div></div>`;}).join(''):'<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">لا توجد أنشطة بعد</div>';
+  document.getElementById('activityList').innerHTML=(data||[]).length?data.map((c,i)=>{const ic=icons[i%5];return`<div class="activity-item"><div class="act-icon" style="background:${ic.bg}"><span class="material-symbols-outlined" style="color:${ic.c};font-size:17px">${ic.ic}</span></div><div><div class="act-text">تم إصدار شهادة جديدة — ${escapeHtml(c.student_name)}</div><div class="act-time">${new Date(c.created_at).toLocaleString('ar-EG',{hour:'2-digit',minute:'2-digit'})}</div></div></div>`;}).join(''):'<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">لا توجد أنشطة بعد</div>';
 }
 
 async function loadTopCerts(){
@@ -728,7 +728,7 @@ async function loadTopCerts(){
   (data||[]).forEach(c=>{counts[c.course]=(counts[c.course]||0)+1;});
   const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const max=sorted[0]?.[1]||1;
-  document.getElementById('topCertsList').innerHTML=sorted.length?sorted.map(([name,cnt])=>`<div class="cert-row"><span class="cert-name">${name}</span><div class="cert-bar-wrap"><div class="cert-bar"><div class="cert-bar-fill" style="width:${Math.round(cnt/max*100)}%"></div></div></div><span class="cert-count">${cnt}</span></div>`).join(''):'<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">لا توجد بيانات</div>';
+  document.getElementById('topCertsList').innerHTML=sorted.length?sorted.map(([name,cnt])=>`<div class="cert-row"><span class="cert-name">${escapeHtml(name)}</span><div class="cert-bar-wrap"><div class="cert-bar"><div class="cert-bar-fill" style="width:${Math.round(cnt/max*100)}%"></div></div></div><span class="cert-count">${cnt}</span></div>`).join(''):'<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">لا توجد بيانات</div>';
 }
 
 async function loadQuotaDetails(){
@@ -844,7 +844,7 @@ async function doVerify(){
   if(!q){res.innerHTML='';return;}
   const {data,error}=await sb.rpc('verify_certificate',{p_cert_number:q}); const c=Array.isArray(data)?data[0]:data;
   if(error||!c){res.innerHTML='<div style="background:#fff5f5;color:#dc2626;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600">❌ لم يتم العثور على الشهادة</div>';return;}
-  res.innerHTML=`<div style="background:#f0f9ff;border:2px solid var(--blue);border-radius:12px;padding:16px"><div style="font-size:15px;font-weight:800;color:${c.status==='active'?'var(--blue)':'#dc2626'};margin-bottom:12px">${c.status==='active'?'✓ شهادة موثقة وصالحة':'⚠ الشهادة غير سارية'}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[['الطالب',c.student_name],['الدورة',c.course],['التاريخ',new Date(c.issue_date).toLocaleDateString('ar-EG')],['المؤسسة',c.institution_name||'—'],['الحالة',c.status]].map(([l,v])=>`<div style="background:#fff;border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${l}</div><div style="font-size:13px;font-weight:700;color:var(--navy)">${v}</div></div>`).join('')}</div></div>`;
+  res.innerHTML=`<div style="background:#f0f9ff;border:2px solid var(--blue);border-radius:12px;padding:16px"><div style="font-size:15px;font-weight:800;color:${c.status==='active'?'var(--blue)':'#dc2626'};margin-bottom:12px">${c.status==='active'?'✓ شهادة موثقة وصالحة':'⚠ الشهادة غير سارية'}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[['الطالب',c.student_name],['الدورة',c.course],['التاريخ',new Date(c.issue_date).toLocaleDateString('ar-EG')],['المؤسسة',c.institution_name||'—'],['الحالة',c.status]].map(([l,v])=>`<div style="background:#fff;border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${l}</div><div style="font-size:13px;font-weight:700;color:var(--navy)">${escapeHtml(v??'—')}</div></div>`).join('')}</div></div>`;
 }
 
 // ── Nav ─────────────────────────────────────────────────────────
