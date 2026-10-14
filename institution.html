@@ -713,9 +713,10 @@ async function loadQuotaDetails(){
   if(!inst)return;
   const pct=inst.quota_total>0?Math.round(inst.quota_used/inst.quota_total*100):0;
   const {data:sub}=await sb.from('subscriptions').select('*,packages(name_ar)').eq('institution_id',inst.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+  const subActive=!!sub&&sub.status==='active'&&(!sub.starts_at||new Date(sub.starts_at)<=new Date())&&(!sub.ends_at||new Date(sub.ends_at)>new Date());
   document.getElementById('quotaDetails').innerHTML=`
     <div style="background:#f0f9ff;border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div><div style="font-size:13px;font-weight:700;color:var(--navy)">الباقة الحالية: ${inst.packages?.name_ar||'—'}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">الاشتراك: ${sub?.status==='active'?'نشط':sub?.status||'غير مفعل'}</div></div><span class="badge badge-ok">${inst.status==='approved'?'نشط':'معلق'}</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div><div style="font-size:13px;font-weight:700;color:var(--navy)">الباقة الحالية: ${inst.packages?.name_ar||'—'}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">الاشتراك: ${subActive?'نشط':sub?.status==='active'?'منتهي':sub?.status||'غير مفعل'}</div></div><span class="badge ${subActive?'badge-ok':'badge-warn'}">${subActive?'نشط':inst.status==='approved'?'انتهت الباقة':'معلق'}</span></div>
       <div class="quota-bar" style="margin-bottom:8px"><div class="quota-fill ${pct>=90?'danger':pct>=75?'warn':''}" style="width:${pct}%"></div></div>
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>مستخدم: ${inst.quota_used}</span><span>الكلي: ${inst.quota_total||'غير محدود'}</span></div>
       ${sub?.ends_at?`<div style="margin-top:10px;font-size:11px;color:var(--muted)">ينتهي الاشتراك: ${new Date(sub.ends_at).toLocaleDateString('ar-EG')}</div>`:''}
