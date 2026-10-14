@@ -511,6 +511,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
             <div id="bulkProgress" style="display:none;margin-top:14px">
               <div class="quota-bar"><div class="quota-fill" id="bulkFill" style="width:0%;transition:width .3s"></div></div>
               <div style="text-align:center;font-size:12px;font-weight:600;color:var(--blue);margin-top:6px" id="bulkProgressTxt"></div>
+              <div id="bulkErrors" style="display:none;margin-top:12px"></div>
             </div>
           </div>
         </div>
@@ -789,17 +790,26 @@ function showBulkPreview(rows){
   document.getElementById('bulkTable').innerHTML='<thead><tr><th>الحالة</th><th>اسم الطالب</th><th>الدورة</th><th>التاريخ</th><th>التقدير</th></tr></thead><tbody>'+rows.slice(0,20).map(r=>`<tr><td><span class="badge badge-warn">جاهز</span></td><td>${r['اسم الطالب']||r['student_name']||'—'}</td><td>${r['الدورة']||r['course']||'—'}</td><td>${r['التاريخ']||r['issue_date']||'—'}</td><td>${r['التقدير']||r['grade']||'—'}</td></tr>`).join('')+'</tbody>';
 }
 async function confirmBulk(){
-  const btn=document.querySelector('#bulkPreview .btn-submit'); if(!bulkData.length)return;
+  const btn=document.querySelector('#bulkPreview .btn-submit'); if(!bulkData.length||btn.disabled)return;
   btn.disabled=true; document.getElementById('bulkProgress').style.display='block';
   const rows=bulkData.map(r=>({student_name:String(r['اسم الطالب']||r['student_name']||'').trim(),course:String(r['الدورة']||r['course']||'').trim(),issue_date:String(r['التاريخ']||r['issue_date']||new Date().toISOString().slice(0,10)),grade:String(r['التقدير']||r['grade']||''),governorate:String(r['المحافظة']||r['governorate']||''),visible_to_companies:false}));
   try{
     const {data,error}=await sb.rpc('issue_certificates_bulk',{p_institution_id:inst.id,p_rows:rows});
     if(error)throw error;
+    const result=data?.[0]||{},success=result.success_count||0,failed=result.failed_count||0;
     document.getElementById('bulkFill').style.width='100%';
-    document.getElementById('bulkProgressTxt').textContent=`تم إصدار ${data?.[0]?.success_count||0} من ${rows.length}`;
-    const failed=data?.[0]?.failed_count||0;
-    toast(failed?`تم إصدار ${rows.length-failed} شهادة مع وجود ${failed} أخطاء`:`✓ تم إصدار ${rows.length} شهادة بنجاح`,failed?'err':'ok');
-    setTimeout(()=>{cancelBulk();loadInst();},1200);
+    document.getElementById('bulkProgressTxt').textContent=`تم إصدار ${success} من ${rows.length}`;
+    toast(failed?`تم إصدار ${success} شهادة، وفشلت ${failed} سجلات`:`✓ تم إصدار ${success} شهادة بنجاح`,failed?'err':'ok');
+    if(failed){
+      const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+      const failures=Array.isArray(result.errors)?result.errors:[];
+      const box=document.getElementById('bulkErrors');box.style.display='block';
+      box.innerHTML='<div style="font-weight:800;color:#b91c1c;margin-bottom:8px">السجلات التي تحتاج إلى تصحيح — لا تعِد إرسال الملف كاملًا حتى لا تتكرر الشهادات الناجحة</div>'+failures.map((item,i)=>'<div style="padding:8px 10px;border:1px solid #fecaca;background:#fff7f7;border-radius:8px;margin-bottom:6px;font-size:12px"><b>سجل '+(Number(item.row_index||i+1))+'</b>: '+esc(item.error||'تعذر إصدار السجل')+'</div>').join('');
+      btn.textContent='اكتملت المعالجة';
+      await loadInst();
+    }else{
+      setTimeout(()=>{cancelBulk();loadInst();},1200);
+    }
   }catch(e){toast(dbErrorMessage(e),'err');btn.disabled=false;}
 }
 function cancelBulk(){document.getElementById('bulkPreview').style.display='none';document.getElementById('fileInput').value='';bulkData=[];}
