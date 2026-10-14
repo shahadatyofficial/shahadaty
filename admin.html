@@ -427,7 +427,7 @@ function filterInst(){const q=document.getElementById('instSearch').value.toLowe
 async function setInstSt(id,status){
   if(status==='approved'){
     const{error}=await sb.rpc('admin_approve_institution',{p_institution_id:id,p_billing_cycle:'monthly',p_payment_status:'unpaid'});
-    if(error){toast(error.message,'err');return;}
+    if(error){toast(String(error.message||'').includes('REQUIRED_DOCUMENTS_NOT_APPROVED')?'اعتمد السجل التجاري والبطاقة الضريبية من قسم المستندات أولاً.':error.message,'err');return;}
     toast('تم اعتماد المؤسسة بنجاح','ok');
   }else if(status==='rejected'){
     const reason=prompt('سبب الرفض:','');
