@@ -154,7 +154,22 @@ update public.certificates set visible_to_companies=false where visible_to_compa
 -- ------------------------------------------------------------
 -- 2) Indexes / numbering
 -- ------------------------------------------------------------
-create unique index if not exists packages_name_unique_idx on public.packages(name);
+-- Existing projects may contain duplicate package names. Do not abort the
+-- entire schema migration in that case; retain lookup performance and warn so
+-- the package rows can be reconciled without guessing which price is canonical.
+do $
+begin
+  if exists (
+    select 1 from public.packages
+    group by name having count(*) > 1
+  ) then
+    create index if not exists packages_name_lookup_idx on public.packages(name);
+    raise warning 'Duplicate package names detected. Reconcile package rows before enabling packages_name_unique_idx.';
+  else
+    create unique index if not exists packages_name_unique_idx on public.packages(name);
+  end if;
+end;
+$;
 create unique index if not exists institutions_auth_user_id_unique_idx
   on public.institutions(auth_user_id) where auth_user_id is not null;
 create unique index if not exists certificates_cert_number_unique_idx on public.certificates(cert_number);
@@ -209,6 +224,28 @@ $$;
 
 grant execute on function public.get_next_certificate_number() to authenticated;
 grant execute on function public.generate_certificate_number() to authenticated;
+
+-- Platform administrators are explicitly allow-listed by auth user ID.
+-- No browser role can insert, update, or read this table directly.
+create table if not exists public.platform_admins (
+  auth_user_id uuid primary key references auth.users(id) on delete cascade,
+  status text not null default 'active' check (status in ('active','inactive')),
+  created_at timestamptz not null default now(),
+  created_by uuid references auth.users(id) on delete set null
+);
+alter table public.platform_admins add column if not exists status text not null default 'active';
+alter table public.platform_admins add column if not exists created_at timestamptz not null default now();
+alter table public.platform_admins add column if not exists created_by uuid references auth.users(id) on delete set null;
+create unique index if not exists platform_admins_auth_user_id_unique_idx
+  on public.platform_admins(auth_user_id);
+alter table public.platform_admins enable row level security;
+revoke all on table public.platform_admins from anon, authenticated;
+
+-- Bootstrap the first administrator manually in Supabase SQL Editor after
+-- creating the admin login. Replace the email with that exact Auth email:
+-- insert into public.platform_admins(auth_user_id)
+-- select id from auth.users where lower(email)=lower('YOUR_ADMIN_EMAIL')
+-- on conflict (auth_user_id) do update set status='active';
 
 -- ------------------------------------------------------------
 -- 3) Security helpers
