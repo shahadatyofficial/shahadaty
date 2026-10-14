@@ -733,6 +733,7 @@ function dbErrorMessage(error){
   const m=String(error?.message||error||'');
   if(m.includes('QUOTA_EXCEEDED'))return 'تم الوصول إلى حد الشهادات في باقتك الحالية.';
   if(m.includes('INSTITUTION_NOT_APPROVED'))return 'المؤسسة غير معتمدة حتى الآن.';
+  if(m.includes('SUBSCRIPTION_INACTIVE'))return 'انتهت الباقة أو أن الاشتراك غير نشط. يرجى مراجعة الإدارة لتجديد الاشتراك.';
   if(m.includes('NOT_ALLOWED'))return 'ليس لديك صلاحية إصدار الشهادات.';
   if(m.includes('AUTH_REQUIRED'))return 'انتهت جلسة الدخول، يرجى تسجيل الدخول مرة أخرى.';
   return m||'حدث خطأ غير متوقع.';
