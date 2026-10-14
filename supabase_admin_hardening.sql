@@ -391,3 +391,34 @@ grant execute on function public.admin_list_recruitment_requests(text) to authen
 grant execute on function public.admin_update_recruitment_status(uuid,text) to authenticated;
 grant execute on function public.admin_list_companies() to authenticated;
 grant execute on function public.admin_update_company(uuid,text,integer) to authenticated;
+
+-- Candidate search is restricted to platform administrators and to certificates
+-- whose holders explicitly opted in to employer visibility.
+create or replace function public.admin_search_candidates(
+  p_qualification text default null,
+  p_governorate text default null,
+  p_graduation_year integer default null,
+  p_limit integer default 30
+)
+returns table(
+  student_name text, course text, grade text, issue_date date,
+  governorate text, student_phone text, institution_name text
+)
+language plpgsql security definer set search_path=public
+as $$
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  return query
+  select c.student_name,c.course,c.grade,c.issue_date,c.governorate,c.student_phone,i.name
+  from public.certificates c
+  join public.institutions i on i.id=c.institution_id
+  where c.status='active' and c.visible_to_companies is true and i.status='approved'
+    and (coalesce(trim(p_qualification),'')='' or c.course ilike '%'||trim(p_qualification)||'%')
+    and (coalesce(trim(p_governorate),'')='' or c.governorate=trim(p_governorate))
+    and (p_graduation_year is null or extract(year from c.issue_date)::integer=p_graduation_year)
+  order by c.issue_date desc,c.created_at desc
+  limit greatest(1,least(coalesce(p_limit,30),100));
+end;
+$$;
+revoke all on function public.admin_search_candidates(text,text,integer,integer) from public;
+grant execute on function public.admin_search_candidates(text,text,integer,integer) to authenticated;
