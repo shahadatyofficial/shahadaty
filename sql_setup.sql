@@ -30,6 +30,7 @@ alter table public.graduate_profiles add column if not exists governorate text;
 alter table public.graduate_profiles add column if not exists bio text;
 alter table public.graduate_profiles add column if not exists created_at timestamptz not null default now();
 alter table public.graduate_profiles add column if not exists updated_at timestamptz not null default now();
+create unique index if not exists graduate_profiles_auth_user_id_unique_idx on public.graduate_profiles(auth_user_id) where auth_user_id is not null;
 
 create table if not exists public.recruitment_requests (
   id uuid primary key default uuid_generate_v4(),
