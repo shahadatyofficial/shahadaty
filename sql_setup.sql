@@ -6,6 +6,80 @@
 
 create extension if not exists "uuid-ossp";
 
+
+-- ------------------------------------------------------------
+-- 0) Ancillary workflow tables used by the graduate and employer flows
+-- Create safely when absent; align expected columns on existing projects.
+-- ------------------------------------------------------------
+create table if not exists public.graduate_profiles (
+  id uuid primary key default uuid_generate_v4(),
+  auth_user_id uuid references auth.users(id) on delete cascade,
+  full_name text,
+  email text,
+  phone text,
+  governorate text,
+  bio text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.graduate_profiles add column if not exists auth_user_id uuid references auth.users(id) on delete cascade;
+alter table public.graduate_profiles add column if not exists full_name text;
+alter table public.graduate_profiles add column if not exists email text;
+alter table public.graduate_profiles add column if not exists phone text;
+alter table public.graduate_profiles add column if not exists governorate text;
+alter table public.graduate_profiles add column if not exists bio text;
+alter table public.graduate_profiles add column if not exists created_at timestamptz not null default now();
+alter table public.graduate_profiles add column if not exists updated_at timestamptz not null default now();
+
+create table if not exists public.recruitment_requests (
+  id uuid primary key default uuid_generate_v4(),
+  company_name text not null,
+  contact_name text not null,
+  contact_email text not null,
+  contact_phone text,
+  qualification text not null,
+  governorate text,
+  graduation_year text,
+  positions_needed integer not null default 1,
+  message text,
+  status text not null default 'new',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.recruitment_requests add column if not exists company_name text;
+alter table public.recruitment_requests add column if not exists contact_name text;
+alter table public.recruitment_requests add column if not exists contact_email text;
+alter table public.recruitment_requests add column if not exists contact_phone text;
+alter table public.recruitment_requests add column if not exists qualification text;
+alter table public.recruitment_requests add column if not exists governorate text;
+alter table public.recruitment_requests add column if not exists graduation_year text;
+alter table public.recruitment_requests add column if not exists positions_needed integer not null default 1;
+alter table public.recruitment_requests add column if not exists message text;
+alter table public.recruitment_requests add column if not exists status text not null default 'new';
+alter table public.recruitment_requests add column if not exists created_at timestamptz not null default now();
+alter table public.recruitment_requests add column if not exists updated_at timestamptz not null default now();
+
+create table if not exists public.companies (
+  id uuid primary key default uuid_generate_v4(),
+  company_name text not null,
+  contact_name text,
+  contact_email text,
+  contact_phone text,
+  status text not null default 'pending',
+  search_credits integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.companies add column if not exists company_name text;
+alter table public.companies add column if not exists contact_name text;
+alter table public.companies add column if not exists contact_email text;
+alter table public.companies add column if not exists contact_phone text;
+alter table public.companies add column if not exists status text not null default 'pending';
+alter table public.companies add column if not exists search_credits integer not null default 0;
+alter table public.companies add column if not exists created_at timestamptz not null default now();
+alter table public.companies add column if not exists updated_at timestamptz not null default now();
+
+
 -- ------------------------------------------------------------
 -- 1) Current schema alignment
 -- ------------------------------------------------------------
