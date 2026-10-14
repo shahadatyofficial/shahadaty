@@ -292,7 +292,19 @@ FOR UPDATE USING (
         AND iu.role IN ('owner','manager','staff')
     )
   )
-) WITH CHECK (bucket_id = 'institution-documents');
+) WITH CHECK (
+  bucket_id = 'institution-documents'
+  AND (
+    public.is_platform_admin()
+    OR EXISTS (
+      SELECT 1 FROM public.institution_users iu
+      WHERE iu.institution_id::text = (storage.foldername(name))[1]
+        AND iu.auth_user_id = auth.uid()
+        AND iu.status = 'active'
+        AND iu.role IN ('owner','manager','staff')
+    )
+  )
+);
 
 DROP POLICY IF EXISTS institution_docs_storage_delete ON storage.objects;
 CREATE POLICY institution_docs_storage_delete ON storage.objects
