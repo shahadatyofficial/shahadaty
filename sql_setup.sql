@@ -414,6 +414,7 @@ declare
   v_uid uuid:=auth.uid();
   v_inst uuid:=(p_payload->>'institution_id')::uuid;
   v_inst_row public.institutions%rowtype;
+  v_sub public.subscriptions%rowtype;
   v_id uuid;
   v_number text;
   v_day date:=coalesce(nullif(p_payload->>'issue_date','')::date,current_date);
@@ -429,13 +430,17 @@ begin
 
   if not found then raise exception 'NOT_ALLOWED'; end if;
   if v_inst_row.status<>'approved' then raise exception 'INSTITUTION_NOT_APPROVED'; end if;
-  if not exists(
-    select 1 from public.subscriptions s
-    where s.institution_id=v_inst and s.status='active'
-      and (s.starts_at is null or s.starts_at<=now())
-      and (s.ends_at is null or s.ends_at>now())
-      and (coalesce(s.amount,0)=0 or s.payment_status='paid')
-  ) then raise exception 'SUBSCRIPTION_INACTIVE_OR_UNPAID'; end if;
+  select * into v_sub
+  from public.subscriptions s
+  where s.institution_id=v_inst and s.status='active'
+    and (s.starts_at is null or s.starts_at<=now())
+    and (s.ends_at is null or s.ends_at>now())
+    and (coalesce(s.amount,0)=0 or s.payment_status='paid')
+  order by s.created_at desc
+  limit 1
+  for update;
+  if not found then raise exception 'SUBSCRIPTION_INACTIVE_OR_UNPAID'; end if;
+  if v_sub.quota_used >= v_sub.quota_limit then raise exception 'QUOTA_EXCEEDED'; end if;
   if v_inst_row.quota_used>=v_inst_row.quota_total then raise exception 'QUOTA_EXCEEDED'; end if;
   if coalesce(trim(p_payload->>'student_name'),'')='' or coalesce(trim(p_payload->>'course'),'')='' then
     raise exception 'REQUIRED_FIELDS';
@@ -464,6 +469,7 @@ begin
   ) returning id into v_id;
 
   update public.institutions set quota_used=quota_used+1,updated_at=now() where id=v_inst;
+  update public.subscriptions set quota_used=quota_used+1,updated_at=now() where id=v_sub.id;
 
   if to_regclass('public.activity_log') is not null then
     insert into public.activity_log(actor_id,actor_type,action,target_type,target_id,details)
