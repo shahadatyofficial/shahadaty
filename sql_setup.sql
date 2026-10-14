@@ -89,6 +89,7 @@ alter table public.packages add column if not exists created_at timestamptz not 
 update public.packages set quota_limit=10 where quota_limit is null;
 
 alter table public.institutions add column if not exists institution_type text;
+alter table public.certificates add column if not exists student_email text;
 alter table public.institutions add column if not exists address text;
 alter table public.institutions add column if not exists commercial_registration_number text;
 alter table public.institutions add column if not exists tax_card_number text;
@@ -387,12 +388,12 @@ begin
 
   insert into public.certificates(
     institution_id,cert_number,student_name,student_name_en,student_national_id,
-    student_phone,course,specialization,issue_date,expiry_date,grade,grade_value,
+    student_phone,student_email,course,specialization,issue_date,expiry_date,grade,grade_value,
     duration,governorate,pdf_url,qr_code,visible_to_companies,consent_given_at,status,added_by
   ) values(
     v_inst,v_number,trim(p_payload->>'student_name'),nullif(trim(p_payload->>'student_name_en'),''),
     nullif(trim(p_payload->>'student_national_id'),''),nullif(trim(p_payload->>'student_phone'),''),
-    trim(p_payload->>'course'),nullif(trim(p_payload->>'specialization'),''),v_day,
+    nullif(lower(trim(p_payload->>'student_email')),''),trim(p_payload->>'course'),nullif(trim(p_payload->>'specialization'),''),v_day,
     nullif(p_payload->>'expiry_date','')::date,nullif(trim(p_payload->>'grade'),''),
     nullif(p_payload->>'grade_value','')::numeric,nullif(trim(p_payload->>'duration'),''),
     nullif(trim(p_payload->>'governorate'),''),nullif(trim(p_payload->>'pdf_url'),''),
@@ -978,11 +979,11 @@ begin
   select c.cert_number, c.course, c.issue_date, c.grade
   from public.graduate_profiles gp
   join public.certificates c
-    on regexp_replace(coalesce(gp.phone,''), '[^0-9]', '', 'g')
-     = regexp_replace(coalesce(c.student_phone,''), '[^0-9]', '', 'g')
+    on lower(trim(coalesce(gp.email,'')))=lower(trim(coalesce(c.student_email,'')))
   join public.institutions i on i.id=c.institution_id
   where gp.auth_user_id=auth.uid()
-    and nullif(regexp_replace(coalesce(gp.phone,''), '[^0-9]', '', 'g'),'') is not null
+    and nullif(trim(coalesce(gp.email,'')),'') is not null
+    and nullif(trim(coalesce(c.student_email,'')),'') is not null
     and i.status='approved'
     and c.status='active'
   order by c.issue_date desc, c.created_at desc;
