@@ -420,7 +420,7 @@ drop function if exists public.verify_certificate(text);
 create or replace function public.verify_certificate(p_cert_number text)
 returns table(
   cert_number text,student_name text,course text,specialization text,
-  issue_date date,grade text,duration text,status text,institution_name text
+  issue_date date,grade text,duration text,status text,institution_name text,institution_type text
 )
 language plpgsql security definer set search_path=public
 as $fn$
@@ -444,7 +444,7 @@ begin
   end if;
 
   return query select v_cert.cert_number,v_cert.student_name,v_cert.course,v_cert.specialization,
-    v_cert.issue_date,v_cert.grade,v_cert.duration,v_cert.status,v_inst.name;
+    v_cert.issue_date,v_cert.grade,v_cert.duration,v_cert.status,v_inst.name,v_inst.institution_type;
 end; $fn$;
 
 grant execute on function public.verify_certificate(text) to anon,authenticated;
