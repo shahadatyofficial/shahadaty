@@ -1915,3 +1915,6 @@ revoke all on table public.profiles from anon;
 revoke insert,update,delete on table public.packages from anon;
 revoke select,update,delete on table public.companies from anon;
 revoke select,update,delete on table public.recruitment_requests from anon;
+
+-- Disable the legacy certificate RPC that accepts a caller-supplied institution ID without membership validation.
+revoke execute on function public.issue_certificate(uuid,text,text,text,date,text,text,text,text,text,boolean,boolean) from public, anon, authenticated;
