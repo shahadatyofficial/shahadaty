@@ -843,7 +843,7 @@ grant execute on function public.admin_update_company(uuid,text,integer) to auth
 -- Drop stale legacy policies on these application tables before defining the
 -- intended least-privilege policy set below. This prevents permissive old
 -- policies from silently overriding the new access model.
-do $$$
+do $
 declare p record;
 begin
   for p in
@@ -949,7 +949,7 @@ drop policy if exists certs_own on public.certificates;
 -- ------------------------------------------------------------
 -- Remove legacy storage policies that mention this private bucket so no old
 -- public policy can bypass the bucket-specific access rules below.
-do $$$
+do $
 declare p record;
 begin
   for p in
@@ -1504,7 +1504,7 @@ grant execute on function public.admin_update_company(uuid,text,integer) to auth
 -- Drop stale legacy policies on these application tables before defining the
 -- intended least-privilege policy set below. This prevents permissive old
 -- policies from silently overriding the new access model.
-do $$$
+do $
 declare p record;
 begin
   for p in
@@ -1610,7 +1610,7 @@ drop policy if exists certs_own on public.certificates;
 -- ------------------------------------------------------------
 -- Remove legacy storage policies that mention this private bucket so no old
 -- public policy can bypass the bucket-specific access rules below.
-do $$$
+do $
 declare p record;
 begin
   for p in
@@ -1784,3 +1784,42 @@ end;
 $$;
 revoke all on function public.admin_search_candidates(text,text,integer,integer) from public;
 grant execute on function public.admin_search_candidates(text,text,integer,integer) to authenticated;
+
+-- ------------------------------------------------------------
+-- Final API privilege hardening (must remain last after all function definitions)
+-- ------------------------------------------------------------
+revoke execute on all functions in schema public from public, anon;
+grant execute on all functions in schema public to authenticated;
+
+-- Only these two RPCs are intended for anonymous public use.
+grant execute on function public.verify_certificate(text) to anon, authenticated;
+grant execute on function public.public_platform_stats() to anon, authenticated;
+
+-- Internal helpers are never direct API endpoints.
+revoke execute on function public.get_next_certificate_number() from public, anon, authenticated;
+revoke execute on function public.generate_certificate_number() from public, anon, authenticated;
+revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
+
+-- Direct writes to company/recruitment tables are insert-only and constrained.
+drop policy if exists companies_all on public.companies;
+drop policy if exists companies_public_insert on public.companies;
+create policy companies_public_insert on public.companies
+for insert to anon, authenticated
+with check (
+  coalesce(trim(company_name),'') <> ''
+  and status = 'pending'
+  and coalesce(search_credits,0) = 0
+);
+
+drop policy if exists recruitment_all on public.recruitment_requests;
+drop policy if exists recruitment_requests_public_insert on public.recruitment_requests;
+create policy recruitment_requests_public_insert on public.recruitment_requests
+for insert to anon, authenticated
+with check (
+  coalesce(trim(company_name),'') <> ''
+  and coalesce(trim(contact_name),'') <> ''
+  and coalesce(trim(contact_email),'') <> ''
+  and coalesce(trim(qualification),'') <> ''
+  and coalesce(positions_needed,0) >= 1
+  and status = 'new'
+);
