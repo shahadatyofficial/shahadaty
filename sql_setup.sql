@@ -838,18 +838,15 @@ with check (
 grant select,insert,update on public.graduate_profiles to authenticated;
 grant insert on public.recruitment_requests to anon,authenticated;
 
+-- Registration, status changes, package changes and quotas must use guarded RPCs.
+-- Remove legacy direct-write policies that could bypass those checks.
+drop policy if exists institutions_own on public.institutions;
+drop policy if exists institutions_insert on public.institutions;
+drop policy if exists institutions_insert_self on public.institutions;
+drop policy if exists institutions_update_manager on public.institutions;
 drop policy if exists institutions_select_member on public.institutions;
 create policy institutions_select_member on public.institutions for select to authenticated
 using (auth_user_id=auth.uid() or public.is_institution_member(id));
-
-drop policy if exists institutions_insert_self on public.institutions;
-create policy institutions_insert_self on public.institutions for insert to authenticated
-with check (auth_user_id=auth.uid());
-
-drop policy if exists institutions_update_manager on public.institutions;
-create policy institutions_update_manager on public.institutions for update to authenticated
-using (public.has_institution_role(id,array['owner','manager']))
-with check (public.has_institution_role(id,array['owner','manager']));
 
 drop policy if exists institution_users_select_member on public.institution_users;
 create policy institution_users_select_member on public.institution_users for select to authenticated
@@ -881,14 +878,13 @@ drop policy if exists subscriptions_select_member on public.subscriptions;
 create policy subscriptions_select_member on public.subscriptions for select to authenticated
 using (public.is_institution_member(institution_id));
 
+drop policy if exists certificates_own on public.certificates;
+drop policy if exists certificates_insert on public.certificates;
+drop policy if exists certificates_update on public.certificates;
+drop policy if exists certificates_update_manager on public.certificates;
 drop policy if exists certificates_select_member on public.certificates;
 create policy certificates_select_member on public.certificates for select to authenticated
 using (public.is_institution_member(institution_id));
-
-drop policy if exists certificates_update_manager on public.certificates;
-create policy certificates_update_manager on public.certificates for update to authenticated
-using (public.has_institution_role(institution_id,array['owner','manager']))
-with check (public.has_institution_role(institution_id,array['owner','manager']));
 
 -- Public verification must use verify_certificate(), not direct table access.
 drop policy if exists certs_public_verify on public.certificates;
