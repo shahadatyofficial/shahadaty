@@ -549,7 +549,7 @@ async function loadRec(){
     <div style="display:flex;gap:8px">
       <button onclick="setRecSt('${r.id}','processing')" class="btn-p" style="font-size:11px">قيد المعالجة</button>
       <button onclick="setRecSt('${r.id}','fulfilled')" class="btn-s" style="font-size:11px">تم التنفيذ</button>
-      <button onclick="srchRec('${escHtml(r.qualification)}','${r.governorate||''}','${r.graduation_year||''}')" class="btn-s" style="font-size:11px;border-color:var(--gold);color:#8a6a20"><span class="material-symbols-outlined" style="font-size:14px">search</span>بحث تلقائي</button>
+      <button onclick="srchRec(decodeURIComponent('${encodeURIComponent(r.qualification||'').replace(/'/g,'%27')}'),decodeURIComponent('${encodeURIComponent(r.governorate||'').replace(/'/g,'%27')}'),decodeURIComponent('${encodeURIComponent(String(r.graduation_year||'')).replace(/'/g,'%27')}'))" class="btn-s" style="font-size:11px;border-color:var(--gold);color:#8a6a20"><span class="material-symbols-outlined" style="font-size:14px">search</span>بحث تلقائي</button>
     </div>
   </div>`).join('');
 }
