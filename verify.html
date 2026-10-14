@@ -174,6 +174,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);min-heigh
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
+function esc(v){return String(v??'—').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 
 async function doSearch(){
   const q=document.getElementById('searchInp').value.trim().toUpperCase();
@@ -188,7 +189,7 @@ async function doSearch(){
       <span class="material-symbols-outlined">cancel</span>
       <h3>لم يتم العثور على الشهادة</h3>
       <p>لا توجد شهادة بهذا الرقم في قاعدة بياناتنا، أو أنها تم إلغاؤها.<br>يرجى التحقق من الرقم والمحاولة مجدداً.</p>
-      <code>${q}</code>
+      <code>${esc(q)}</code>
       <div style="margin-top:20px;display:flex;gap:10px;justify-content:center">
         <button onclick="reset()" style="background:var(--bg);color:var(--navy);font-family:Cairo,sans-serif;font-size:13px;font-weight:700;padding:10px 20px;border-radius:10px;border:1.5px solid var(--border);cursor:pointer">← بحث جديد</button>
       </div>
@@ -201,23 +202,23 @@ async function doSearch(){
       <div class="result-ok-icon"><span class="material-symbols-outlined">verified</span></div>
       <div>
         <div class="result-ok-title">${data.status==='active'?'✓ شهادة موثقة وصالحة':'⚠️ شهادة موجودة ولكنها غير سارية'}</div>
-        <div class="result-ok-num">${data.cert_number}</div>
+        <div class="result-ok-num">${esc(data.cert_number)}</div>
       </div>
     </div>
     <div class="result-ok-body">
       <div class="info-grid">
-        <div class="info-box"><div class="info-lbl">اسم الطالب</div><div class="info-val">${data.student_name}</div></div>
-        <div class="info-box"><div class="info-lbl">الدورة / البرنامج</div><div class="info-val">${data.course}</div></div>
-        <div class="info-box"><div class="info-lbl">التقدير</div><div class="info-val">${data.grade||'ناجح'}</div></div>
+        <div class="info-box"><div class="info-lbl">اسم الطالب</div><div class="info-val">${esc(data.student_name)}</div></div>
+        <div class="info-box"><div class="info-lbl">الدورة / البرنامج</div><div class="info-val">${esc(data.course)}</div></div>
+        <div class="info-box"><div class="info-lbl">التقدير</div><div class="info-val">${esc(data.grade||'ناجح')}</div></div>
         <div class="info-box"><div class="info-lbl">تاريخ الإصدار</div><div class="info-val">${date}</div></div>
-        <div class="info-box"><div class="info-lbl">المؤسسة المصدِرة</div><div class="info-val">${data.institution_name||'—'}</div></div>
-        <div class="info-box"><div class="info-lbl">رقم الشهادة</div><div class="info-val" style="font-family:monospace;font-size:12px">${data.cert_number}</div></div>
+        <div class="info-box"><div class="info-lbl">المؤسسة المصدِرة</div><div class="info-val">${esc(data.institution_name||'—')}</div></div>
+        <div class="info-box"><div class="info-lbl">رقم الشهادة</div><div class="info-val" style="font-family:monospace;font-size:12px">${esc(data.cert_number)}</div></div>
       </div>
       <div class="result-actions">
-        <a href="certificate.html?id=${data.cert_number}" class="btn-view" target="_blank">
+        <a href="certificate.html?id=${encodeURIComponent(data.cert_number)}" class="btn-view" target="_blank">
           <span class="material-symbols-outlined" style="font-size:18px">open_in_new</span> عرض الشهادة الرقمية
         </a>
-        <button class="btn-share" onclick="share('${data.cert_number}')">
+        <button class="btn-share" onclick="share('${esc(data.cert_number)}')">
           <span class="material-symbols-outlined">share</span> مشاركة
         </button>
         <button class="btn-share" onclick="reset()">
