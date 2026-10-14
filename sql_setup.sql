@@ -298,6 +298,12 @@ begin
 
   if not found then raise exception 'NOT_ALLOWED'; end if;
   if v_inst_row.status<>'approved' then raise exception 'INSTITUTION_NOT_APPROVED'; end if;
+  if not exists(
+    select 1 from public.subscriptions s
+    where s.institution_id=v_inst and s.status='active'
+      and (s.starts_at is null or s.starts_at<=now())
+      and (s.ends_at is null or s.ends_at>now())
+  ) then raise exception 'SUBSCRIPTION_INACTIVE'; end if;
   if v_inst_row.quota_used>=v_inst_row.quota_total then raise exception 'QUOTA_EXCEEDED'; end if;
   if coalesce(trim(p_payload->>'student_name'),'')='' or coalesce(trim(p_payload->>'course'),'')='' then
     raise exception 'REQUIRED_FIELDS';
@@ -422,7 +428,9 @@ begin
 
   v_amount:=case when p_billing_cycle='yearly' then coalesce(v_p.price_yearly,0) else coalesce(v_p.price_monthly,0) end;
   v_quota:=coalesce(v_p.quota_limit,v_i.quota_total,10);
-  v_ends:=case when p_billing_cycle='yearly' then v_starts+interval '1 year' else v_starts+interval '1 month' end;
+  v_ends:=case when lower(coalesce(v_p.name,''))='trial' then v_starts+interval '14 days'
+              when p_billing_cycle='yearly' then v_starts+interval '1 year'
+              else v_starts+interval '1 month' end;
 
   update public.institutions
   set status='approved',approved_at=now(),approved_by=auth.uid(),rejection_reason=null,
