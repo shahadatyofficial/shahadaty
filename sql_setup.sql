@@ -222,8 +222,10 @@ begin
 end;
 $$;
 
-grant execute on function public.get_next_certificate_number() to authenticated;
-grant execute on function public.generate_certificate_number() to authenticated;
+-- These sequence helpers are implementation details used by issue_certificate().
+-- Prevent clients from consuming certificate numbers directly.
+revoke all on function public.get_next_certificate_number() from public, anon, authenticated;
+revoke all on function public.generate_certificate_number() from public, anon, authenticated;
 
 -- Platform administrators are explicitly allow-listed by auth user ID.
 -- No browser role can insert, update, or read this table directly.
