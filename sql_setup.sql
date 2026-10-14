@@ -1908,3 +1908,10 @@ drop policy if exists accreditation_all on public.accreditation_requests;
 revoke all on table public.accreditation_requests from anon, authenticated;
 drop policy if exists activity_own on public.activity_log;
 revoke all on table public.activity_log from anon, authenticated;
+
+-- Minimal anonymous table privileges: only public package listing and public submissions.
+revoke all on table public.certificate_sequences from anon;
+revoke all on table public.profiles from anon;
+revoke insert,update,delete on table public.packages from anon;
+revoke select,update,delete on table public.companies from anon;
+revoke select,update,delete on table public.recruitment_requests from anon;
