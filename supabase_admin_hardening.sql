@@ -281,29 +281,9 @@ FOR INSERT WITH CHECK (
 DROP POLICY IF EXISTS institution_docs_storage_update ON storage.objects;
 CREATE POLICY institution_docs_storage_update ON storage.objects
 FOR UPDATE USING (
-  bucket_id = 'institution-documents'
-  AND (
-    public.is_platform_admin()
-    OR EXISTS (
-      SELECT 1 FROM public.institution_users iu
-      WHERE iu.institution_id::text = (storage.foldername(name))[1]
-        AND iu.auth_user_id = auth.uid()
-        AND iu.status = 'active'
-        AND iu.role IN ('owner','manager','staff')
-    )
-  )
+  bucket_id = 'institution-documents' AND public.is_platform_admin()
 ) WITH CHECK (
-  bucket_id = 'institution-documents'
-  AND (
-    public.is_platform_admin()
-    OR EXISTS (
-      SELECT 1 FROM public.institution_users iu
-      WHERE iu.institution_id::text = (storage.foldername(name))[1]
-        AND iu.auth_user_id = auth.uid()
-        AND iu.status = 'active'
-        AND iu.role IN ('owner','manager','staff')
-    )
-  )
+  bucket_id = 'institution-documents' AND public.is_platform_admin()
 );
 
 DROP POLICY IF EXISTS institution_docs_storage_delete ON storage.objects;
@@ -318,6 +298,10 @@ FOR DELETE USING (
         AND iu.auth_user_id = auth.uid()
         AND iu.status = 'active'
         AND iu.role IN ('owner','manager','staff')
+        AND NOT EXISTS (
+          SELECT 1 FROM public.institution_documents d
+          WHERE d.file_path = storage.objects.name
+        )
     )
   )
 );
