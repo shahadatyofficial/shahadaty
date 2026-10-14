@@ -651,9 +651,10 @@ async function uploadRegistrationDocuments(institutionId){
     {key:'tax',type:'tax_card',required:true},
     {key:'other',type:'institution_proof',required:false}
   ];
-  const {data:existingDocs,error:existingErr}=await sb.from('institution_documents').select('document_type').eq('institution_id',institutionId);
+  const {data:existingDocs,error:existingErr}=await sb.from('institution_documents').select('document_type,status').eq('institution_id',institutionId);
   if(existingErr) throw new Error('تعذر فحص المستندات المرفوعة: '+existingErr.message);
-  const completed=new Set((existingDocs||[]).map(x=>x.document_type));
+  // Approved or pending documents are already accounted for; rejected documents may be replaced.
+  const completed=new Set((existingDocs||[]).filter(x=>x.status!=='rejected').map(x=>x.document_type));
   let count=completed.size;
   for(const d of docs){
     if(completed.has(d.type)) continue;
