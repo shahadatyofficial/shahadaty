@@ -345,6 +345,8 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
+const escHtml=(value)=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const jsArgAttr=(value)=>JSON.stringify(String(value??'')).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const ptitles={overview:'نظرة عامة',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام'};
 let allInstitutions=[], allAdminCerts=[];
 
@@ -388,8 +390,8 @@ async function loadOverview(){
   document.getElementById('ov_certs').textContent='—';
   document.getElementById('ov_pending').textContent=(pending||[]).length.toLocaleString('ar');
   document.getElementById('ov_rec').textContent='—';
-  document.getElementById('ov_reqs').innerHTML=(pending||[]).slice(0,5).map(r=>`<tr><td>${r.name||'—'}</td><td>${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG'):'—'}</td><td><span class="badge bwarn">معلق</span></td><td><button onclick="setInstSt('${r.id}','approved')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button></td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--muted)">لا توجد طلبات معلقة</td></tr>';
-  document.getElementById('ov_quota').innerHTML=(approved||[]).slice(0,6).map(i=>{const used=Number(i.quota_used||0),total=Number(i.quota_total||0),p=total?Math.round(used/total*100):0;return`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="font-weight:600;color:var(--navy)">${i.name||'—'}</span><span style="color:var(--muted)">${used}/${total}</span></div><div class="q-bar"><div class="q-fill ${p>=90?'danger':p>=75?'warn':''}" style="width:${p}%"></div></div></div>`}).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">لا توجد مؤسسات معتمدة</div>';
+  document.getElementById('ov_reqs').innerHTML=(pending||[]).slice(0,5).map(r=>`<tr><td>${escHtml(r.name||'—')}</td><td>${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG'):'—'}</td><td><span class="badge bwarn">معلق</span></td><td><button onclick="setInstSt('${r.id}','approved')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button></td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--muted)">لا توجد طلبات معلقة</td></tr>';
+  document.getElementById('ov_quota').innerHTML=(approved||[]).slice(0,6).map(i=>{const used=Number(i.quota_used||0),total=Number(i.quota_total||0),p=total?Math.round(used/total*100):0;return`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="font-weight:600;color:var(--navy)">${escHtml(i.name||'—')}</span><span style="color:var(--muted)">${used}/${total}</span></div><div class="q-bar"><div class="q-fill ${p>=90?'danger':p>=75?'warn':''}" style="width:${p}%"></div></div></div>`}).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">لا توجد مؤسسات معتمدة</div>';
 }
 
 async function loadBadges(){
@@ -411,12 +413,13 @@ async function loadInstitutions(){
 }
 function renderInst(rows){
   document.getElementById('instTable').innerHTML=!rows.length?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج</td></tr>':rows.map(r=>`<tr>
-    <td>${r.name}</td><td dir="ltr" style="font-size:11px">${r.contact_email}</td>
-    <td>${r.package_name_ar||'—'}</td>
+    <td>${escHtml(r.name)}</td><td dir="ltr" style="font-size:11px">${escHtml(r.contact_email||'—')}</td>
+    <td>${escHtml(r.package_name_ar||'—')}</td>
     <td><div style="min-width:100px">${r.quota_used||0}/${r.quota_total||0}<div class="q-bar" style="margin-top:3px"><div class="q-fill" style="width:${r.quota_total>0?Math.round((r.quota_used||0)/r.quota_total*100):0}%"></div></div></div></td>
-    <td><span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${r.status==='approved'?'معتمد':r.status==='pending'?'معلق':'موقوف'}</span></td>
+    <td><span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${escHtml(({approved:'معتمد',pending:'قيد المراجعة',rejected:'مرفوض',suspended:'موقوف'})[r.status]||r.status)}</span></td>
     <td><div style="display:flex;gap:6px">
       ${r.status==='pending'||r.status==='rejected'?`<button onclick="setInstSt('${r.id}','approved')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button>`:''}
+      ${r.status==='pending'?`<button onclick="setInstSt('${r.id}','rejected')" class="btn-d" style="font-size:10px;padding:5px 10px">رفض</button>`:''}
       ${r.status==='approved'?`<button onclick="setInstSt('${r.id}','suspended')" class="btn-d" style="font-size:10px;padding:5px 10px">إيقاف</button>`:''}
       <button onclick="editQuota('${r.id}',${r.quota_total||0})" class="btn-s" style="font-size:10px;padding:5px 10px">كوتا</button>
     </div></td>
@@ -426,7 +429,7 @@ function filterInst(){const q=document.getElementById('instSearch').value.toLowe
 async function setInstSt(id,status){
   if(status==='approved'){
     const{error}=await sb.rpc('admin_approve_institution',{p_institution_id:id,p_billing_cycle:'monthly',p_payment_status:'unpaid'});
-    if(error){toast(error.message,'err');return;}
+    if(error){toast(String(error.message||'').includes('REQUIRED_DOCUMENTS_NOT_APPROVED')?'اعتمد السجل التجاري والبطاقة الضريبية من قسم المستندات أولاً.':error.message,'err');return;}
     toast('تم اعتماد المؤسسة بنجاح','ok');
   }else if(status==='rejected'){
     const reason=prompt('سبب الرفض:','');
@@ -456,26 +459,31 @@ async function loadReqs(){
   const rows=data||[];
   document.getElementById('reqsList').innerHTML=!rows.length?'<div style="text-align:center;padding:24px;color:var(--muted)">لا توجد طلبات</div>':rows.map(r=>`
   <div style="border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div><div style="font-size:15px;font-weight:800;color:var(--navy)">${r.name||'—'}</div><div style="font-size:11px;color:var(--muted)">${r.contact_email||'—'} · ${r.contact_phone||'—'}</div></div><span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${r.status==='approved'?'معتمد':r.status==='pending'?'معلق':r.status==='rejected'?'مرفوض':'موقوف'}</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div><div style="font-size:15px;font-weight:800;color:var(--navy)">${escHtml(r.name||'—')}</div><div style="font-size:11px;color:var(--muted)">${escHtml(r.contact_email||'—')} · ${escHtml(r.contact_phone||'—')}</div></div><span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${r.status==='approved'?'معتمد':r.status==='pending'?'معلق':r.status==='rejected'?'مرفوض':'موقوف'}</span></div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
-      ${[['النوع',r.institution_type||r.type],['المحافظة',r.governorate],['العنوان',r.address],['السجل التجاري',r.commercial_registration_number||r.commercial_registration],['البطاقة الضريبية',r.tax_card_number],['المالك',r.owner_name],['المدير',r.manager_name],['الباقة',r.package_name_ar||r.package_name]].map(x=>`<div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${x[0]}</div><div style="font-size:12px;font-weight:700;color:var(--navy);word-break:break-word">${x[1]||'—'}</div></div>`).join('')}
+      ${[['النوع',r.institution_type||r.type],['المحافظة',r.governorate],['العنوان',r.address],['السجل التجاري',r.commercial_registration_number||r.commercial_registration],['البطاقة الضريبية',r.tax_card_number],['المالك',r.owner_name],['المدير',r.manager_name],['الباقة',r.package_name_ar||r.package_name]].map(x=>`<div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${x[0]}</div><div style="font-size:12px;font-weight:700;color:var(--navy);word-break:break-word">${escHtml(x[1]||'—')}</div></div>`).join('')}
+    </div>
+    <div style="background:#f8fbff;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:900;color:var(--navy);margin-bottom:8px">المستندات القانونية</div>
+      <div id="docs-${r.id}" style="font-size:12px;color:var(--muted)">جاري تحميل المستندات...</div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       ${r.status==='pending'?'<button onclick="setInstSt(\''+r.id+'\',\'approved\')" class="btn-p">✓ اعتماد</button><button onclick="setInstSt(\''+r.id+'\',\'rejected\')" class="btn-d">رفض</button>':''}
     </div>
   </div>`).join('');
+  rows.forEach(r=>loadRequestDocs(r.id));
 }
 async function loadRequestDocs(instId){
   const el=document.getElementById('docs-'+instId); if(!el)return;
   const{data,error}=await sb.rpc('admin_list_institution_documents',{p_institution_id:instId});
-  if(error){el.innerHTML='<span style="color:#dc2626">تعذر تحميل المستندات: '+error.message+'</span>';return;}
+  if(error){el.innerHTML='<span style="color:#dc2626">تعذر تحميل المستندات: '+escHtml(error.message)+'</span>';return;}
   const docs=data||[];
   if(!docs.length){el.innerHTML='<span style="color:var(--muted)">لا توجد مستندات مرفوعة.</span>';return;}
   el.innerHTML=docs.map(d=>`
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div><div style="font-weight:800;font-size:12px">${d.document_type||'مستند'}</div><div style="font-size:10px;color:var(--muted)">${d.file_name||'—'} · ${d.status||'pending'}</div></div>
+      <div><div style="font-weight:800;font-size:12px">${escHtml(d.document_type||'مستند')}</div><div style="font-size:10px;color:var(--muted)">${escHtml(d.file_name||'—')} · ${escHtml(d.status||'pending')}</div></div>
       <div style="display:flex;gap:6px">
-        <button class="btn-s" style="font-size:10px;padding:5px 8px" onclick="openDoc('${String(d.file_path||'').replace(/'/g,"\\'")}')">عرض</button>
+        <button class="btn-s" style="font-size:10px;padding:5px 8px" onclick="openDoc(${JSON.stringify(d.file_path||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')})">عرض</button>
         ${d.status==='pending'? `<button class="btn-p" style="font-size:10px;padding:5px 8px" onclick="reviewDoc('${d.id}','approved')">اعتماد</button><button class="btn-d" style="font-size:10px;padding:5px 8px" onclick="reviewDoc('${d.id}','rejected')">رفض</button>` : ''}
       </div>
     </div>`).join('');
@@ -496,11 +504,11 @@ async function loadAdminCerts(){
   if(error){toast(error.message,'err');return;}
   allAdminCerts=(data||[]).map(c=>({...c,institutions:{name:c.institution_name}}));
   document.getElementById('certsTable').innerHTML=!allAdminCerts.length?'<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج</td></tr>':allAdminCerts.map(c=>`<tr>
-    <td>${c.student_name}</td><td style="font-family:monospace;font-size:11px">${c.cert_number}</td><td>${c.course}</td>
-    <td>${c.institutions?.name||'—'}</td><td>${new Date(c.issue_date).toLocaleDateString('ar-EG')}</td>
+    <td>${escHtml(c.student_name)}</td><td style="font-family:monospace;font-size:11px">${escHtml(c.cert_number)}</td><td>${escHtml(c.course)}</td>
+    <td>${escHtml(c.institutions?.name||'—')}</td><td>${new Date(c.issue_date).toLocaleDateString('ar-EG')}</td>
     <td><span class="badge ${c.status==='active'?'bok':'berr'}">${c.status==='active'?'نشط':'ملغي'}</span></td>
     <td><div style="display:flex;gap:6px">
-      <a href="certificate.html?id=${c.cert_number}" target="_blank" class="btn-s" style="font-size:10px;padding:5px 10px">عرض</a>
+      <a href="certificate.html?id=${escHtml(c.cert_number)}" target="_blank" class="btn-s" style="font-size:10px;padding:5px 10px">عرض</a>
       ${c.status==='active'?`<button onclick="revokeCert('${c.id}')" class="btn-d" style="font-size:10px;padding:5px 10px">إلغاء</button>`:''}
     </div></td>
   </tr>`).join('');
@@ -514,10 +522,10 @@ async function adminVerify(){
   const{data,error}=await sb.rpc('verify_certificate',{p_cert_number:q});
   const res=document.getElementById('vResult');
   const row=Array.isArray(data)?data[0]:data;
-  if(error){res.innerHTML='<div style="background:#fff5f5;color:#dc2626;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600">❌ '+error.message+'</div>';return;}
+  if(error){res.innerHTML='<div style="background:#fff5f5;color:#dc2626;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600">❌ '+escHtml(error.message)+'</div>';return;}
   if(!row){res.innerHTML='<div style="background:#fff5f5;color:#dc2626;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600">❌ لم يتم العثور على الشهادة</div>';return;}
   res.innerHTML=`<div style="background:var(--bg);border:2px solid var(--blue);border-radius:12px;padding:18px">
-    <div style="font-size:15px;font-weight:800;color:var(--blue);margin-bottom:12px">✓ شهادة موثقة — ${row.status==='active'?'نشطة':'ملغاة'}</div>
+    <div style="font-size:15px;font-weight:800;color:var(--blue);margin-bottom:12px">✓ شهادة موثقة — ${escHtml(row.status==='active'?'نشطة':'ملغاة')}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[['الطالب',row.student_name],['الدورة',row.course],['التاريخ',new Date(row.issue_date).toLocaleDateString('ar-EG')],['المؤسسة',row.institution_name||row.institution?.name||'—']].map(([l,v])=>`<div style="background:#fff;border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${l}</div><div style="font-size:13px;font-weight:700;color:var(--navy)">${v||'—'}</div></div>`).join('')}</div>
   </div>`;
 }
@@ -531,27 +539,30 @@ async function loadRec(){
   document.getElementById('recList').innerHTML=!(data||[]).length?'<div style="text-align:center;padding:24px;color:var(--muted)">لا توجد طلبات</div>':(data||[]).map(r=>`
   <div style="border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div><div style="font-size:15px;font-weight:800;color:var(--navy)">${r.company_name}</div><div style="font-size:11px;color:var(--muted)">${r.contact_name} · ${r.contact_email}</div></div>
+      <div><div style="font-size:15px;font-weight:800;color:var(--navy)">${escHtml(r.company_name)}</div><div style="font-size:11px;color:var(--muted)">${escHtml(r.contact_name||'—')} · ${escHtml(r.contact_email||'—')}</div></div>
       <span class="badge ${r.status==='new'?'bnew':r.status==='fulfilled'?'bok':'bwarn'}">${sts[r.status]||r.status}</span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
-      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المؤهل</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${r.qualification}</div></div>
-      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المحافظة</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${r.governorate||'أي محافظة'}</div></div>
-      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">العدد المطلوب</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${r.positions_needed} وظيفة</div></div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المؤهل</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${escHtml(r.qualification)}</div></div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المحافظة</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${escHtml(r.governorate||'أي محافظة')}</div></div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">العدد المطلوب</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${escHtml(r.positions_needed)} وظيفة</div></div>
     </div>
     <div style="display:flex;gap:8px">
       <button onclick="setRecSt('${r.id}','processing')" class="btn-p" style="font-size:11px">قيد المعالجة</button>
       <button onclick="setRecSt('${r.id}','fulfilled')" class="btn-s" style="font-size:11px">تم التنفيذ</button>
-      <button onclick="srchRec('${r.qualification}','${r.governorate||''}','${r.graduation_year||''}')" class="btn-s" style="font-size:11px;border-color:var(--gold);color:#8a6a20"><span class="material-symbols-outlined" style="font-size:14px">search</span>بحث تلقائي</button>
+      <button onclick="srchRec(${JSON.stringify(r.qualification||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')},${JSON.stringify(r.governorate||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')},${JSON.stringify(r.graduation_year||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')})" class="btn-s" style="font-size:11px;border-color:var(--gold);color:#8a6a20"><span class="material-symbols-outlined" style="font-size:14px">search</span>بحث تلقائي</button>
     </div>
   </div>`).join('');
 }
 async function setRecSt(id,status){const{error}=await sb.rpc('admin_update_recruitment_status',{p_request_id:id,p_status:status});if(error){toast(error.message,'err');return;}toast('تم التحديث','ok');loadRec();}
 async function srchRec(qual,gov,year){
-  let q=sb.from('certificates').select('student_name,course,grade,issue_date,governorate,student_phone,institutions(name)').eq('visible_to_companies',true).eq('status','active');
-  if(qual)q=q.ilike('course',`%${qual}%`);if(gov)q=q.eq('governorate',gov);
-  if(year)q=q.gte('issue_date',`${year}-01-01`).lte('issue_date',`${year}-12-31`);
-  const{data}=await q.limit(30);
+  const {data,error}=await sb.rpc('admin_search_candidates',{
+    p_qualification:qual||null,
+    p_governorate:gov||null,
+    p_graduation_year:year?parseInt(year,10):null,
+    p_limit:30
+  });
+  if(error){toast(error.message,'err');return;}
   if(!data?.length){toast('لا توجد نتائج مطابقة','err');return;}
   const m=document.createElement('div');
   m.style.cssText='position:fixed;inset:0;background:rgba(12,45,78,0.6);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -561,8 +572,8 @@ async function srchRec(qual,gov,year){
       <button onclick="this.closest('[style*=fixed]').remove()" style="width:32px;height:32px;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--bg)">✕</button>
     </div>
     ${data.map(c=>`<div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
-      <div><div style="font-size:13px;font-weight:800;color:var(--navy)">${c.student_name}</div><div style="font-size:11px;color:var(--muted)">${c.course} · ${c.governorate||'—'} · ${new Date(c.issue_date).getFullYear()}</div><div style="font-size:10px;color:#94a3b8">${c.institutions?.name||''}</div></div>
-      <div style="text-align:left"><div style="font-size:14px;font-weight:800;color:var(--blue);direction:ltr">${c.student_phone||'غير متاح'}</div><div style="font-size:11px;color:var(--gold);font-weight:700">${c.grade||'ناجح'}</div></div>
+      <div><div style="font-size:13px;font-weight:800;color:var(--navy)">${escHtml(c.student_name)}</div><div style="font-size:11px;color:var(--muted)">${escHtml(c.course)} · ${escHtml(c.governorate||'—')} · ${new Date(c.issue_date).getFullYear()}</div><div style="font-size:10px;color:#94a3b8">${escHtml(c.institution_name||'')}</div></div>
+      <div style="text-align:left"><div style="font-size:14px;font-weight:800;color:var(--blue);direction:ltr">${escHtml(c.student_phone||'غير متاح')}</div><div style="font-size:11px;color:var(--gold);font-weight:700">${escHtml(c.grade||'ناجح')}</div></div>
     </div>`).join('')}
   </div>`;
   document.body.appendChild(m);
@@ -574,7 +585,7 @@ async function loadCompanies(){
   if(error){toast(error.message,'err');return;}
   document.getElementById('compTable').innerHTML=!(data||[]).length?'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">لا توجد شركات</td></tr>':data.map(c=>`<tr>
     <td>${c.company_name}<div style="font-size:10px;color:var(--muted)">${c.contact_email}</div></td>
-    <td>${c.contact_name||'—'}</td>
+    <td>${escHtml(c.contact_name||'—')}</td>
     <td><span class="badge ${c.status==='approved'?'bok':'bwarn'}">${c.status==='approved'?'معتمد':'معلق'}</span></td>
     <td><div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;font-weight:900;color:var(--navy)">${c.search_credits||0}</span><button onclick="addCreds('${c.id}',${c.search_credits||0})" class="btn-s" style="font-size:10px;padding:4px 8px">+</button></div></td>
     <td><div style="display:flex;gap:6px">
@@ -590,7 +601,7 @@ async function addCreds(id,current){const a=prompt('كم عملية بحث تض�
 async function loadPkgs(){
   const{data}=await sb.from('packages').select('*,institutions(id)').order('sort_order');
   document.getElementById('pkgTable').innerHTML=!(data||[]).length?'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">لا توجد بيانات</td></tr>':data.map(p=>`<tr>
-    <td><span style="font-weight:800">${p.name_ar||p.name||'—'}</span></td>
+    <td><span style="font-weight:800">${escHtml(p.name_ar||p.name||'—')}</span></td>
     <td>${p.price_monthly||0} ج</td><td>${p.price_yearly||0} ج</td>
     <td>${p.quota_limit||0} شهادة</td>
     <td><span style="font-size:13px;font-weight:800;color:var(--blue)">${p.institutions?.length||0}</span></td>

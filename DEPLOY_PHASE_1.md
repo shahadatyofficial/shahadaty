@@ -6,16 +6,19 @@
 1. افتح مشروع Supabase الخاص بالمنصة.
 2. خذ نسخة احتياطية من قاعدة البيانات الحالية.
 3. افتح SQL Editor.
-4. شغّل محتوى `sql_setup.sql` بالكامل.
-5. من Authentication > Users أنشئ/استخدم حساب الإدارة، ثم من SQL Editor اجعل `raw_app_meta_data.role` لهذا المستخدم = `admin`.
-
-مثال بعد إنشاء حساب الإدارة:
+4. **لا تشغّل `sql_setup.sql` كاملًا على قاعدة الإنتاج الآن.** تم تطبيق تصحيحات محددة عبر migrations مسجلة في Supabase؛ الملف الشامل يحتاج مراجعة منفصلة قبل إعادة تشغيله. أي تغيير إضافي يُنفّذ عبر migration محددة بعد مراجعتها.
+5. أنشئ/استخدم حساب الإدارة من Authentication > Users، ثم أضف معرّف الحساب إلى `public.platform_admins` من SQL Editor. لا تعتمد على `user_metadata` أو `raw_app_meta_data.role` وحدهما لتحديد صلاحيات الإدارة.
 
 ```sql
-UPDATE auth.users
-SET raw_app_meta_data = COALESCE(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
-WHERE email = 'ضع-بريد-الإدارة-هنا@example.com';
+INSERT INTO public.platform_admins(auth_user_id)
+SELECT id
+FROM auth.users
+WHERE lower(email) = lower('ADMIN_EMAIL@example.com')
+ON CONFLICT (auth_user_id)
+DO UPDATE SET status = 'active';
 ```
+
+**مهم:** استبدل البريد ببريد الحساب الإداري الفعلي. إذا لم يطابق البريد أي حساب موجود فلن يضاف مسؤول. في مشروع Supabase الحالي تم بالفعل تفعيل أول مسؤول والتحقق من الصلاحيات.
 
 > لا تضع `service_role` key داخل أي ملف HTML أو JavaScript.
 
@@ -28,7 +31,7 @@ WHERE email = 'ضع-بريد-الإدارة-هنا@example.com';
 - إضافة عضوية المؤسسة والأدوار.
 - إضافة الاشتراكات.
 - توحيد الباقات كمصدر من قاعدة البيانات.
-- تحويل التسجيل إلى طلب اعتماد ثم إنشاء المؤسسة من Trigger آمن عند إنشاء حساب Auth.
+- تحويل التسجيل إلى طلب اعتماد عبر RPC `register_institution` بعد إنشاء حساب Auth والتحقق من الجلسة.
 - منع القراءة العامة المباشرة لجدول الشهادات.
 - إضافة RPC آمن للتحقق العام من الشهادة.
 - إضافة سجل تحقق منفصل.

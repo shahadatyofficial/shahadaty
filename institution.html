@@ -233,7 +233,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <button class="btn-login" id="loginBtn" onclick="doLogin()">
       <span class="material-symbols-outlined">login</span> دخول
     </button>
-    <div class="login-back"><a href="landing.html">← العودة للرئيسية</a> &nbsp;|&nbsp; <a href="register.html">مؤسسة جديدة؟ سجل الاعتماد</a></div>
+    <div class="login-back"><a href="index.html">← العودة للرئيسية</a> &nbsp;|&nbsp; <a href="register.html">مؤسسة جديدة؟ سجل الاعتماد</a></div>
   </div>
 </div>
 
@@ -286,7 +286,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       <div class="sb-pkg-bar"><div class="sb-pkg-fill" id="sbPkgFill" style="width:0%"></div></div>
       <div class="sb-pkg-num" id="sbPkgNum">— / — شهادة</div>
     </div>
-    <button class="btn-upgrade" onclick="location.href='landing.html#packages'">
+    <button class="btn-upgrade" onclick="location.href='index.html#packages'">
       <span class="material-symbols-outlined" style="font-size:16px">upgrade</span> إضافة رصيد
     </button>
     <div class="sb-item" onclick="doLogout()" style="margin-top:8px">
@@ -306,7 +306,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       </div>
     </div>
     <div class="topbar-left">
-      <a href="landing.html#hero" class="topbar-verify"><span class="material-symbols-outlined">verified</span>التحقق المباشر</a>
+      <a href="index.html" class="topbar-verify"><span class="material-symbols-outlined">verified</span>التحقق المباشر</a>
       <span class="topbar-support" onclick="showPage('settings',null)">الدعم الفني</span>
       <div class="topbar-bell"><span class="material-symbols-outlined">notifications</span><div class="bell-dot"></div></div>
       <button class="btn-issue" onclick="openIssueModal()">
@@ -460,7 +460,10 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
               <div><label class="form-lbl">التقدير العام</label><select id="fi_grade" class="form-inp2" style="background:#f0f9ff"><option value="">اختر</option><option>ممتاز</option><option>جيد جداً</option><option>جيد</option><option>مقبول</option></select></div>
             </div>
             <div class="form-row">
+              <div><label class="form-lbl">بريد الطالب الإلكتروني (لربط ملف الخريج)</label><input type="email" id="fi_email" class="form-inp2" dir="ltr" placeholder="student@example.com"></div>
               <div><label class="form-lbl">رقم الهاتف (اختياري)</label><input type="tel" id="fi_phone" class="form-inp2" dir="ltr" placeholder="01xxxxxxxxx"></div>
+            </div>
+            <div class="form-row">
               <div><label class="form-lbl">المحافظة</label><input type="text" id="fi_gov" class="form-inp2" placeholder="المحافظة"></div>
             </div>
             <div class="consent-row">
@@ -511,6 +514,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
             <div id="bulkProgress" style="display:none;margin-top:14px">
               <div class="quota-bar"><div class="quota-fill" id="bulkFill" style="width:0%;transition:width .3s"></div></div>
               <div style="text-align:center;font-size:12px;font-weight:600;color:var(--blue);margin-top:6px" id="bulkProgressTxt"></div>
+              <div id="bulkErrors" style="display:none;margin-top:12px"></div>
             </div>
           </div>
         </div>
@@ -579,6 +583,21 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
             <button class="btn-submit" onclick="saveSettings()"><span class="material-symbols-outlined">save</span>حفظ التغييرات</button>
           </div>
         </div>
+        <div class="card" style="margin-top:18px">
+          <div class="card-head"><span class="card-title">المستندات القانونية</span></div>
+          <div class="card-body">
+            <p style="font-size:12px;line-height:1.8;color:var(--muted);margin-bottom:14px">يجب اعتماد السجل التجاري والبطاقة الضريبية قبل تفعيل المؤسسة. إذا رُفض مستند، يمكنك رفع نسخة جديدة من هنا.</p>
+            <div id="myDocsList" style="margin-bottom:16px">جاري تحميل المستندات...</div>
+            <div class="form-row">
+              <div><label class="form-lbl">السجل التجاري (PDF أو صورة)</label><input type="file" id="myCommercialFile" class="form-inp2" accept=".pdf,.png,.jpg,.jpeg"></div>
+              <div style="display:flex;align-items:end"><button class="btn-submit" style="width:100%" onclick="uploadMyDoc('commercial_registration','myCommercialFile')">رفع السجل التجاري</button></div>
+            </div>
+            <div class="form-row">
+              <div><label class="form-lbl">البطاقة الضريبية (PDF أو صورة)</label><input type="file" id="myTaxFile" class="form-inp2" accept=".pdf,.png,.jpg,.jpeg"></div>
+              <div style="display:flex;align-items:end"><button class="btn-submit" style="width:100%" onclick="uploadMyDoc('tax_card','myTaxFile')">رفع البطاقة الضريبية</button></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -602,7 +621,10 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
         <div><label class="form-lbl">التقدير</label><select id="mi_grade" class="form-inp2" style="background:#f0f9ff"><option value="">اختر</option><option>ممتاز</option><option>جيد جداً</option><option>جيد</option><option>مقبول</option></select></div>
       </div>
       <div class="form-row">
+        <div><label class="form-lbl">بريد الطالب الإلكتروني (لربط ملف الخريج)</label><input type="email" id="mi_email" class="form-inp2" dir="ltr" placeholder="student@example.com"></div>
         <div><label class="form-lbl">رقم الهاتف</label><input type="tel" id="mi_phone" class="form-inp2" dir="ltr" placeholder="01xxxxxxxxx"></div>
+      </div>
+      <div class="form-row">
         <div><label class="form-lbl">المحافظة</label><input type="text" id="mi_gov" class="form-inp2" placeholder="المحافظة"></div>
       </div>
       <div class="consent-row">
@@ -697,7 +719,7 @@ function initCharts(rows, active, revoked){
 async function loadActivity(){
   const{data}=await sb.from('certificates').select('student_name,course,created_at').eq('institution_id',inst.id).order('created_at',{ascending:false}).limit(5);
   const icons=[{ic:'description',bg:'#eff6ff',c:'#0369a1'},{ic:'upload_file',bg:'#f0fdf4',c:'#059669'},{ic:'verified',bg:'#f0f9ff',c:'#0284c7'},{ic:'group_add',bg:'#fef9ee',c:'#b08d48'},{ic:'settings',bg:'#fdf4ff',c:'#7c3aed'}];
-  document.getElementById('activityList').innerHTML=(data||[]).length?data.map((c,i)=>{const ic=icons[i%5];return`<div class="activity-item"><div class="act-icon" style="background:${ic.bg}"><span class="material-symbols-outlined" style="color:${ic.c};font-size:17px">${ic.ic}</span></div><div><div class="act-text">تم إصدار شهادة جديدة — ${c.student_name}</div><div class="act-time">${new Date(c.created_at).toLocaleString('ar-EG',{hour:'2-digit',minute:'2-digit'})}</div></div></div>`;}).join(''):'<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">لا توجد أنشطة بعد</div>';
+  document.getElementById('activityList').innerHTML=(data||[]).length?data.map((c,i)=>{const ic=icons[i%5];return`<div class="activity-item"><div class="act-icon" style="background:${ic.bg}"><span class="material-symbols-outlined" style="color:${ic.c};font-size:17px">${ic.ic}</span></div><div><div class="act-text">تم إصدار شهادة جديدة — ${escapeHtml(c.student_name)}</div><div class="act-time">${new Date(c.created_at).toLocaleString('ar-EG',{hour:'2-digit',minute:'2-digit'})}</div></div></div>`;}).join(''):'<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">لا توجد أنشطة بعد</div>';
 }
 
 async function loadTopCerts(){
@@ -706,21 +728,22 @@ async function loadTopCerts(){
   (data||[]).forEach(c=>{counts[c.course]=(counts[c.course]||0)+1;});
   const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const max=sorted[0]?.[1]||1;
-  document.getElementById('topCertsList').innerHTML=sorted.length?sorted.map(([name,cnt])=>`<div class="cert-row"><span class="cert-name">${name}</span><div class="cert-bar-wrap"><div class="cert-bar"><div class="cert-bar-fill" style="width:${Math.round(cnt/max*100)}%"></div></div></div><span class="cert-count">${cnt}</span></div>`).join(''):'<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">لا توجد بيانات</div>';
+  document.getElementById('topCertsList').innerHTML=sorted.length?sorted.map(([name,cnt])=>`<div class="cert-row"><span class="cert-name">${escapeHtml(name)}</span><div class="cert-bar-wrap"><div class="cert-bar"><div class="cert-bar-fill" style="width:${Math.round(cnt/max*100)}%"></div></div></div><span class="cert-count">${cnt}</span></div>`).join(''):'<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">لا توجد بيانات</div>';
 }
 
 async function loadQuotaDetails(){
   if(!inst)return;
   const pct=inst.quota_total>0?Math.round(inst.quota_used/inst.quota_total*100):0;
   const {data:sub}=await sb.from('subscriptions').select('*,packages(name_ar)').eq('institution_id',inst.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+  const subActive=!!sub&&sub.status==='active'&&(!sub.starts_at||new Date(sub.starts_at)<=new Date())&&(!sub.ends_at||new Date(sub.ends_at)>new Date());
   document.getElementById('quotaDetails').innerHTML=`
     <div style="background:#f0f9ff;border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div><div style="font-size:13px;font-weight:700;color:var(--navy)">الباقة الحالية: ${inst.packages?.name_ar||'—'}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">الاشتراك: ${sub?.status==='active'?'نشط':sub?.status||'غير مفعل'}</div></div><span class="badge badge-ok">${inst.status==='approved'?'نشط':'معلق'}</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div><div style="font-size:13px;font-weight:700;color:var(--navy)">الباقة الحالية: ${inst.packages?.name_ar||'—'}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">الاشتراك: ${subActive?'نشط':sub?.status==='active'?'منتهي':sub?.status||'غير مفعل'}</div></div><span class="badge ${subActive?'badge-ok':'badge-warn'}">${subActive?'نشط':inst.status==='approved'?'انتهت الباقة':'معلق'}</span></div>
       <div class="quota-bar" style="margin-bottom:8px"><div class="quota-fill ${pct>=90?'danger':pct>=75?'warn':''}" style="width:${pct}%"></div></div>
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>مستخدم: ${inst.quota_used}</span><span>الكلي: ${inst.quota_total||'غير محدود'}</span></div>
       ${sub?.ends_at?`<div style="margin-top:10px;font-size:11px;color:var(--muted)">ينتهي الاشتراك: ${new Date(sub.ends_at).toLocaleDateString('ar-EG')}</div>`:''}
     </div>
-    <button onclick="location.href='landing.html#packages'" style="display:inline-flex;align-items:center;gap:7px;background:var(--blue);color:#fff;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;padding:11px 22px;border-radius:10px;border:none;cursor:pointer"><span class="material-symbols-outlined" style="font-size:18px">upgrade</span> ترقية الباقة</button>`;
+    <button onclick="location.href='index.html#packages'" style="display:inline-flex;align-items:center;gap:7px;background:var(--blue);color:#fff;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;padding:11px 22px;border-radius:10px;border:none;cursor:pointer"><span class="material-symbols-outlined" style="font-size:18px">upgrade</span> ترقية الباقة</button>`;
 }
 
 // ── Issue Certificate ──────────────────────────────────────────
@@ -732,7 +755,9 @@ async function issuePayload(payload){
 function dbErrorMessage(error){
   const m=String(error?.message||error||'');
   if(m.includes('QUOTA_EXCEEDED'))return 'تم الوصول إلى حد الشهادات في باقتك الحالية.';
+  if(m.includes('INVALID_STUDENT_EMAIL'))return 'بريد الطالب الإلكتروني غير صحيح. راجع البريد أو اتركه فارغاً.';
   if(m.includes('INSTITUTION_NOT_APPROVED'))return 'المؤسسة غير معتمدة حتى الآن.';
+  if(m.includes('SUBSCRIPTION_INACTIVE'))return 'انتهت الباقة أو أن الاشتراك غير نشط. يرجى مراجعة الإدارة لتجديد الاشتراك.';
   if(m.includes('NOT_ALLOWED'))return 'ليس لديك صلاحية إصدار الشهادات.';
   if(m.includes('AUTH_REQUIRED'))return 'انتهت جلسة الدخول، يرجى تسجيل الدخول مرة أخرى.';
   return m||'حدث خطأ غير متوقع.';
@@ -742,7 +767,7 @@ async function issueCertModal(){
   const res=document.getElementById('mi_result');
   if(!student||!course||!date){showRes(res,'يرجى تعبئة الحقول المطلوبة *','err');return;}
   try{
-    const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('mi_grade').value,student_phone:document.getElementById('mi_phone').value,governorate:document.getElementById('mi_gov').value,visible_to_companies:document.getElementById('mi_consent').checked});
+    const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('mi_grade').value,student_email:document.getElementById('mi_email').value.trim().toLowerCase(),student_phone:document.getElementById('mi_phone').value,governorate:document.getElementById('mi_gov').value,visible_to_companies:document.getElementById('mi_consent').checked});
     showRes(res,`✓ تم الإصدار — رقم الشهادة: <b>${row.cert_number}</b><br><a href="certificate.html?id=${encodeURIComponent(row.cert_number)}" target="_blank" style="color:var(--blue)">عرض الشهادة</a>`,'ok');
     await loadInst(); toast('✓ تم إصدار الشهادة بنجاح','ok'); setTimeout(closeIssueModal,1800);
   }catch(e){showRes(res,dbErrorMessage(e),'err');}
@@ -751,14 +776,14 @@ async function issueFullCert(){
   const student=document.getElementById('fi_student').value.trim(), course=document.getElementById('fi_course').value.trim(), date=document.getElementById('fi_date').value, res=document.getElementById('fi_result');
   if(!student||!course||!date){showRes(res,'يرجى تعبئة الحقول المطلوبة *','err');return;}
   try{
-    const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('fi_grade').value,specialization:document.getElementById('fi_spec').value,student_phone:document.getElementById('fi_phone').value,governorate:document.getElementById('fi_gov').value,visible_to_companies:document.getElementById('fi_consent').checked});
+    const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('fi_grade').value,specialization:document.getElementById('fi_spec').value,student_email:document.getElementById('fi_email').value.trim().toLowerCase(),student_phone:document.getElementById('fi_phone').value,governorate:document.getElementById('fi_gov').value,visible_to_companies:document.getElementById('fi_consent').checked});
     showRes(res,`✓ تم الإصدار بنجاح — رقم الشهادة: <strong>${row.cert_number}</strong> — <a href="certificate.html?id=${encodeURIComponent(row.cert_number)}" target="_blank" style="color:var(--blue)">عرض الشهادة ↗</a>`,'ok');
     clearIssueForm(); await loadInst();
   }catch(e){showRes(res,dbErrorMessage(e),'err');}
 }
-function clearIssueForm(){['fi_student','fi_certnum','fi_course','fi_spec','fi_phone','fi_gov'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});const g=document.getElementById('fi_grade');if(g)g.value='';const c=document.getElementById('fi_consent');if(c)c.checked=false;}
+function clearIssueForm(){['fi_student','fi_certnum','fi_course','fi_spec','fi_email','fi_phone','fi_gov'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});const g=document.getElementById('fi_grade');if(g)g.value='';const c=document.getElementById('fi_consent');if(c)c.checked=false;}
 function openIssueModal(){document.getElementById('issueModal').style.display='flex';}
-function closeIssueModal(){document.getElementById('issueModal').style.display='none';['mi_student','mi_course','mi_phone','mi_gov'].forEach(id=>document.getElementById(id).value='');document.getElementById('mi_grade').value='';document.getElementById('mi_consent').checked=false;document.getElementById('mi_result').style.display='none';}
+function closeIssueModal(){document.getElementById('issueModal').style.display='none';['mi_student','mi_course','mi_email','mi_phone','mi_gov'].forEach(id=>document.getElementById(id).value='');document.getElementById('mi_grade').value='';document.getElementById('mi_consent').checked=false;document.getElementById('mi_result').style.display='none';}
 
 // ── Certs List ─────────────────────────────────────────────────
 async function loadCerts(){
@@ -784,24 +809,34 @@ function processFile(f){const r=new FileReader();r.onload=e=>{const wb=XLSX.read
 function showBulkPreview(rows){
   document.getElementById('bulkPreview').style.display='block';
   document.getElementById('bulkCount').textContent=rows.length+' سجل';
-  document.getElementById('bulkTable').innerHTML='<thead><tr><th>الحالة</th><th>اسم الطالب</th><th>الدورة</th><th>التاريخ</th><th>التقدير</th></tr></thead><tbody>'+rows.slice(0,20).map(r=>`<tr><td><span class="badge badge-warn">جاهز</span></td><td>${r['اسم الطالب']||r['student_name']||'—'}</td><td>${r['الدورة']||r['course']||'—'}</td><td>${r['التاريخ']||r['issue_date']||'—'}</td><td>${r['التقدير']||r['grade']||'—'}</td></tr>`).join('')+'</tbody>';
+  const cell=(v)=>escapeHtml(v||'—');
+  document.getElementById('bulkTable').innerHTML='<thead><tr><th>الحالة</th><th>اسم الطالب</th><th>البريد الإلكتروني</th><th>الدورة</th><th>التاريخ</th><th>التقدير</th></tr></thead><tbody>'+rows.slice(0,20).map(r=>`<tr><td><span class="badge badge-warn">جاهز</span></td><td>${cell(r['اسم الطالب']||r['student_name'])}</td><td dir="ltr">${cell(r['البريد الإلكتروني']||r['student_email']||r['email'])}</td><td>${cell(r['الدورة']||r['course'])}</td><td>${cell(r['التاريخ']||r['issue_date'])}</td><td>${cell(r['التقدير']||r['grade'])}</td></tr>`).join('')+'</tbody>';
 }
 async function confirmBulk(){
-  const btn=document.querySelector('#bulkPreview .btn-submit'); if(!bulkData.length)return;
+  const btn=document.querySelector('#bulkPreview .btn-submit'); if(!bulkData.length||btn.disabled)return;
   btn.disabled=true; document.getElementById('bulkProgress').style.display='block';
-  const rows=bulkData.map(r=>({student_name:String(r['اسم الطالب']||r['student_name']||'').trim(),course:String(r['الدورة']||r['course']||'').trim(),issue_date:String(r['التاريخ']||r['issue_date']||new Date().toISOString().slice(0,10)),grade:String(r['التقدير']||r['grade']||''),governorate:String(r['المحافظة']||r['governorate']||''),visible_to_companies:false}));
+  const rows=bulkData.map(r=>({student_name:String(r['اسم الطالب']||r['student_name']||'').trim(),student_email:String(r['البريد الإلكتروني']||r['student_email']||r['email']||'').trim().toLowerCase(),course:String(r['الدورة']||r['course']||'').trim(),issue_date:String(r['التاريخ']||r['issue_date']||new Date().toISOString().slice(0,10)),grade:String(r['التقدير']||r['grade']||''),governorate:String(r['المحافظة']||r['governorate']||''),visible_to_companies:false}));
   try{
     const {data,error}=await sb.rpc('issue_certificates_bulk',{p_institution_id:inst.id,p_rows:rows});
     if(error)throw error;
+    const result=data?.[0]||{},success=result.success_count||0,failed=result.failed_count||0;
     document.getElementById('bulkFill').style.width='100%';
-    document.getElementById('bulkProgressTxt').textContent=`تم إصدار ${data?.[0]?.success_count||0} من ${rows.length}`;
-    const failed=data?.[0]?.failed_count||0;
-    toast(failed?`تم إصدار ${rows.length-failed} شهادة مع وجود ${failed} أخطاء`:`✓ تم إصدار ${rows.length} شهادة بنجاح`,failed?'err':'ok');
-    setTimeout(()=>{cancelBulk();loadInst();},1200);
+    document.getElementById('bulkProgressTxt').textContent=`تم إصدار ${success} من ${rows.length}`;
+    toast(failed?`تم إصدار ${success} شهادة، وفشلت ${failed} سجلات`:`✓ تم إصدار ${success} شهادة بنجاح`,failed?'err':'ok');
+    if(failed){
+      const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+      const failures=Array.isArray(result.errors)?result.errors:[];
+      const box=document.getElementById('bulkErrors');box.style.display='block';
+      box.innerHTML='<div style="font-weight:800;color:#b91c1c;margin-bottom:8px">السجلات التي تحتاج إلى تصحيح — لا تعِد إرسال الملف كاملًا حتى لا تتكرر الشهادات الناجحة</div>'+failures.map((item,i)=>'<div style="padding:8px 10px;border:1px solid #fecaca;background:#fff7f7;border-radius:8px;margin-bottom:6px;font-size:12px"><b>سجل '+(Number(item.row_index||i+1))+'</b>: '+esc(item.error||'تعذر إصدار السجل')+'</div>').join('');
+      btn.textContent='اكتملت المعالجة';
+      await loadInst();
+    }else{
+      setTimeout(()=>{cancelBulk();loadInst();},1200);
+    }
   }catch(e){toast(dbErrorMessage(e),'err');btn.disabled=false;}
 }
 function cancelBulk(){document.getElementById('bulkPreview').style.display='none';document.getElementById('fileInput').value='';bulkData=[];}
-function downloadTemplate(){const ws=XLSX.utils.aoa_to_sheet([['اسم الطالب','الدورة','التاريخ','التقدير','المحافظة'],['محمد علي حسن','هندسة الحاسبات','2024-06-01','ممتاز','القاهرة']]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الشهادات');XLSX.writeFile(wb,'نموذج_شهادتي.xlsx');}
+function downloadTemplate(){const ws=XLSX.utils.aoa_to_sheet([['اسم الطالب','البريد الإلكتروني','الدورة','التاريخ','التقدير','المحافظة'],['محمد علي حسن','student@example.com','هندسة الحاسبات','2024-06-01','ممتاز','القاهرة']]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الشهادات');XLSX.writeFile(wb,'نموذج_شهادتي.xlsx');}
 
 // ── Verify ─────────────────────────────────────────────────────
 async function doVerify(){
@@ -809,7 +844,7 @@ async function doVerify(){
   if(!q){res.innerHTML='';return;}
   const {data,error}=await sb.rpc('verify_certificate',{p_cert_number:q}); const c=Array.isArray(data)?data[0]:data;
   if(error||!c){res.innerHTML='<div style="background:#fff5f5;color:#dc2626;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600">❌ لم يتم العثور على الشهادة</div>';return;}
-  res.innerHTML=`<div style="background:#f0f9ff;border:2px solid var(--blue);border-radius:12px;padding:16px"><div style="font-size:15px;font-weight:800;color:${c.status==='active'?'var(--blue)':'#dc2626'};margin-bottom:12px">${c.status==='active'?'✓ شهادة موثقة وصالحة':'⚠ الشهادة غير سارية'}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[['الطالب',c.student_name],['الدورة',c.course],['التاريخ',new Date(c.issue_date).toLocaleDateString('ar-EG')],['المؤسسة',c.institution_name||'—'],['الحالة',c.status]].map(([l,v])=>`<div style="background:#fff;border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${l}</div><div style="font-size:13px;font-weight:700;color:var(--navy)">${v}</div></div>`).join('')}</div></div>`;
+  res.innerHTML=`<div style="background:#f0f9ff;border:2px solid var(--blue);border-radius:12px;padding:16px"><div style="font-size:15px;font-weight:800;color:${c.status==='active'?'var(--blue)':'#dc2626'};margin-bottom:12px">${c.status==='active'?'✓ شهادة موثقة وصالحة':'⚠ الشهادة غير سارية'}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[['الطالب',c.student_name],['الدورة',c.course],['التاريخ',new Date(c.issue_date).toLocaleDateString('ar-EG')],['المؤسسة',c.institution_name||'—'],['الحالة',c.status]].map(([l,v])=>`<div style="background:#fff;border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${l}</div><div style="font-size:13px;font-weight:700;color:var(--navy)">${escapeHtml(v??'—')}</div></div>`).join('')}</div></div>`;
 }
 
 // ── Nav ─────────────────────────────────────────────────────────
@@ -819,12 +854,45 @@ function showPage(name,el){
   document.getElementById('page-'+name).classList.add('active');
   if(el)el.classList.add('active');
   if(name==='certs')loadCerts();
+  if(name==='settings')loadMyDocs();
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
 function showRes(el,msg,type){el.style.display='block';el.style.background=type==='ok'?'#f0f9ff':'#fff5f5';el.style.color=type==='ok'?'#0369a1':'#dc2626';el.innerHTML=msg;}
 function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=type==='ok'?'#0369a1':'#dc2626';t.style.display='block';setTimeout(()=>t.style.display='none',3500);}
 
+async function loadMyDocs(){
+  if(!inst)return;
+  const el=document.getElementById('myDocsList');if(!el)return;
+  const {data,error}=await sb.from('institution_documents').select('document_type,file_name,status,rejection_reason,uploaded_at').eq('institution_id',inst.id).order('uploaded_at',{ascending:false});
+  if(error){el.textContent='تعذر تحميل المستندات: '+error.message;return;}
+  const docs=data||[];
+  if(!docs.length){el.innerHTML='<div style="padding:12px;border-radius:9px;background:#f8fbff;color:var(--muted);font-size:12px">لم يتم رفع مستندات بعد.</div>';return;}
+  const label={commercial_registration:'السجل التجاري',tax_card:'البطاقة الضريبية',institution_proof:'إثبات المؤسسة'};
+  const status={pending:'قيد المراجعة',approved:'معتمد',rejected:'مرفوض'};
+  el.innerHTML=docs.map(d=>`<div style="padding:10px 12px;border:1px solid var(--border);border-radius:9px;margin-bottom:8px;background:#fff"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b style="font-size:12px">${escapeHtml(label[d.document_type]||d.document_type)} — ${escapeHtml(d.file_name||'مستند')}</b><span style="font-size:11px;font-weight:800;color:${d.status==='approved'?'#047857':d.status==='rejected'?'#b91c1c':'#b45309'}">${escapeHtml(status[d.status]||d.status||'قيد المراجعة')}</span></div>${d.status==='rejected'&&d.rejection_reason?`<div style="font-size:11px;color:#b91c1c;margin-top:6px">سبب الرفض: ${escapeHtml(d.rejection_reason)}</div>`:''}<div style="font-size:10px;color:var(--muted);margin-top:4px">${d.uploaded_at?new Date(d.uploaded_at).toLocaleDateString('ar-EG'):''}</div></div>`).join('');
+}
+async function uploadMyDoc(type,inputId){
+  if(!inst)return;
+  const input=document.getElementById(inputId),file=input?.files?.[0];
+  if(!file){toast('اختر المستند أولاً','err');return;}
+  if(file.size>10*1024*1024){toast('حجم الملف يجب ألا يتجاوز 10 ميجابايت','err');return;}
+  const allowed=['application/pdf','image/png','image/jpeg'];
+  if(file.type&&!allowed.includes(file.type)){toast('الملف يجب أن يكون PDF أو PNG أو JPG','err');return;}
+  const {data:existing,error:readErr}=await sb.from('institution_documents').select('status').eq('institution_id',inst.id).eq('document_type',type).order('uploaded_at',{ascending:false});
+  if(readErr){toast(readErr.message,'err');return;}
+  if((existing||[]).some(d=>d.status==='approved')){toast('هذا المستند معتمد بالفعل؛ تواصل مع الإدارة إذا احتجت إلى تغييره.','err');return;}
+  if((existing||[]).some(d=>d.status==='pending')){toast('يوجد مستند من هذا النوع قيد المراجعة بالفعل.','err');return;}
+  const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const path=`${inst.id}/${crypto.randomUUID()}-${safeName}`;
+  const {error:uploadErr}=await sb.storage.from('institution-documents').upload(path,file,{contentType:file.type||'application/octet-stream',upsert:false});
+  if(uploadErr){toast(uploadErr.message,'err');return;}
+  const {data:{user}}=await sb.auth.getUser();
+  const {error:insertErr}=await sb.from('institution_documents').insert({institution_id:inst.id,document_type:type,file_name:file.name,file_path:path,status:'pending',uploaded_by:user?.id||null});
+  if(insertErr){await sb.storage.from('institution-documents').remove([path]);toast(insertErr.message,'err');return;}
+  input.value='';toast('تم رفع المستند وإرساله للمراجعة','ok');loadMyDocs();
+}
 async function saveSettings(){
   const phone=document.getElementById('set_phone').value.trim();
   const {error}=await sb.rpc('update_my_institution_contact',{p_phone:phone});
