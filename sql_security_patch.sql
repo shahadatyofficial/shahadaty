@@ -190,3 +190,20 @@ end;
 $fn$;
 revoke all on function public.verify_certificate(text) from public;
 grant execute on function public.verify_certificate(text) to anon, authenticated;
+
+
+-- Minimize direct table privileges; application writes use guarded RPCs.
+revoke insert, update, delete on public.institutions from anon, authenticated;
+revoke insert, update, delete on public.institution_users from anon, authenticated;
+revoke insert, update, delete on public.certificates from anon, authenticated;
+revoke update, delete on public.institution_documents from anon, authenticated;
+revoke insert, update, delete on public.subscriptions from anon, authenticated;
+revoke select, update, delete on public.companies from anon, authenticated;
+grant insert on public.companies to anon, authenticated;
+revoke select, update, delete on public.recruitment_requests from anon, authenticated;
+grant insert on public.recruitment_requests to anon, authenticated;
+revoke all on public.platform_admins from anon, authenticated;
+revoke all on public.certificate_sequences from anon, authenticated;
+revoke all on public.certificate_verifications from anon, authenticated;
+revoke all on public.activity_log from anon, authenticated;
+revoke all on public.profiles from anon, authenticated;
