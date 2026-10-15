@@ -1935,3 +1935,20 @@ alter function public.set_institutions_updated_at() set search_path = '';
 alter function public.set_institution_documents_updated_at() set search_path = '';
 alter function public.set_institution_users_updated_at() set search_path = '';
 alter function public.set_subscriptions_updated_at() set search_path = '';
+
+
+-- Minimize direct table privileges; application writes use guarded RPCs.
+revoke insert, update, delete on public.institutions from anon, authenticated;
+revoke insert, update, delete on public.institution_users from anon, authenticated;
+revoke insert, update, delete on public.certificates from anon, authenticated;
+revoke update, delete on public.institution_documents from anon, authenticated;
+revoke insert, update, delete on public.subscriptions from anon, authenticated;
+revoke select, update, delete on public.companies from anon, authenticated;
+grant insert on public.companies to anon, authenticated;
+revoke select, update, delete on public.recruitment_requests from anon, authenticated;
+grant insert on public.recruitment_requests to anon, authenticated;
+revoke all on public.platform_admins from anon, authenticated;
+revoke all on public.certificate_sequences from anon, authenticated;
+revoke all on public.certificate_verifications from anon, authenticated;
+revoke all on public.activity_log from anon, authenticated;
+revoke all on public.profiles from anon, authenticated;
