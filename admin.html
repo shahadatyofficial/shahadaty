@@ -381,7 +381,7 @@ function sp(name,el){
 }
 
 // ── OVERVIEW ──────────────────────────────────────────────────
-async function loadOverview(){
+async async function loadOverview(){
   const [
     {data:stats,error:statsErr},
     {data:pending,error:pendingErr},
@@ -400,8 +400,8 @@ async function loadOverview(){
   document.getElementById('ov_certs').textContent=Number(totals.certificates||0).toLocaleString('ar-EG');
   document.getElementById('ov_pending').textContent=Number(totals.pending_institutions||0).toLocaleString('ar-EG');
   document.getElementById('ov_rec').textContent=(newRecruitment||[]).length.toLocaleString('ar-EG');
-  document.getElementById('ov_reqs').innerHTML=!(pending||[]).length?'<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--muted)">لا توجد طلبات معلقة</td></tr>':pending.slice(0,5).map(r=>`<tr><td>${r.name||'—'}</td><td>${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG'):'—'}</td><td><span class="badge bwarn">معلق</span></td><td><button onclick="setInstSt('${r.id}','approved')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button></td></tr>`).join('');
-  document.getElementById('ov_quota').innerHTML=(approved||[]).slice(0,6).map(i=>{const used=Number(i.quota_used||0),total=Number(i.quota_total||0),p=total?Math.min(100,Math.round(used/total*100)):0;return `<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="font-weight:600;color:var(--navy)">${i.name||'—'}</span><span style="color:var(--muted)">${used}/${total}</span></div><div class="q-bar"><div class="q-fill ${p>=90?'danger':p>=75?'warn':''}" style="width:${p}%"></div></div></div>`}).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">لا توجد مؤسسات معتمدة</div>';
+  document.getElementById('ov_reqs').innerHTML=!(pending||[]).length?'<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--muted)">لا توجد طلبات معلقة</td></tr>':pending.slice(0,5).map(r=>`<tr><td>${adminEsc(r.name||'—')}</td><td>${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG'):'—'}</td><td><span class="badge bwarn">معلق</span></td><td><button onclick="setInstSt('${r.id}','approved')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button></td></tr>`).join('');
+  document.getElementById('ov_quota').innerHTML=(approved||[]).slice(0,6).map(i=>{const used=Number(i.quota_used||0),total=Number(i.quota_total||0),p=total?Math.min(100,Math.round(used/total*100)):0;return `<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="font-weight:600;color:var(--navy)">${adminEsc(i.name||'—')}</span><span style="color:var(--muted)">${used}/${total}</span></div><div class="q-bar"><div class="q-fill ${p>=90?'danger':p>=75?'warn':''}" style="width:${p}%"></div></div></div>`}).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">لا توجد مؤسسات معتمدة</div>';
 }
 
 async function loadBadges(){
@@ -517,8 +517,8 @@ async function loadAdminCerts(){
   if(error){toast(error.message,'err');return;}
   allAdminCerts=(data||[]).map(c=>({...c,institutions:{name:c.institution_name}}));
   document.getElementById('certsTable').innerHTML=!allAdminCerts.length?'<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج</td></tr>':allAdminCerts.map(c=>`<tr>
-    <td>${c.student_name}</td><td style="font-family:monospace;font-size:11px">${c.cert_number}</td><td>${c.course}</td>
-    <td>${c.institutions?.name||'—'}</td><td>${new Date(c.issue_date).toLocaleDateString('ar-EG')}</td>
+    <td>${adminEsc(c.student_name)}</td><td style="font-family:monospace;font-size:11px">${adminEsc(c.cert_number)}</td><td>${adminEsc(c.course)}</td>
+    <td>${adminEsc(c.institutions?.name||'—')}</td><td>${new Date(c.issue_date).toLocaleDateString('ar-EG')}</td>
     <td><span class="badge ${c.status==='active'?'bok':'berr'}">${c.status==='active'?'نشط':'ملغي'}</span></td>
     <td><div style="display:flex;gap:6px">
       <a href="certificate.html?id=${c.cert_number}" target="_blank" class="btn-s" style="font-size:10px;padding:5px 10px">عرض</a>
@@ -552,11 +552,11 @@ async function loadRec(){
   document.getElementById('recList').innerHTML=!(data||[]).length?'<div style="text-align:center;padding:24px;color:var(--muted)">لا توجد طلبات</div>':(data||[]).map(r=>`
   <div style="border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div><div style="font-size:15px;font-weight:800;color:var(--navy)">${r.company_name}</div><div style="font-size:11px;color:var(--muted)">${r.contact_name} · ${r.contact_email}</div></div>
+      <div><div style="font-size:15px;font-weight:800;color:var(--navy)">${adminEsc(r.company_name)}</div><div style="font-size:11px;color:var(--muted)">${adminEsc(r.contact_name)} · ${adminEsc(r.contact_email)}</div></div>
       <span class="badge ${r.status==='new'?'bnew':r.status==='fulfilled'?'bok':'bwarn'}">${sts[r.status]||r.status}</span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
-      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المؤهل</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${r.qualification}</div></div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المؤهل</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${adminEsc(r.qualification)}</div></div>
       <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المحافظة</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${r.governorate||'أي محافظة'}</div></div>
       <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">العدد المطلوب</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${r.positions_needed} وظيفة</div></div>
     </div>
