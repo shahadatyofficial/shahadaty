@@ -373,7 +373,7 @@ function sp(name,el){
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('pageTitle').textContent=ptitles[name]||name;
   if(el)el.classList.add('active');
-  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:()=>{},recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,reports:loadReports};
+  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,reports:loadReports};
   if(loaders[name])loaders[name]();
 }
 
