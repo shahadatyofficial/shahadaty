@@ -69,3 +69,38 @@ The live `pg_default_acl` catalog shows schema-level defaults for both `supabase
 - New sequences are default-granted `rwU` to `anon` and `authenticated`.
 
 This explains why broad privileges recur and creates a continuing exposure for future objects, including newly created SECURITY DEFINER functions. Remediation must correct default privileges for each relevant object-creating role (`supabase_admin` and `postgres`), then audit current object ACLs separately. Do not assume a one-time REVOKE fixes future objects. The exact default-privilege changes must be tested against required Supabase migrations and app workflows in an isolated development database first.
+
+
+## Follow-up verification — live database reachable
+
+A fresh read-only catalog pass on 2026-11-06 confirmed PostgreSQL is reachable and the project is active. The earlier roadmap note that the database was unavailable is superseded by this check.
+
+### Effective browser-role privileges
+
+The current live privilege matrix confirms the high-severity issue:
+- `anon` can TRUNCATE `companies` and `recruitment_requests`.
+- `authenticated` can TRUNCATE `certificates`, `companies`, `graduate_profiles`, `institution_documents`, `institution_users`, `institutions`, `packages`, `recruitment_requests`, and `subscriptions`.
+- Both browser roles have TRIGGER and REFERENCES privileges on those same exposed tables where the grants are effective.
+- Existing row-level policies do not mitigate TRUNCATE.
+
+### Future-object defaults
+
+The live `pg_default_acl` confirms both `postgres` and `supabase_admin` default-grant broad table privileges (`arwdDxtm`) and function EXECUTE (`X`) to `anon` and `authenticated` in `public`. This is a persistent privilege-escalation surface for future objects unless defaults are corrected.
+
+### Development artifact created
+
+A separate branch `security/least-privilege-hardening` was created from `development/phase-0-audit`. It contains `sql/security_least_privilege_candidate.sql` with a rollback-only candidate for:
+- Removing TRUNCATE, TRIGGER and REFERENCES from existing public tables for browser roles.
+- Correcting corresponding future-table defaults for both object-creating roles.
+- Tightening future function EXECUTE defaults so new functions require explicit grants.
+
+The candidate ends in ROLLBACK intentionally. It has **not** been executed against production or a Supabase development branch. No live grants, defaults, RLS policies, users, passwords, or Auth settings were changed.
+
+### Remaining implementation gates
+
+1. Provision an isolated Supabase development branch/database; none currently exists.
+2. Validate the candidate's ALTER DEFAULT PRIVILEGES behavior and owner-role permissions there.
+3. Map every direct frontend table operation and RPC to the minimum required table/sequence/function grants.
+4. Test anon public lead submissions, institution registration and document uploads, graduate profile CRUD, certificate issuance/verification, and all admin workflows.
+5. Re-run effective privilege and default-ACL queries, then Supabase security/performance advisors.
+6. Only after passing regression and negative authorization tests, prepare a reviewed production migration with backup and rollback plan.
