@@ -384,6 +384,14 @@ function renderStep2(){
 function handleFile(type,inp){
   const file=inp.files[0];
   if(!file)return;
+  const allowed=file.type==='application/pdf'||/^image\/(png|jpeg|webp)$/.test(file.type);
+  if(!allowed||file.size>5*1024*1024){
+    inp.value='';
+    const label=document.getElementById('fn_'+type);
+    label.textContent=!allowed?'نوع الملف غير مدعوم. استخدم PDF أو JPG أو PNG أو WEBP':'حجم الملف أكبر من 5MB';
+    label.style.color='#dc2626';
+    return;
+  }
   formData['doc_'+type]=file;
   document.getElementById('fn_'+type).textContent='✅ '+file.name;
   document.getElementById('fu_'+type).classList.add('uploaded');
@@ -454,13 +462,13 @@ function submitStep3(){
   const phone=document.getElementById('phone').value.trim();
   const pass=document.getElementById('password').value;
   const pass2=document.getElementById('password_confirm').value;
-  if(!email||!email.includes('@')){document.getElementById('err_email').classList.add('show');document.getElementById('email').classList.add('err');valid=false;}
+  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){document.getElementById('err_email').classList.add('show');document.getElementById('email').classList.add('err');valid=false;}
   else{document.getElementById('err_email').classList.remove('show');document.getElementById('email').classList.remove('err');formData.email=email;}
-  if(!phone){document.getElementById('err_phone').classList.add('show');document.getElementById('phone').classList.add('err');valid=false;}
+  if(!/^[+0-9٠-٩۰-۹\\s()-]{8,20}$/.test(phone)){document.getElementById('err_phone').classList.add('show');document.getElementById('phone').classList.add('err');valid=false;}
   else{document.getElementById('err_phone').classList.remove('show');document.getElementById('phone').classList.remove('err');formData.phone=phone;}
   if(pass.length<8){document.getElementById('err_password').classList.add('show');document.getElementById('password').classList.add('err');valid=false;}
   else{document.getElementById('err_password').classList.remove('show');document.getElementById('password').classList.remove('err');formData.password=pass;}
-  if(pass!==pass2){document.getElementById('err_password_confirm').classList.add('show');document.getElementById('password_confirm').classList.add('err');valid=false;}
+  if(!pass2||pass!==pass2){document.getElementById('err_password_confirm').classList.add('show');document.getElementById('password_confirm').classList.add('err');valid=false;}
   else{document.getElementById('err_password_confirm').classList.remove('show');document.getElementById('password_confirm').classList.remove('err');}
   if(valid){currentStep=3;renderProgress();renderStep4();}
 }
@@ -476,7 +484,7 @@ function renderStep4(){
     <div class="card-body">
       <div class="pkg-grid">
         ${PACKAGES.map(p=>`
-        <div class="pkg-option ${p.popular?'popular':''} ${formData.package_id===p.id?'selected':''}" onclick="selectPkg('${p.id}','${p.name}')">
+        <div class="pkg-option ${p.popular?'popular':''} ${formData.package_id===p.id?'selected':''}" onclick="selectPkg('${p.id}','${p.name}',this)">
           <span class="pkg-emoji">${p.emoji}</span>
           <div class="pkg-name" style="color:${p.color}">${p.name}</div>
           <div class="pkg-price" style="color:${p.color}">${p.price===null?'تواصل':`<sup>ج</sup>${p.price.toLocaleString()} <span style="font-size:10px;font-weight:700">شهريًا</span>`}</div>
@@ -497,10 +505,10 @@ function renderStep4(){
   </div>`;
 }
 
-function selectPkg(id,name){
+function selectPkg(id,name,el){
   formData.package_id=id;formData.package_name=name;
   document.querySelectorAll('.pkg-option').forEach(p=>p.classList.remove('selected'));
-  event.currentTarget.classList.add('selected');
+  (el||document.querySelector(`.pkg-option[onclick*="${id}"]`))?.classList.add('selected');
 }
 
 function submitStep4(){
@@ -638,8 +646,8 @@ async function createInstitutionAndDocuments(selectedPackage){
 async function uploadRegistrationDocuments(institutionId){
   if(!institutionId)return 0;
   const docs=[
-    {key:'commercial',type:'commercial_registration',required:true},
-    {key:'tax',type:'tax_card',required:true},
+    {key:'commercial',type:'commercial_registration',required:false},
+    {key:'tax',type:'tax_card',required:false},
     {key:'other',type:'institution_proof',required:false}
   ];
   const {data:existingDocs,error:existingErr}=await sb.from('institution_documents').select('document_type').eq('institution_id',institutionId);
