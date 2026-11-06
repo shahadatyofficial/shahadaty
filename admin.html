@@ -506,8 +506,8 @@ async function reviewDoc(id,status){
 // ── CERTS ─────────────────────────────────────────────────────
 async function loadAdminCerts(){
   const q=document.getElementById('certsSearch').value.trim();
-  if(q.length<2){document.getElementById('certsTable').innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">أدخل كلمة بحث (حرفان على الأقل)</td></tr>';return;}
-  const{data,error}=await sb.rpc('admin_list_certificates',{p_search:q});
+  if(q.length===1){document.getElementById('certsTable').innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">أدخل حرفاً إضافياً للبحث، أو اترك الحقل فارغاً لعرض أحدث الشهادات</td></tr>';return;}
+  const{data,error}=await sb.rpc('admin_list_certificates',{p_search:q||null});
   if(error){toast(error.message,'err');return;}
   allAdminCerts=(data||[]).map(c=>({...c,institutions:{name:c.institution_name}}));
   document.getElementById('certsTable').innerHTML=!allAdminCerts.length?'<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج</td></tr>':allAdminCerts.map(c=>`<tr>
