@@ -347,6 +347,7 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 const sb=supabase.createClient(SU,SK);
 const ptitles={overview:'نظرة عامة',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام'};
 let allInstitutions=[], allAdminCerts=[];
+function adminEsc(v){return String(v??'—').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}
 
 // ── AUTH ──────────────────────────────────────────────────────
 async function doLogin(){
@@ -426,10 +427,10 @@ async function loadInstitutions(){
 }
 function renderInst(rows){
   document.getElementById('instTable').innerHTML=!rows.length?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج</td></tr>':rows.map(r=>`<tr>
-    <td>${r.name}</td><td dir="ltr" style="font-size:11px">${r.contact_email}</td>
-    <td>${r.package_name_ar||'—'}</td>
+    <td>${adminEsc(r.name)}</td><td dir="ltr" style="font-size:11px">${adminEsc(r.contact_email)}</td>
+    <td>${adminEsc(r.package_name_ar)}</td>
     <td><div style="min-width:100px">${r.quota_used||0}/${r.quota_total||0}<div class="q-bar" style="margin-top:3px"><div class="q-fill" style="width:${r.quota_total>0?Math.round((r.quota_used||0)/r.quota_total*100):0}%"></div></div></div></td>
-    <td><span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${r.status==='approved'?'معتمد':r.status==='pending'?'معلق':'موقوف'}</span></td>
+    <td><span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${r.status==='approved'?'معتمد':r.status==='pending'?'معلق':r.status==='rejected'?'مرفوض':'موقوف'}</span></td>
     <td><div style="display:flex;gap:6px">
       ${r.status==='pending'||r.status==='rejected'?`<button onclick="setInstSt('${r.id}','approved')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button>`:''}
       ${r.status==='approved'?`<button onclick="setInstSt('${r.id}','suspended')" class="btn-d" style="font-size:10px;padding:5px 10px">إيقاف</button>`:''}
@@ -473,7 +474,8 @@ async function loadReqs(){
   <div style="border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div><div style="font-size:15px;font-weight:800;color:var(--navy)">${r.name||'—'}</div><div style="font-size:11px;color:var(--muted)">${r.contact_email||'—'} · ${r.contact_phone||'—'}</div></div><span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${r.status==='approved'?'معتمد':r.status==='pending'?'معلق':r.status==='rejected'?'مرفوض':'موقوف'}</span></div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
-      ${[['النوع',r.institution_type||r.type],['المحافظة',r.governorate],['العنوان',r.address],['السجل التجاري',r.commercial_registration_number||r.commercial_registration],['البطاقة الضريبية',r.tax_card_number],['المالك',r.owner_name],['المدير',r.manager_name],['الباقة',r.package_name_ar||r.package_name]].map(x=>`<div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${x[0]}</div><div style="font-size:12px;font-weight:700;color:var(--navy);word-break:break-word">${x[1]||'—'}</div></div>`).join('')}
+      ${[['النوع',r.institution_type],['المحافظة',r.governorate],['العنوان',r.address],['رقم الطلب',r.request_number],['الباقة',r.package_name_ar],['الشهادات المستخدمة',r.quota_used],['إجمالي الحصة',r.quota_total]].map(x=>`<div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${adminEsc(x[0])}</div><div style="font-size:12px;font-weight:700;color:var(--navy);word-break:break-word">${adminEsc(x[1])}</div></div>`).join('')}
+
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn-s" onclick="loadRequestDocs('${r.id}')">📎 مستندات المؤسسة</button>
@@ -633,7 +635,7 @@ async function exportReport(table){
   toast('تم تصدير التقرير','ok');
 }
 
-async function openDoc(path){const{data,error}=await sb.storage.from('institution-documents').createSignedUrl(path,300);if(error){toast(error.message,'err');return;}window.open(data.signedUrl,'_blank','noopener');}
+async function openDoc(path){const tab=window.open('about:blank','_blank');if(!tab){toast('اسمح بفتح النوافذ المنبثقة لعرض المستند','err');return;}const{data,error}=await sb.storage.from('institution-documents').createSignedUrl(path,300);if(error){tab.close();toast(error.message,'err');return;}tab.opener=null;tab.location.href=data.signedUrl;}
 
 // ── HELPERS ───────────────────────────────────────────────────
 function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=type==='ok'?'#0369a1':'#dc2626';t.style.display='block';setTimeout(()=>t.style.display='none',3500);}
