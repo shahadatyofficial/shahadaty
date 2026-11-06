@@ -60,3 +60,12 @@ This statement alone does not correct excessive INSERT/UPDATE/DELETE grants, nor
 
 ## Production change status
 No production SQL migrations, grants, policies, Auth settings, users, or passwords were changed. The intended initial admin was already active. This is not a completed penetration test or production security sign-off.
+
+
+## Additional confirmed finding: unsafe default privileges
+The live `pg_default_acl` catalog shows schema-level defaults for both `supabase_admin` and `postgres` in `public`:
+- New tables are default-granted `arwdDxtm` to `anon` and `authenticated` (broad DML plus TRUNCATE, REFERENCES, TRIGGER).
+- New functions are default-granted EXECUTE (`X`) to `anon` and `authenticated`.
+- New sequences are default-granted `rwU` to `anon` and `authenticated`.
+
+This explains why broad privileges recur and creates a continuing exposure for future objects, including newly created SECURITY DEFINER functions. Remediation must correct default privileges for each relevant object-creating role (`supabase_admin` and `postgres`), then audit current object ACLs separately. Do not assume a one-time REVOKE fixes future objects. The exact default-privilege changes must be tested against required Supabase migrations and app workflows in an isolated development database first.
