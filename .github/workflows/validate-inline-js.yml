@@ -3,7 +3,7 @@ on:
   push:
     branches: [development/platform-core]
   pull_request:
-    branches: [main]
+    branches: [development/phase-0-audit]
 jobs:
   inline-js:
     runs-on: ubuntu-latest
