@@ -676,6 +676,8 @@ async function loadDashboard(){
     sb.from('certificates').select('id',{count:'exact',head:true}).eq('institution_id',inst.id).eq('status','revoked'),
     sb.from('certificates').select('created_at').eq('institution_id',inst.id).order('created_at',{ascending:true}).limit(5000)
   ]);
+  const queryError=totalR.error||activeR.error||revokedR.error||certR.error;
+  if(queryError){toast('تعذر تحميل إحصائيات المؤسسة: '+queryError.message,'err');return;}
   const total=totalR.count||0,active=activeR.count||0,revoked=revokedR.count||0;
   document.getElementById('dashTotal').textContent=total.toLocaleString('ar');
   document.getElementById('dashStudents').textContent=total.toLocaleString('ar');
