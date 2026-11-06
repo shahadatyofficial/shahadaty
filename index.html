@@ -472,6 +472,103 @@ body{color:#102a43;background:#fff;}
   .hero-showcase,.wc,.sector,.pkg{transition:none;transform:none;}
 }
 
+
+/* Section polish and interaction consistency */
+html{scroll-behavior:smooth;scroll-padding-top:92px;}
+button,a{-webkit-tap-highlight-color:transparent;}
+button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px solid rgba(14,165,233,.55);outline-offset:3px;}
+.sec{position:relative;}
+.sec:not(.bg)::before{content:"";position:absolute;top:0;right:clamp(18px,5vw,76px);left:clamp(18px,5vw,76px);height:1px;background:linear-gradient(90deg,transparent,#dce8f2 18%,#dce8f2 82%,transparent);}
+.sec-tag{box-shadow:0 5px 16px rgba(7,27,52,.035);letter-spacing:.1px;}
+.sec-title{letter-spacing:-.65px;}
+.tabs-wrap{max-width:760px;margin:0 auto 34px;box-shadow:0 8px 24px rgba(7,27,52,.045);}
+.tab{min-height:48px;}
+.why-cards{max-width:1160px;margin-inline:auto;gap:20px;}
+.wc{padding:30px 26px;border-radius:20px;min-height:168px;}
+.wc:hover{transform:translateY(-6px);border-color:#b8d8ec;box-shadow:0 20px 42px rgba(7,75,115,.10);}
+.card-emoji{width:48px;height:48px;display:grid;place-items:center;border-radius:15px;background:linear-gradient(145deg,#eff8fd,#fff);border:1px solid #e0edf5;font-size:25px;margin-bottom:17px;}
+.card-title{font-size:15px;letter-spacing:-.15px;}
+.card-desc{font-size:12.5px;}
+.sectors-grid{gap:20px;}
+.sector{border-color:#e2ebf2;border-radius:20px;}
+.sector-img-wrap{height:158px;background:#eaf2f8;}
+.sector-img{filter:saturate(.88);transition:transform .55s cubic-bezier(.2,.75,.25,1),filter .35s;}
+.sector:hover .sector-img{filter:saturate(1.08);}
+.sector-body{padding:20px 19px 22px;}
+.sector-name{font-size:14px;}
+.sector-desc{font-size:12px;min-height:40px;}
+.strip{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.12);}
+.strip::after{content:"";position:absolute;width:250px;height:250px;border:1px solid rgba(255,255,255,.08);border-radius:50%;left:-100px;top:-130px;box-shadow:0 0 0 25px rgba(255,255,255,.025),0 0 0 55px rgba(255,255,255,.02);pointer-events:none;}
+.pkg-grid{align-items:stretch;gap:16px;}
+.pkg{display:flex;flex-direction:column;align-items:stretch;border-color:#e1eaf2;border-radius:20px;padding:24px 16px;box-shadow:0 8px 24px rgba(7,27,52,.035);}
+.pkg:hover{border-color:#b8d8ec;box-shadow:0 20px 42px rgba(7,75,115,.10);}
+.pkg.feat{box-shadow:0 15px 38px rgba(7,89,133,.10);}
+.pkg.gold-pkg{box-shadow:0 12px 34px rgba(176,141,72,.10);}
+.pkg-icon{width:50px;height:50px;border-radius:16px;}
+.pkg-name{font-size:15px;}
+.pkg-tag{min-height:20px;}
+.pkg-quota{padding:12px 9px;border:1px solid rgba(7,89,133,.05);}
+.pkg-btn{margin-top:auto;min-height:42px;}
+.addon{border-radius:16px;transition:transform .2s,border-color .2s,box-shadow .2s;}
+.addon:hover{transform:translateY(-3px);border-color:#b8d8ec;box-shadow:0 12px 25px rgba(7,27,52,.06);}
+.cta-strip{border:1px solid rgba(255,255,255,.12);box-shadow:0 16px 38px rgba(7,27,52,.10);}
+.faq-tabs{gap:14px;}
+.faq-tab{box-shadow:0 6px 18px rgba(7,27,52,.035);}
+.faq-layout{gap:28px;}
+.faq-item{box-shadow:0 5px 16px rgba(7,27,52,.025);}
+.faq-q{min-height:62px;}
+.contact-box{border-color:#e1eaf2;box-shadow:0 16px 38px rgba(7,27,52,.07);}
+.c-opt{cursor:default;}
+.c-btn{min-height:46px;box-shadow:0 8px 20px rgba(7,89,133,.18);transition:transform .2s,box-shadow .2s;}
+.c-btn:hover,.cb1:hover,.cb2:hover,.cs1:hover,.cs2:hover{transform:translateY(-2px);}
+.cta-sec{isolation:isolate;}
+.cta-sec::before,.cta-sec::after{content:"";position:absolute;border:1px solid rgba(255,255,255,.09);border-radius:50%;z-index:-1;pointer-events:none;}
+.cta-sec::before{width:420px;height:420px;top:-260px;right:-100px;box-shadow:0 0 0 35px rgba(255,255,255,.025),0 0 0 75px rgba(255,255,255,.02);}
+.cta-sec::after{width:330px;height:330px;bottom:-240px;left:5%;}
+.cb1,.cb2,.cs1,.cs2{transition:transform .2s,box-shadow .2s;}
+.cb1:hover,.cs1:hover{box-shadow:0 12px 25px rgba(198,161,91,.22);}
+.footer{border-top:1px solid rgba(255,255,255,.07);}
+.foot-desc{color:rgba(255,255,255,.55);max-width:300px;}
+.soc{text-decoration:none;color:inherit;transition:background .2s,border-color .2s,transform .2s;}
+.soc:hover{background:rgba(14,165,233,.16);border-color:rgba(14,165,233,.4);transform:translateY(-2px);}
+.foot-link{width:max-content;max-width:100%;}
+.foot-copy{color:rgba(255,255,255,.42);}
+@media(max-width:820px){
+  .why-cards{gap:14px;}
+  .wc{padding:23px 20px;min-height:155px;}
+  .sector-img-wrap{height:145px;}
+  .faq-layout{grid-template-columns:1fr;}
+  .contact-box{position:static;}
+  .faq-tabs{gap:8px;}
+  .faq-tab{padding:13px 8px;}
+}
+@media(max-width:520px){
+  html{scroll-padding-top:118px;}
+  .sec{padding-top:54px;padding-bottom:54px;}
+  .sec-title{line-height:1.25;}
+  .tabs-wrap{display:grid;grid-template-columns:1fr;gap:5px;}
+  .tab{justify-content:flex-start;padding:11px 14px;}
+  .wc{min-height:0;padding:22px;border-radius:17px;}
+  .sector-img-wrap{height:165px;}
+  .sector-body{padding:17px;}
+  .pkg{padding:22px 18px;}
+  .faq-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));}
+  .faq-tab-icon{font-size:22px;}
+  .faq-tab-name{font-size:12px;}
+  .faq-tab-desc{font-size:9px;}
+  .faq-q{padding:15px;font-size:12px;}
+  .faq-a{padding:13px 15px;font-size:12px;}
+  .contact-box{padding:22px;}
+  .cta-sec{padding:60px 18px;}
+  .cta-btns{gap:9px;}
+  .cb1,.cb2{width:100%;padding:13px 15px;}
+  .foot-top{gap:22px 16px;}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto;}
+  .wc:hover,.sector:hover,.pkg:hover,.addon:hover,.c-btn:hover,.cb1:hover,.cb2:hover,.cs1:hover,.cs2:hover,.soc:hover{transform:none;}
+}
+
 </style>
 </head>
 <body>
@@ -715,7 +812,7 @@ body{color:#102a43;background:#fff;}
       <div class="pf"><svg viewBox="0 0 24 24" style="stroke:#fde68a"><path d="M5 13l4 4L19 7"/></svg>كل مميزات الذهبية</div>
       <div class="pf"><svg viewBox="0 0 24 24" style="stroke:#fde68a"><path d="M5 13l4 4L19 7"/></svg>SLA مضمون</div>
       <div class="pf"><svg viewBox="0 0 24 24" style="stroke:#fde68a"><path d="M5 13l4 4L19 7"/></svg>مدير حساب خاص</div>
-      <button class="pkg-btn ent-btn">تواصل معنا</button>
+      <button class="pkg-btn ent-btn" onclick="window.open('https://www.facebook.com/shahadatyofficial','_blank','noopener')">تواصل معنا</button>
     </div>
   </div>
   <div style="text-align:center;margin-bottom:20px">
@@ -730,7 +827,7 @@ body{color:#102a43;background:#fff;}
   </div>
   <div class="cta-strip">
     <div><h3>مش متأكد من الباقة المناسبة؟</h3><p>تحدث مع فريقنا وهيساعدك تختار الباقة الأنسب لمؤسستك — مجاناً</p></div>
-    <div class="cta-strip-btns"><button class="cs1" onclick="location.href='register.html'">ابدأ تجربة مجانية</button><button class="cs2">تحدث مع فريقنا</button></div>
+    <div class="cta-strip-btns"><button class="cs1" onclick="location.href='register.html'">ابدأ تجربة مجانية</button><button class="cs2" onclick="window.open('https://www.facebook.com/shahadatyofficial','_blank','noopener')">تحدث مع فريقنا</button></div>
   </div>
 </section>
 
@@ -773,7 +870,7 @@ body{color:#102a43;background:#fff;}
         <div class="c-opt"><div class="c-opt-icon" style="background:#f0fdf4">📱</div><div><div class="c-opt-name">واتساب</div><div class="c-opt-desc">تواصل من موبايلك</div></div></div>
         <div class="c-opt"><div class="c-opt-icon" style="background:#fef9ee">📧</div><div><div class="c-opt-name">بريد إلكتروني</div><div class="c-opt-desc">رد خلال ساعة</div></div></div>
       </div>
-      <button class="c-btn">💬 تحدث مع فريقنا الآن</button>
+      <button class="c-btn" onclick="window.open('https://www.facebook.com/shahadatyofficial','_blank','noopener')">💬 تحدث مع فريقنا الآن</button>
     </div>
   </div>
 </section>
@@ -785,7 +882,7 @@ body{color:#102a43;background:#fff;}
   <p class="cta-sub">انضم لآلاف المؤسسات التي تثق في شهادتي لتوثيق شهادات خريجيها وحماية مستقبلهم</p>
   <div class="cta-btns">
     <button class="cb1" onclick="location.href='register.html'">ابدأ تجربتك المجانية الآن</button>
-    <button class="cb2">تحدث مع فريقنا</button>
+    <button class="cb2" onclick="window.open('https://www.facebook.com/shahadatyofficial','_blank','noopener')">تحدث مع فريقنا</button>
   </div>
   <div class="cta-note">✓ 14 يوم مجاناً &nbsp;·&nbsp; ✓ بدون بطاقة ائتمانية &nbsp;·&nbsp; ✓ إلغاء في أي وقت</div>
 </div>
@@ -798,8 +895,8 @@ body{color:#102a43;background:#fff;}
         <img src="logo.png" class="foot-logo" alt="شهادتي" onerror="this.style.display='none'">
         <div><div class="foot-brand-name">شهادتي</div><div class="foot-brand-sub">CERTIFICATE VERIFICATION</div></div>
       </div>
-      <p class="foot-desc">منصة التحقق الرقمي الموحد من الشهادات الأكاديمية والمهنية — موثوقة من آلاف المؤسسات في مصر والوطن العربي.</p>
-      <div class="foot-social"><div class="soc">📘</div><div class="soc">📸</div><div class="soc">▶️</div><div class="soc">💼</div></div>
+      <p class="foot-desc">نصنع المعرفة... نبني الحاضر... ونوثق المستقبل. منصة رقمية للتحقق من الشهادات الأكاديمية والمهنية وحماية قيمتها.</p>
+      <div class="foot-social"><a class="soc" href="https://www.facebook.com/shahadatyofficial" target="_blank" rel="noopener noreferrer" aria-label="صفحة شهادتي على فيسبوك">📘</a><span class="soc" aria-label="Instagram قريباً">📸</span><span class="soc" aria-label="YouTube قريباً">▶️</span><span class="soc" aria-label="LinkedIn قريباً">💼</span></div>
     </div>
     <div class="foot-col"><h5>المنصة</h5><a class="foot-link" href="#why">المميزات</a><a class="foot-link" href="#packages">الباقات</a><a class="foot-link" href="#sectors">القطاعات</a><a class="foot-link" href="#">المدونة <span class="fnew">جديد</span></a></div>
     <div class="foot-col"><h5>الخدمات</h5><a class="foot-link" href="institution.html">بوابة المؤسسات</a><a class="foot-link" href="verify.html">تحقق من شهادة</a><a class="foot-link" href="talent.html">للشركات</a><a class="foot-link" href="graduate.html">ملفي الرقمي</a><a class="foot-link" href="#">API <span class="fsoon">قريباً</span></a></div>
@@ -808,7 +905,7 @@ body{color:#102a43;background:#fff;}
   </div>
   <div class="foot-div"></div>
   <div class="foot-bottom">
-    <div class="foot-copy">© 2025 شهادتي — جميع الحقوق محفوظة</div>
+    <div class="foot-copy">© 2026 شهادتي العلمية — جميع الحقوق محفوظة</div>
     <div style="display:flex;gap:6px;font-size:11px;color:rgba(255,255,255,0.3)"><span style="cursor:pointer">🇪🇬 العربية</span><span style="color:rgba(255,255,255,0.15)">|</span><span style="cursor:pointer">🇬🇧 English</span></div>
     <div class="foot-links"><a class="fl" href="#">سياسة الخصوصية</a><a class="fl" href="#">شروط الاستخدام</a></div>
   </div>
