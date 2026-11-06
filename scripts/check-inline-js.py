@@ -36,6 +36,7 @@ class InlineScripts(HTMLParser):
             self.external = False
 
 failed = False
+total_scripts = 0
 for page in PAGES:
     path = Path(page)
     if not path.exists():
@@ -44,6 +45,10 @@ for page in PAGES:
         continue
     parser = InlineScripts()
     parser.feed(path.read_text(encoding="utf-8"))
+    if not parser.scripts:
+        print(f"FAIL no inline JavaScript found: {page}")
+        failed = True
+    total_scripts += len(parser.scripts)
     for number, source in enumerate(parser.scripts, 1):
         with tempfile.NamedTemporaryFile("w", suffix=".js", encoding="utf-8") as temp:
             temp.write(source)
@@ -57,4 +62,4 @@ for page in PAGES:
             print(f"PASS {page} inline script #{number}")
 if failed:
     sys.exit(1)
-print("All inline JavaScript blocks passed syntax validation.")
+print(f"All {total_scripts} inline JavaScript blocks across {len(PAGES)} pages passed syntax validation.")
