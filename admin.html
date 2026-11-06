@@ -297,6 +297,8 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       <div class="card">
         <div class="card-head"><span class="card-title">إدارة الباقات</span></div>
         <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الباقة</th><th>السعر الشهري</th><th>السعر السنوي</th><th>الكوتا</th><th>المشتركون</th></tr></thead><tbody id="pkgTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+        <div class="card-head" style="margin-top:22px"><span class="card-title">الاشتراكات والمدفوعات غير المؤكدة</span><button class="btn-s" onclick="loadPkgs()">تحديث</button></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>المؤسسة</th><th>الباقة</th><th>القيمة</th><th>دورة الفوترة</th><th>الحالة</th><th>مرجع الدفع</th><th>إجراء</th></tr></thead><tbody id="subTable"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
       </div>
     </div>
 
@@ -607,15 +609,38 @@ async function addCreds(id,current){const a=prompt('كم عملية بحث تض�
 
 // ── PACKAGES ──────────────────────────────────────────────────
 async function loadPkgs(){
-  const{data}=await sb.from('packages').select('*,institutions(id)').order('sort_order');
-  document.getElementById('pkgTable').innerHTML=!(data||[]).length?'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">لا توجد بيانات</td></tr>':data.map(p=>`<tr>
-    <td><span style="font-weight:800">${p.name_ar||p.name||'—'}</span></td>
-    <td>${p.price_monthly||0} ج</td><td>${p.price_yearly||0} ج</td>
-    <td>${p.quota_limit||0} شهادة</td>
+  const[{data:packages,error:pkgErr},{data:subs,error:subErr}]=await Promise.all([
+    sb.from('packages').select('*,institutions(id)').order('sort_order'),
+    sb.rpc('admin_list_subscriptions',{p_status:null})
+  ]);
+  if(pkgErr){toast(pkgErr.message,'err');return;}
+  document.getElementById('pkgTable').innerHTML=!(packages||[]).length?'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">لا توجد بيانات</td></tr>':packages.map(p=>`<tr>
+    <td><span style="font-weight:800">${adminEsc(p.name_ar||p.name)}</span></td>
+    <td>${Number(p.price_monthly||0).toLocaleString('ar-EG')} ج</td><td>${Number(p.price_yearly||0).toLocaleString('ar-EG')} ج</td>
+    <td>${Number(p.quota_limit||0).toLocaleString('ar-EG')} شهادة</td>
     <td><span style="font-size:13px;font-weight:800;color:var(--blue)">${p.institutions?.length||0}</span></td>
   </tr>`).join('');
+  const unpaid=(subs||[]).filter(s=>s.payment_status!=='paid'&&!['cancelled','expired'].includes(s.status));
+  const body=document.getElementById('subTable');
+  if(subErr){body.innerHTML='<tr><td colspan="7">تعذر تحميل الاشتراكات: '+adminEsc(subErr.message)+'</td></tr>';return;}
+  body.innerHTML=!unpaid.length?'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">لا توجد مدفوعات معلقة</td></tr>':unpaid.map(s=>`<tr>
+    <td>${adminEsc(s.institution_name)}</td><td>${adminEsc(s.package_name)}</td>
+    <td>${Number(s.amount||0).toLocaleString('ar-EG')} ${adminEsc(s.currency||'EGP')}</td>
+    <td>${s.billing_cycle==='yearly'?'سنوي':'شهري'}</td>
+    <td>${adminEsc(s.payment_status)} / ${adminEsc(s.status)}</td>
+    <td>${adminEsc(s.payment_reference)}</td>
+    <td><button class="btn-p" onclick="confirmSubscriptionPayment('${s.id}')">تأكيد السداد</button></td>
+  </tr>`).join('');
 }
-
+async function confirmSubscriptionPayment(id){
+  const reference=prompt('أدخل رقم إيصال التحويل أو مرجع الدفع بعد التحقق منه:','');
+  if(reference===null)return;
+  if(!reference.trim()){toast('مرجع الدفع مطلوب بعد مراجعة إثبات السداد','err');return;}
+  if(!confirm('هل تحققت فعلياً من استلام المبلغ وتريد تفعيل الاشتراك؟'))return;
+  const{error}=await sb.rpc('admin_confirm_subscription_payment',{p_subscription_id:id,p_payment_reference:reference.trim()});
+  if(error){toast(error.message,'err');return;}
+  toast('تم تسجيل السداد وتفعيل الاشتراك','ok');loadPkgs();
+}
 // ── REPORTS ───────────────────────────────────────────────────
 async function loadReports(){
   const{data,error}=await sb.rpc('admin_platform_stats');
