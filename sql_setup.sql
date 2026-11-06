@@ -298,6 +298,12 @@ begin
 
   if not found then raise exception 'NOT_ALLOWED'; end if;
   if v_inst_row.status<>'approved' then raise exception 'INSTITUTION_NOT_APPROVED'; end if;
+  if not exists(
+    select 1 from public.subscriptions s
+    where s.institution_id=v_inst and s.status='active'
+      and (s.amount=0 or s.payment_status='paid')
+      and (s.ends_at is null or s.ends_at>now())
+  ) then raise exception 'SUBSCRIPTION_INACTIVE_OR_UNPAID'; end if;
   if v_inst_row.quota_used>=v_inst_row.quota_total then raise exception 'QUOTA_EXCEEDED'; end if;
   if coalesce(trim(p_payload->>'student_name'),'')='' or coalesce(trim(p_payload->>'course'),'')='' then
     raise exception 'REQUIRED_FIELDS';
@@ -438,13 +444,13 @@ begin
       institution_id,package_id,billing_cycle,status,starts_at,ends_at,
       quota_limit,quota_used,amount,currency,payment_status
     ) values(
-      v_i.id,v_i.package_id,p_billing_cycle,'active',v_starts,v_ends,
+      v_i.id,v_i.package_id,p_billing_cycle,case when v_amount=0 or p_payment_status='paid' then 'active' else 'pending' end,v_starts,v_ends,
       v_quota,0,v_amount,'EGP',p_payment_status
     ) returning id into v_sub_id;
   else
     update public.subscriptions set package_id=v_i.package_id,billing_cycle=p_billing_cycle,
       starts_at=v_starts,ends_at=v_ends,quota_limit=v_quota,amount=v_amount,
-      payment_status=p_payment_status,updated_at=now()
+      payment_status=p_payment_status,status=case when v_amount=0 or p_payment_status='paid' then 'active' else 'pending' end,updated_at=now()
     where id=v_sub_id;
   end if;
 
