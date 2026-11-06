@@ -673,27 +673,37 @@ async function doLogin(){
 async function loadInst(){
   const{data:{user}}=await sb.auth.getUser();
   if(!user)return;
-  const{data}=await sb.from('institutions').select('*,packages(name_ar,quota_limit)').eq('auth_user_id',user.id).single();
-  if(!data){document.getElementById('loginErr').textContent='لا يوجد حساب مرتبط. تواصل مع الإدارة.';document.getElementById('loginErr').style.display='block';await sb.auth.signOut();return;}
-  inst=data;
+  let institutionId=null;
+  const{data:membership,error:membershipError}=await sb.from('institution_users').select('institution_id,role,status').eq('auth_user_id',user.id).eq('status','active').order('created_at',{ascending:true}).limit(1).maybeSingle();
+  if(membershipError){toast('تعذر التحقق من عضوية المؤسسة: '+membershipError.message,'err');return;}
+  if(membership)institutionId=membership.institution_id;
+  let query=sb.from('institutions').select('*,packages(name_ar,quota_limit)');
+  if(institutionId)query=query.eq('id',institutionId);else query=query.eq('auth_user_id',user.id);
+  const{data,error}=await query.maybeSingle();
+  if(error||!data){document.getElementById('loginErr').textContent='لا يوجد حساب مؤسسة نشط مرتبط بهذا المستخدم. تواصل مع مسؤول المؤسسة.';document.getElementById('loginErr').style.display='block';await sb.auth.signOut();return;}
+  const{data:subscription, error:subscriptionError}=await sb.from('subscriptions').select('id,status,payment_status,amount,currency,billing_cycle,starts_at,ends_at,quota_limit,quota_used').eq('institution_id',data.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+  if(subscriptionError){toast('تعذر تحميل حالة الاشتراك: '+subscriptionError.message,'err');}
+  inst={...data,membershipRole:membership?.role||'owner',currentSubscription:subscription||null};
+  if(subscription?.quota_limit!=null&&Number(subscription.quota_limit)>0)inst.quota_total=Number(subscription.quota_limit);
   document.getElementById('loginScreen').style.display='none';
-  // Fill sidebar
   const n=data.name;
   document.getElementById('sbAvatar').textContent=n.charAt(0);
   document.getElementById('sbInstName').textContent=n;
-  document.getElementById('sbInstStatus').textContent=data.status==='approved'?'✓ معتمد':data.status==='suspended'?'⛔ موقوف':data.status==='rejected'?'✕ مرفوض':'قيد المراجعة';
+  const statusText=data.status==='approved'?'✓ معتمد':data.status==='suspended'?'⛔ موقوف':data.status==='rejected'?'✕ مرفوض':'قيد المراجعة';
+  const subscriptionText=subscription?.status==='active'&& (Number(subscription.amount||0)===0||subscription.payment_status==='paid')?' · اشتراك نشط':subscription?.status==='pending'?' · بانتظار السداد':' · الاشتراك غير نشط';
+  document.getElementById('sbInstStatus').textContent=statusText+subscriptionText;
   document.getElementById('sbPkgName').textContent=data.packages?.name_ar||'—';
-  const pct=data.quota_total>0?Math.round(data.quota_used/data.quota_total*100):0;
+  const quotaTotal=Number(inst.quota_total||0),quotaUsed=Number(data.quota_used||0);
+  const pct=quotaTotal>0?Math.min(100,Math.round(quotaUsed/quotaTotal*100)):0;
   const fill=document.getElementById('sbPkgFill');
-  fill.style.width=pct+'%';
+  fill.style.width=pct+'%';fill.classList.remove('danger','warn');
   if(pct>=90)fill.classList.add('danger');else if(pct>=75)fill.classList.add('warn');
-  document.getElementById('sbPkgNum').textContent=data.quota_used+' / '+data.quota_total+' شهادة';
+  document.getElementById('sbPkgNum').textContent=quotaUsed.toLocaleString('ar-EG')+' / '+quotaTotal.toLocaleString('ar-EG')+' شهادة';
   document.getElementById('topInstName').textContent=n;
   document.getElementById('set_name').value=n;
   document.getElementById('set_email').value=data.contact_email||'';
   document.getElementById('set_phone').value=data.contact_phone||'';
-  loadDashboard();
-  loadCourses();
+  loadDashboard();loadCourses();
 }
 async function doLogout(){await sb.auth.signOut();location.reload();}
 
