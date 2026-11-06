@@ -268,6 +268,10 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="sb-item" onclick="showPage('verify',this)">
       <span class="material-symbols-outlined">verified</span> التحقق المباشر
     </div>
+    <div class="sb-section">إدارة التدريب</div>
+    <div class="sb-item" onclick="showPage('courses',this)">
+      <span class="material-symbols-outlined">school</span> الدورات والبرامج
+    </div>
     <div class="sb-section">المؤسسة</div>
     <div class="sb-item" onclick="showPage('quota',this)">
       <span class="material-symbols-outlined">bar_chart</span> إدارة الكوتا
@@ -540,6 +544,31 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       </div>
     </div>
 
+    <!-- COURSES PAGE -->
+    <div class="page" id="page-courses">
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-head"><span class="card-title">إضافة دورة أو برنامج تدريبي</span></div>
+        <div class="card-body">
+          <form id="courseForm" onsubmit="saveCourse(event)">
+            <input type="hidden" id="courseId">
+            <div class="form-row">
+              <div><label class="form-lbl" for="courseName">اسم الدورة *</label><input id="courseName" class="form-inp2" maxlength="160" required placeholder="مثال: الإسعافات الأولية المتقدمة"></div>
+              <div><label class="form-lbl" for="courseSpecialization">التخصص</label><input id="courseSpecialization" class="form-inp2" maxlength="120" placeholder="مثال: الرعاية الصحية"></div>
+            </div>
+            <div class="form-row">
+              <div><label class="form-lbl" for="courseDuration">مدة الدورة</label><input id="courseDuration" class="form-inp2" maxlength="80" placeholder="مثال: 30 ساعة تدريبية"></div>
+              <div style="display:flex;align-items:end;gap:10px"><button id="courseSaveBtn" class="btn-submit" type="submit">حفظ الدورة</button><button class="btn-cancel" type="button" onclick="resetCourseForm()">إلغاء</button></div>
+            </div>
+            <div id="courseFormMsg" class="issue-result" role="alert"></div>
+          </form>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">الدورات والبرامج المسجلة</span><button type="button" class="btn-cancel" onclick="loadCourses()">تحديث</button></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>اسم الدورة</th><th>التخصص</th><th>المدة</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="coursesTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+      </div>
+    </div>
+
     <!-- VERIFY PAGE -->
     <div class="page" id="page-verify">
       <div style="max-width:500px">
@@ -595,7 +624,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="modal-body">
       <div class="form-row">
         <div><label class="form-lbl">اسم الطالب *</label><input type="text" id="mi_student" class="form-inp2" placeholder="الاسم الكامل"></div>
-        <div><label class="form-lbl">الدورة / البرنامج *</label><input type="text" id="mi_course" class="form-inp2" placeholder="اسم الدورة"></div>
+        <div><label class="form-lbl">الدورة / البرنامج *</label><input type="text" id="mi_course" class="form-inp2" list="institutionCourseOptions" placeholder="اسم الدورة"><datalist id="institutionCourseOptions"></datalist></div>
       </div>
       <div class="form-row">
         <div><label class="form-lbl">تاريخ الإصدار *</label><input type="date" id="mi_date" class="form-inp2" dir="ltr"></div>
@@ -664,8 +693,65 @@ async function loadInst(){
   document.getElementById('set_email').value=data.contact_email||'';
   document.getElementById('set_phone').value=data.contact_phone||'';
   loadDashboard();
+  loadCourses();
 }
 async function doLogout(){await sb.auth.signOut();location.reload();}
+
+// ── Course catalog ─────────────────────────────────────────────
+let institutionCourses=[];
+function courseEsc(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+async function loadCourses(){
+  if(!inst?.id)return;
+  const body=document.getElementById('coursesTable');
+  const{data,error}=await sb.from('institution_courses').select('id,name,specialization,duration,is_active,created_at').eq('institution_id',inst.id).order('name');
+  if(error){body.innerHTML='<tr><td colspan="5">تعذر تحميل الدورات: '+courseEsc(error.message)+'</td></tr>';return;}
+  institutionCourses=data||[];
+  body.innerHTML=institutionCourses.length?institutionCourses.map(c=>`<tr>
+    <td>${courseEsc(c.name)}</td><td>${courseEsc(c.specialization||'—')}</td><td>${courseEsc(c.duration||'—')}</td>
+    <td><span class="badge ${c.is_active?'badge-ok':'badge-warn'}">${c.is_active?'نشطة':'موقوفة'}</span></td>
+    <td><button type="button" class="btn-cancel" onclick="editCourse('${c.id}')">تعديل</button>
+    <button type="button" class="btn-cancel" onclick="toggleCourse('${c.id}',${!c.is_active})">${c.is_active?'إيقاف':'تفعيل'}</button>
+    <button type="button" class="btn-cancel" onclick="deleteCourse('${c.id}')">حذف</button></td>
+  </tr>`).join(''):'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">لم تسجل دورات بعد. أضف أول دورة من النموذج بالأعلى.</td></tr>';
+  document.getElementById('institutionCourseOptions').innerHTML=institutionCourses.filter(c=>c.is_active).map(c=>'<option value="'+courseEsc(c.name)+'"></option>').join('');
+}
+function resetCourseForm(){
+  document.getElementById('courseForm').reset();document.getElementById('courseId').value='';
+  document.getElementById('courseSaveBtn').textContent='حفظ الدورة';
+  document.getElementById('courseFormMsg').style.display='none';
+}
+function editCourse(id){
+  const c=institutionCourses.find(x=>x.id===id);if(!c)return;
+  document.getElementById('courseId').value=c.id;document.getElementById('courseName').value=c.name;
+  document.getElementById('courseSpecialization').value=c.specialization||'';
+  document.getElementById('courseDuration').value=c.duration||'';
+  document.getElementById('courseSaveBtn').textContent='حفظ التعديلات';
+  document.getElementById('courseName').focus();
+}
+async function saveCourse(event){
+  event.preventDefault();if(!inst?.id)return;
+  const btn=document.getElementById('courseSaveBtn'),msg=document.getElementById('courseFormMsg');
+  const id=document.getElementById('courseId').value;
+  const payload={institution_id:inst.id,name:document.getElementById('courseName').value.trim(),
+    specialization:document.getElementById('courseSpecialization').value.trim()||null,
+    duration:document.getElementById('courseDuration').value.trim()||null,is_active:true};
+  if(!payload.name){msg.textContent='اسم الدورة مطلوب.';msg.style.display='block';return;}
+  btn.disabled=true;btn.textContent='جارٍ الحفظ...';
+  const result=id?await sb.from('institution_courses').update({name:payload.name,specialization:payload.specialization,duration:payload.duration}).eq('id',id).eq('institution_id',inst.id)
+    :await sb.from('institution_courses').insert(payload);
+  btn.disabled=false;btn.textContent=id?'حفظ التعديلات':'حفظ الدورة';
+  if(result.error){msg.textContent=result.error.message;msg.style.display='block';return;}
+  resetCourseForm();toast(id?'تم تحديث الدورة':'تمت إضافة الدورة','ok');await loadCourses();
+}
+async function toggleCourse(id,isActive){
+  const{error}=await sb.from('institution_courses').update({is_active:isActive}).eq('id',id).eq('institution_id',inst.id);
+  if(error){toast(error.message,'err');return;}toast(isActive?'تم تفعيل الدورة':'تم إيقاف الدورة','ok');loadCourses();
+}
+async function deleteCourse(id){
+  if(!confirm('هل تريد حذف هذه الدورة من قائمة المؤسسة؟ لن يؤثر ذلك على الشهادات التي صدرت سابقاً.'))return;
+  const{error}=await sb.from('institution_courses').delete().eq('id',id).eq('institution_id',inst.id);
+  if(error){toast(error.message,'err');return;}toast('تم حذف الدورة','ok');loadCourses();
+}
 
 // ── Dashboard ──────────────────────────────────────────────────
 async function loadDashboard(){
@@ -844,6 +930,7 @@ function showPage(name,el){
   document.getElementById('page-'+name).classList.add('active');
   if(el)el.classList.add('active');
   if(name==='certs')loadCerts();
+  if(name==='courses')loadCourses();
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
