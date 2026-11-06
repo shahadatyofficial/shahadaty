@@ -295,8 +295,8 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <!-- PACKAGES -->
     <div class="page" id="page-packages">
       <div class="card">
-        <div class="card-head"><span class="card-title">إدارة الباقات</span></div>
-        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الباقة</th><th>السعر الشهري</th><th>السعر السنوي</th><th>الكوتا</th><th>المشتركون</th></tr></thead><tbody id="pkgTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+        <div class="card-head"><span class="card-title">إدارة الباقات</span><button class="btn-p" onclick="openPackageEditor()"><span class="material-symbols-outlined">add</span>إضافة باقة</button></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الباقة</th><th>السعر الشهري</th><th>السعر السنوي</th><th>الكوتا</th><th>المشتركون</th><th>الإجراءات</th></tr></thead><tbody id="pkgTable"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
         <div class="card-head" style="margin-top:22px"><span class="card-title">الاشتراكات والمدفوعات غير المؤكدة</span><button class="btn-s" onclick="loadPkgs()">تحديث</button></div>
         <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>المؤسسة</th><th>الباقة</th><th>القيمة</th><th>دورة الفوترة</th><th>الحالة</th><th>مرجع الدفع</th><th>إجراء</th></tr></thead><tbody id="subTable"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
       </div>
@@ -341,6 +341,24 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
   </div>
 </div>
 
+<div class="modal-ov" id="packageModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="packageModalTitle">
+  <div class="modal-box">
+    <div class="modal-head"><span class="modal-title" id="packageModalTitle">إضافة باقة جديدة</span><button class="modal-close" type="button" onclick="closePackageEditor()">✕</button></div>
+    <form id="packageForm" onsubmit="savePackage(event)">
+      <div class="modal-body">
+        <input type="hidden" id="packageId">
+        <label class="form-lbl" for="packageName">المعرف البرمجي (بالإنجليزية)</label><input class="form-inp" id="packageName" required maxlength="60" pattern="[a-zA-Z0-9_-]+" placeholder="professional" dir="ltr">
+        <label class="form-lbl" for="packageNameAr">اسم الباقة بالعربية</label><input class="form-inp" id="packageNameAr" required maxlength="100" placeholder="احترافية">
+        <label class="form-lbl" for="packageMonthly">السعر الشهري بالجنيه</label><input class="form-inp" id="packageMonthly" type="number" min="0" step="1" required>
+        <label class="form-lbl" for="packageYearly">السعر السنوي بالجنيه</label><input class="form-inp" id="packageYearly" type="number" min="0" step="1" required>
+        <label class="form-lbl" for="packageQuota">عدد الشهادات المسموح</label><input class="form-inp" id="packageQuota" type="number" min="0" step="1" required>
+        <label class="form-lbl" for="packageOrder">ترتيب العرض</label><input class="form-inp" id="packageOrder" type="number" min="0" step="1" value="10" required>
+        <div id="packageFormError" class="login-err" role="alert"></div>
+      </div>
+      <div class="modal-foot"><button class="btn-cancel" type="button" onclick="closePackageEditor()">إلغاء</button><button class="btn-p" id="packageSaveBtn" type="submit">حفظ الباقة</button></div>
+    </form>
+  </div>
+</div>
 <div id="toast" class="toast" style="display:none"></div>
 
 <script>
@@ -614,11 +632,13 @@ async function loadPkgs(){
     sb.rpc('admin_list_subscriptions',{p_status:null})
   ]);
   if(pkgErr){toast(pkgErr.message,'err');return;}
-  document.getElementById('pkgTable').innerHTML=!(packages||[]).length?'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">لا توجد بيانات</td></tr>':packages.map(p=>`<tr>
-    <td><span style="font-weight:800">${adminEsc(p.name_ar||p.name)}</span></td>
+  const pkgBody=document.getElementById('pkgTable');
+  pkgBody.innerHTML=!(packages||[]).length?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">لا توجد باقات</td></tr>':packages.map(p=>`<tr>
+    <td><span style="font-weight:800">${adminEsc(p.name_ar||p.name)}</span><div style="font-size:10px;color:var(--muted)" dir="ltr">${adminEsc(p.name)}</div></td>
     <td>${Number(p.price_monthly||0).toLocaleString('ar-EG')} ج</td><td>${Number(p.price_yearly||0).toLocaleString('ar-EG')} ج</td>
     <td>${Number(p.quota_limit||0).toLocaleString('ar-EG')} شهادة</td>
     <td><span style="font-size:13px;font-weight:800;color:var(--blue)">${p.institutions?.length||0}</span></td>
+    <td><button class="btn-s" type="button" onclick="editPackage('${p.id}')">تعديل</button> <button class="btn-d" type="button" onclick="deletePackage('${p.id}','${adminEsc(p.name_ar||p.name)}')">حذف</button></td>
   </tr>`).join('');
   const unpaid=(subs||[]).filter(s=>Number(s.amount||0)>0&&s.payment_status!=='paid'&&!['cancelled','expired'].includes(s.status));
   const body=document.getElementById('subTable');
@@ -632,6 +652,54 @@ async function loadPkgs(){
     <td><button class="btn-p" onclick="confirmSubscriptionPayment('${s.id}')">تأكيد السداد</button></td>
   </tr>`).join('');
 }
+function openPackageEditor(pkg=null){
+  document.getElementById('packageForm').reset();
+  document.getElementById('packageFormError').style.display='none';
+  document.getElementById('packageId').value=pkg?.id||'';
+  document.getElementById('packageName').value=pkg?.name||'';
+  document.getElementById('packageName').readOnly=!!pkg;
+  document.getElementById('packageNameAr').value=pkg?.name_ar||'';
+  document.getElementById('packageMonthly').value=pkg?.price_monthly??0;
+  document.getElementById('packageYearly').value=pkg?.price_yearly??0;
+  document.getElementById('packageQuota').value=pkg?.quota_limit??10;
+  document.getElementById('packageOrder').value=pkg?.sort_order??10;
+  document.getElementById('packageModalTitle').textContent=pkg?'تعديل الباقة':'إضافة باقة جديدة';
+  document.getElementById('packageModal').style.display='flex';
+}
+function closePackageEditor(){document.getElementById('packageModal').style.display='none';}
+async function editPackage(id){
+  const{data,error}=await sb.from('packages').select('*').eq('id',id).maybeSingle();
+  if(error||!data){toast(error?.message||'تعذر تحميل الباقة','err');return;}
+  openPackageEditor(data);
+}
+async function savePackage(event){
+  event.preventDefault();
+  const btn=document.getElementById('packageSaveBtn'),errorBox=document.getElementById('packageFormError');
+  const packageId=document.getElementById('packageId').value||null;
+  const payload={
+    p_package_id:packageId,p_name:document.getElementById('packageName').value.trim(),
+    p_name_ar:document.getElementById('packageNameAr').value.trim(),
+    p_price_monthly:Number(document.getElementById('packageMonthly').value),
+    p_price_yearly:Number(document.getElementById('packageYearly').value),
+    p_quota_limit:Number(document.getElementById('packageQuota').value),
+    p_sort_order:Number(document.getElementById('packageOrder').value)
+  };
+  if(!payload.p_name||!payload.p_name_ar||Object.values(payload).some((v,i)=>i>1&&(!Number.isInteger(v)||v<0))){
+    errorBox.textContent='راجع البيانات: الأسعار والكوتا والترتيب يجب أن تكون أرقاماً صحيحة غير سالبة.';errorBox.style.display='block';return;
+  }
+  btn.disabled=true;btn.textContent='جارٍ الحفظ...';errorBox.style.display='none';
+  const{error}=await sb.rpc('admin_save_package',payload);
+  btn.disabled=false;btn.textContent='حفظ الباقة';
+  if(error){errorBox.textContent=error.message;errorBox.style.display='block';return;}
+  closePackageEditor();toast(packageId?'تم تحديث الباقة':'تمت إضافة الباقة','ok');loadPkgs();
+}
+async function deletePackage(id,name){
+  if(!confirm('حذف الباقة "'+name+'"؟ لن يُسمح بالحذف إذا كانت مرتبطة بمؤسسة أو اشتراك.'))return;
+  const{error}=await sb.rpc('admin_delete_package',{p_package_id:id});
+  if(error){toast(error.message,'err');return;}
+  toast('تم حذف الباقة','ok');loadPkgs();
+}
+
 async function confirmSubscriptionPayment(id){
   const reference=prompt('أدخل رقم إيصال التحويل أو مرجع الدفع بعد التحقق منه:','');
   if(reference===null)return;
