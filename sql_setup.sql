@@ -719,7 +719,7 @@ begin
   if coalesce(trim(p_payment_reference),'')='' then raise exception 'PAYMENT_REFERENCE_REQUIRED'; end if;
   select * into v_sub from public.subscriptions where id=p_subscription_id for update;
   if not found then raise exception 'SUBSCRIPTION_NOT_FOUND'; end if;
-  if v_sub.status not in ('pending','suspended') then raise exception 'SUBSCRIPTION_NOT_PENDING'; end if;
+  if v_sub.status not in ('pending','suspended','active') then raise exception 'SUBSCRIPTION_NOT_PENDING'; end if;
   if not exists(select 1 from public.institutions where id=v_sub.institution_id and status='approved') then
     raise exception 'INSTITUTION_NOT_APPROVED';
   end if;
