@@ -927,18 +927,23 @@ async function loadTopCerts(){
 
 async function loadQuotaDetails(){
   if(!inst)return;
-  const pct=inst.quota_total>0?Math.round(inst.quota_used/inst.quota_total*100):0;
-  const {data:sub}=await sb.from('subscriptions').select('*,packages(name_ar)').eq('institution_id',inst.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+  const quotaTotal=Number(inst.quota_total||0),quotaUsed=Number(inst.quota_used||0);
+  const pct=quotaTotal>0?Math.min(100,Math.round(quotaUsed/quotaTotal*100)):0;
+  const{data:sub,error}=await sb.from('subscriptions').select('status,payment_status,amount,currency,billing_cycle,starts_at,ends_at,quota_limit,quota_used,packages(name_ar)').eq('institution_id',inst.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+  if(error){toast('تعذر تحميل تفاصيل الاشتراك: '+error.message,'err');}
+  const status=sub?.status==='active'?'نشط':sub?.status==='pending'?'بانتظار السداد':sub?.status==='expired'?'منتهي':sub?.status==='suspended'?'موقوف':sub?.status==='cancelled'?'ملغي':'غير مفعل';
+  const paid=sub?.payment_status==='paid'?'تم السداد':Number(sub?.amount||0)===0?'مجاني':sub?.payment_status==='pending'?'قيد تأكيد السداد':sub?.payment_status==='failed'?'فشل السداد':'لم يتم السداد';
+  const pkgName=sub?.packages?.name_ar||inst.packages?.name_ar||'—';
   document.getElementById('quotaDetails').innerHTML=`
     <div style="background:#f0f9ff;border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div><div style="font-size:13px;font-weight:700;color:var(--navy)">الباقة الحالية: ${inst.packages?.name_ar||'—'}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">الاشتراك: ${sub?.status==='active'?'نشط':sub?.status||'غير مفعل'}</div></div><span class="badge ${sub?.status==='active'?'badge-ok':'badge-warn'}">${sub?.status==='active'?'نشط':sub?.status==='pending'?'بانتظار السداد':sub?.status==='expired'?'منتهي':inst.status==='approved'?'بانتظار التفعيل':'قيد المراجعة'}</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px"><div><div style="font-size:13px;font-weight:700;color:var(--navy)">الباقة الحالية: ${escapeHtml(pkgName)}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">حالة الاشتراك: ${status} · ${paid}</div></div><span class="badge ${sub?.status==='active'&&(Number(sub?.amount||0)===0||sub?.payment_status==='paid')?'badge-ok':'badge-warn'}">${status}</span></div>
       <div class="quota-bar" style="margin-bottom:8px"><div class="quota-fill ${pct>=90?'danger':pct>=75?'warn':''}" style="width:${pct}%"></div></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>مستخدم: ${inst.quota_used}</span><span>الكلي: ${inst.quota_total||'غير محدود'}</span></div>
-      ${sub?.ends_at?`<div style="margin-top:10px;font-size:11px;color:var(--muted)">ينتهي الاشتراك: ${new Date(sub.ends_at).toLocaleDateString('ar-EG')}</div>`:''}
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>المستخدم: ${quotaUsed.toLocaleString('ar-EG')}</span><span>الإجمالي: ${quotaTotal>0?quotaTotal.toLocaleString('ar-EG'):'غير محدد'}</span></div>
+      ${sub?'<div style="margin-top:12px;font-size:12px;color:var(--muted)">قيمة الاشتراك: '+Number(sub.amount||0).toLocaleString('ar-EG')+' '+escapeHtml(sub.currency||'EGP')+' · '+(sub.billing_cycle==='yearly'?'سنوي':'شهري')+'</div>':''}
+      ${sub?.ends_at?'<div style="margin-top:8px;font-size:11px;color:var(--muted)">ينتهي الاشتراك: '+new Date(sub.ends_at).toLocaleDateString('ar-EG')+'</div>':''}
     </div>
     <button onclick="location.href='landing.html#packages'" style="display:inline-flex;align-items:center;gap:7px;background:var(--blue);color:#fff;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;padding:11px 22px;border-radius:10px;border:none;cursor:pointer"><span class="material-symbols-outlined" style="font-size:18px">upgrade</span> ترقية الباقة</button>`;
 }
-
 // ── Issue Certificate ──────────────────────────────────────────
 async function issuePayload(payload){
   const {data,error}=await sb.rpc('issue_certificate',{p_payload:payload});
