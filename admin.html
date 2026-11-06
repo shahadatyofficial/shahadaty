@@ -638,7 +638,7 @@ async function loadPkgs(){
     <td>${Number(p.price_monthly||0).toLocaleString('ar-EG')} ج</td><td>${Number(p.price_yearly||0).toLocaleString('ar-EG')} ج</td>
     <td>${Number(p.quota_limit||0).toLocaleString('ar-EG')} شهادة</td>
     <td><span style="font-size:13px;font-weight:800;color:var(--blue)">${p.institutions?.length||0}</span></td>
-    <td><button class="btn-s" type="button" onclick="editPackage('${p.id}')">تعديل</button> <button class="btn-d" type="button" onclick="deletePackage('${p.id}','${adminEsc(p.name_ar||p.name)}')">حذف</button></td>
+    <td><button class="btn-s" type="button" onclick="editPackage('${p.id}')">تعديل</button> <button class="btn-d" type="button" onclick="deletePackage('${p.id}')">حذف</button></td>
   </tr>`).join('');
   const unpaid=(subs||[]).filter(s=>Number(s.amount||0)>0&&s.payment_status!=='paid'&&!['cancelled','expired'].includes(s.status));
   const body=document.getElementById('subTable');
@@ -693,8 +693,8 @@ async function savePackage(event){
   if(error){errorBox.textContent=error.message;errorBox.style.display='block';return;}
   closePackageEditor();toast(packageId?'تم تحديث الباقة':'تمت إضافة الباقة','ok');loadPkgs();
 }
-async function deletePackage(id,name){
-  if(!confirm('حذف الباقة "'+name+'"؟ لن يُسمح بالحذف إذا كانت مرتبطة بمؤسسة أو اشتراك.'))return;
+async function deletePackage(id){
+  if(!confirm('هل تريد حذف هذه الباقة؟ لن يُسمح بالحذف إذا كانت مرتبطة بمؤسسة أو اشتراك.'))return;
   const{error}=await sb.rpc('admin_delete_package',{p_package_id:id});
   if(error){toast(error.message,'err');return;}
   toast('تم حذف الباقة','ok');loadPkgs();
