@@ -761,17 +761,21 @@ function openIssueModal(){document.getElementById('issueModal').style.display='f
 function closeIssueModal(){document.getElementById('issueModal').style.display='none';['mi_student','mi_course','mi_phone','mi_gov'].forEach(id=>document.getElementById(id).value='');document.getElementById('mi_grade').value='';document.getElementById('mi_consent').checked=false;document.getElementById('mi_result').style.display='none';}
 
 // ── Certs List ─────────────────────────────────────────────────
+function escapeHtml(value){
+  return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+}
 async function loadCerts(){
-  const{data}=await sb.from('certificates').select('*').eq('institution_id',inst?.id).order('created_at',{ascending:false});
+  const{data,error}=await sb.from('certificates').select('*').eq('institution_id',inst?.id).order('created_at',{ascending:false});
+  if(error){toast('تعذر تحميل الشهادات: '+error.message,'err');return;}
   allCerts=data||[];renderCerts(allCerts);
 }
 function renderCerts(certs){
   document.getElementById('certsTable').innerHTML=!certs.length?'<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted)">لا توجد شهادات</td></tr>':certs.map(c=>`<tr>
-    <td>${c.student_name}</td><td style="font-family:monospace;font-size:11px">${c.cert_number}</td><td>${c.course}</td>
-    <td>${new Date(c.issue_date).toLocaleDateString('ar-EG')}</td>
-    <td><span class="badge badge-ok">${c.grade||'ناجح'}</span></td>
+    <td>${escapeHtml(c.student_name)}</td><td style="font-family:monospace;font-size:11px">${escapeHtml(c.cert_number)}</td><td>${escapeHtml(c.course)}</td>
+    <td>${c.issue_date?new Date(c.issue_date).toLocaleDateString('ar-EG'):'—'}</td>
+    <td><span class="badge badge-ok">${escapeHtml(c.grade||'ناجح')}</span></td>
     <td><span class="badge ${c.status==='active'?'badge-ok':'badge-err'}">${c.status==='active'?'نشط':'ملغي'}</span></td>
-    <td><a href="certificate.html?id=${c.cert_number}" target="_blank" style="color:var(--blue);font-size:12px;font-weight:700;text-decoration:none">عرض ↗</a></td>
+    <td><a href="certificate.html?id=${encodeURIComponent(c.cert_number||'')}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;font-weight:700;text-decoration:none">عرض ↗</a></td>
   </tr>`).join('');
 }
 function filterCerts(){const q=document.getElementById('certSearch').value.toLowerCase();renderCerts(allCerts.filter(c=>c.student_name.toLowerCase().includes(q)||c.cert_number.toLowerCase().includes(q)));}
@@ -784,7 +788,7 @@ function processFile(f){const r=new FileReader();r.onload=e=>{const wb=XLSX.read
 function showBulkPreview(rows){
   document.getElementById('bulkPreview').style.display='block';
   document.getElementById('bulkCount').textContent=rows.length+' سجل';
-  document.getElementById('bulkTable').innerHTML='<thead><tr><th>الحالة</th><th>اسم الطالب</th><th>الدورة</th><th>التاريخ</th><th>التقدير</th></tr></thead><tbody>'+rows.slice(0,20).map(r=>`<tr><td><span class="badge badge-warn">جاهز</span></td><td>${r['اسم الطالب']||r['student_name']||'—'}</td><td>${r['الدورة']||r['course']||'—'}</td><td>${r['التاريخ']||r['issue_date']||'—'}</td><td>${r['التقدير']||r['grade']||'—'}</td></tr>`).join('')+'</tbody>';
+  document.getElementById('bulkTable').innerHTML='<thead><tr><th>الحالة</th><th>اسم الطالب</th><th>الدورة</th><th>التاريخ</th><th>التقدير</th></tr></thead><tbody>'+rows.slice(0,20).map(r=>`<tr><td><span class="badge badge-warn">جاهز</span></td><td>${escapeHtml(r['اسم الطالب']||r['student_name']||'—')}</td><td>${escapeHtml(r['الدورة']||r['course']||'—')}</td><td>${escapeHtml(r['التاريخ']||r['issue_date']||'—')}</td><td>${escapeHtml(r['التقدير']||r['grade']||'—')}</td></tr>`).join('')+'</tbody>';
 }
 async function confirmBulk(){
   const btn=document.querySelector('#bulkPreview .btn-submit'); if(!bulkData.length)return;
