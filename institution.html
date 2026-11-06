@@ -275,6 +275,9 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="sb-item" onclick="showPage('students',this)">
       <span class="material-symbols-outlined">groups</span> سجل المتدربين
     </div>
+    <div class="sb-item" onclick="showPage('documents',this)">
+      <span class="material-symbols-outlined">folder_open</span> مستندات المؤسسة
+    </div>
     <div class="sb-section">المؤسسة</div>
     <div class="sb-item" onclick="showPage('quota',this)">
       <span class="material-symbols-outlined">bar_chart</span> إدارة الكوتا
@@ -582,6 +585,25 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       </div>
     </div>
 
+    <!-- DOCUMENTS PAGE -->
+    <div class="page" id="page-documents">
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-head"><span class="card-title">رفع مستند قانوني أو إثبات للمؤسسة</span></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div><label class="form-lbl" for="documentType">نوع المستند</label><select id="documentType" class="form-inp2"><option value="commercial_registration">السجل التجاري</option><option value="tax_card">البطاقة الضريبية</option><option value="institution_proof">إثبات بيانات المؤسسة</option><option value="other">مستند آخر</option></select></div>
+            <div><label class="form-lbl" for="documentFile">الملف (PDF أو JPG أو PNG أو WEBP — حتى 5MB)</label><input id="documentFile" class="form-inp2" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"></div>
+          </div>
+          <button type="button" class="btn-submit" id="documentUploadBtn" onclick="uploadInstitutionDocument()">رفع المستند</button>
+          <div id="documentUploadMsg" class="issue-result" role="alert"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">المستندات المرفوعة وحالة المراجعة</span><button type="button" class="btn-cancel" onclick="loadInstitutionDocuments()">تحديث</button></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>نوع المستند</th><th>اسم الملف</th><th>تاريخ الرفع</th><th>الحالة</th><th>ملاحظات الإدارة</th><th>عرض</th></tr></thead><tbody id="institutionDocumentsTable"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+      </div>
+    </div>
+
     <!-- VERIFY PAGE -->
     <div class="page" id="page-verify">
       <div style="max-width:500px">
@@ -719,6 +741,42 @@ async function loadInst(){
   loadDashboard();loadCourses();
 }
 async function doLogout(){await sb.auth.signOut();location.reload();}
+
+// ── Institution documents ──────────────────────────────────────
+const documentTypeLabels={commercial_registration:'السجل التجاري',tax_card:'البطاقة الضريبية',institution_proof:'إثبات المؤسسة',other:'مستند آخر'};
+function documentStatusLabel(status){return status==='approved'?'معتمد':status==='rejected'?'مرفوض':'قيد المراجعة';}
+async function loadInstitutionDocuments(){
+  if(!inst?.id)return;
+  const body=document.getElementById('institutionDocumentsTable');
+  const{data,error}=await sb.from('institution_documents').select('id,document_type,file_name,file_path,status,rejection_reason,uploaded_at').eq('institution_id',inst.id).order('uploaded_at',{ascending:false});
+  if(error){body.innerHTML='<tr><td colspan="6">تعذر تحميل المستندات: '+courseEsc(error.message)+'</td></tr>';return;}
+  body.innerHTML=(data||[]).length?data.map(d=>`<tr><td>${documentTypeLabels[d.document_type]||'مستند آخر'}</td><td>${courseEsc(d.file_name||'—')}</td>
+    <td>${d.uploaded_at?new Date(d.uploaded_at).toLocaleDateString('ar-EG'):'—'}</td>
+    <td><span class="badge ${d.status==='approved'?'badge-ok':d.status==='rejected'?'badge-err':'badge-warn'}">${documentStatusLabel(d.status)}</span></td>
+    <td>${courseEsc(d.rejection_reason||'—')}</td><td>${d.file_path?'<button type="button" class="btn-cancel" onclick="openInstitutionDocument(\''+courseEsc(d.file_path)+'\')">عرض</button>':'—'}</td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">لم يتم رفع مستندات بعد.</td></tr>';
+}
+async function uploadInstitutionDocument(){
+  const input=document.getElementById('documentFile'),file=input.files?.[0],btn=document.getElementById('documentUploadBtn'),msg=document.getElementById('documentUploadMsg');
+  if(!file){msg.textContent='اختر ملفاً أولاً.';msg.style.display='block';return;}
+  const allowed=['application/pdf','image/jpeg','image/png','image/webp'];
+  if(!allowed.includes(file.type)||file.size>5*1024*1024){msg.textContent='نوع الملف غير مدعوم أو حجمه أكبر من 5MB.';msg.style.display='block';return;}
+  const{data:{user}}=await sb.auth.getUser();if(!user||!inst?.id)return;
+  const type=document.getElementById('documentType').value;
+  const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(-100)||'document';
+  const path=inst.id+'/'+type+'/'+Date.now()+'_'+safeName;
+  btn.disabled=true;btn.textContent='جارٍ رفع المستند...';msg.style.display='none';
+  const{error:uploadError}=await sb.storage.from('institution-documents').upload(path,file,{upsert:false,contentType:file.type});
+  if(uploadError){btn.disabled=false;btn.textContent='رفع المستند';msg.textContent=uploadError.message;msg.style.display='block';return;}
+  const{error:rowError}=await sb.from('institution_documents').insert({institution_id:inst.id,document_type:type,file_name:file.name,file_path:path,status:'pending',uploaded_by:user.id});
+  if(rowError){await sb.storage.from('institution-documents').remove([path]);btn.disabled=false;btn.textContent='رفع المستند';msg.textContent=rowError.message;msg.style.display='block';return;}
+  input.value='';btn.disabled=false;btn.textContent='رفع المستند';msg.textContent='تم رفع المستند وإرساله للمراجعة.';msg.style.display='block';msg.style.background='#f0f9ff';msg.style.color='#0369a1';
+  toast('تم رفع المستند بنجاح','ok');loadInstitutionDocuments();
+}
+async function openInstitutionDocument(path){
+  const tab=window.open('about:blank','_blank');if(!tab){toast('اسمح بفتح النوافذ المنبثقة لعرض المستند','err');return;}
+  const{data,error}=await sb.storage.from('institution-documents').createSignedUrl(path,300);
+  if(error){tab.close();toast(error.message,'err');return;}tab.opener=null;tab.location.href=data.signedUrl;
+}
 
 // ── Trainee directory (derived from issued certificates) ───────
 let allStudents=[];
@@ -1010,6 +1068,7 @@ function showPage(name,el){
   if(name==='certs')loadCerts();
   if(name==='courses')loadCourses();
   if(name==='students')loadStudents();
+  if(name==='documents')loadInstitutionDocuments();
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
