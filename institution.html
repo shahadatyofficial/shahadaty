@@ -896,7 +896,7 @@ function dbErrorMessage(error){
   if(m.includes('AUTH_REQUIRED'))return 'انتهت جلسة الدخول، يرجى تسجيل الدخول مرة أخرى.';
   return m||'حدث خطأ غير متوقع.';
 }
-async function issueCertModal(){
+async async function issueCertModal(){
   const student=document.getElementById('mi_student').value.trim(), course=document.getElementById('mi_course').value.trim(), date=document.getElementById('mi_date').value;
   const res=document.getElementById('mi_result');
   if(!student||!course||!date){showRes(res,'يرجى تعبئة الحقول المطلوبة *','err');return;}
@@ -933,11 +933,19 @@ function renderCerts(certs){
     <td>${escapeHtml(c.student_name)}</td><td style="font-family:monospace;font-size:11px">${escapeHtml(c.cert_number)}</td><td>${escapeHtml(c.course)}</td>
     <td>${c.issue_date?new Date(c.issue_date).toLocaleDateString('ar-EG'):'—'}</td>
     <td><span class="badge badge-ok">${escapeHtml(c.grade||'ناجح')}</span></td>
-    <td><span class="badge ${c.status==='active'?'badge-ok':'badge-err'}">${c.status==='active'?'نشط':'ملغي'}</span></td>
-    <td><a href="certificate.html?id=${encodeURIComponent(c.cert_number||'')}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;font-weight:700;text-decoration:none">عرض ↗</a></td>
+    <td><span class="badge ${c.status==='active'?'badge-ok':c.status==='suspended'?'badge-warn':'badge-err'}">${c.status==='active'?'نشط':c.status==='suspended'?'موقوف مؤقتاً':'ملغاة'}</span></td>
+    <td><a href="certificate.html?id=${encodeURIComponent(c.cert_number||'')}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;font-weight:700;text-decoration:none">عرض ↗</a>
+    ${c.status==='active'?'<button type="button" class="btn-cancel" onclick="setCertStatus(\''+c.id+'\',\'suspended\')">إيقاف</button><button type="button" class="btn-cancel" onclick="setCertStatus(\''+c.id+'\',\'revoked\')">إلغاء</button>':c.status==='suspended'?'<button type="button" class="btn-cancel" onclick="setCertStatus(\''+c.id+'\',\'active\')">إعادة تفعيل</button>':''}</td>
   </tr>`).join('');
 }
-function filterCerts(){const q=document.getElementById('certSearch').value.toLowerCase();renderCerts(allCerts.filter(c=>c.student_name.toLowerCase().includes(q)||c.cert_number.toLowerCase().includes(q)));}
+function filterCerts(){const q=document.getElementById('certSearch').value.toLocaleLowerCase('ar');renderCerts(allCerts.filter(c=>[c.student_name,c.cert_number,c.course,c.student_phone].some(v=>String(v||'').toLocaleLowerCase('ar').includes(q))));}
+async function setCertStatus(id,status){
+  const labels={active:'إعادة تفعيل الشهادة',suspended:'إيقاف الشهادة مؤقتاً',revoked:'إلغاء الشهادة نهائياً'};
+  if(!labels[status]||!confirm('هل تريد '+labels[status]+'؟'))return;
+  const{error}=await sb.from('certificates').update({status}).eq('id',id).eq('institution_id',inst.id);
+  if(error){toast('تعذر تحديث حالة الشهادة: '+error.message,'err');return;}
+  toast('تم تحديث حالة الشهادة','ok');await loadCerts();await loadDashboard();
+}
 function exportCerts(){const ws=XLSX.utils.json_to_sheet(allCerts.map(c=>({'اسم الطالب':c.student_name,'رقم الشهادة':c.cert_number,'الدورة':c.course,'التاريخ':c.issue_date,'التقدير':c.grade})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الشهادات');XLSX.writeFile(wb,'شهادات.xlsx');}
 
 // ── Bulk Upload ────────────────────────────────────────────────
