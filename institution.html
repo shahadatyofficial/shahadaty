@@ -959,7 +959,7 @@ function dbErrorMessage(error){
   if(m.includes('AUTH_REQUIRED'))return 'انتهت جلسة الدخول، يرجى تسجيل الدخول مرة أخرى.';
   return m||'حدث خطأ غير متوقع.';
 }
-async async function issueCertModal(){
+async function issueCertModal(){
   const student=document.getElementById('mi_student').value.trim(), course=document.getElementById('mi_course').value.trim(), date=document.getElementById('mi_date').value;
   const res=document.getElementById('mi_result');
   if(!student||!course||!date){showRes(res,'يرجى تعبئة الحقول المطلوبة *','err');return;}
