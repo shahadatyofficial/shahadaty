@@ -3,6 +3,7 @@ on:
   push:
     branches: [development/platform-core]
   pull_request:
+    types: [opened, synchronize, reopened, edited]
     branches: [development/phase-0-audit]
 jobs:
   inline-js:
