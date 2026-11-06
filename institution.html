@@ -717,7 +717,7 @@ async function loadQuotaDetails(){
   const {data:sub}=await sb.from('subscriptions').select('*,packages(name_ar)').eq('institution_id',inst.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
   document.getElementById('quotaDetails').innerHTML=`
     <div style="background:#f0f9ff;border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div><div style="font-size:13px;font-weight:700;color:var(--navy)">الباقة الحالية: ${inst.packages?.name_ar||'—'}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">الاشتراك: ${sub?.status==='active'?'نشط':sub?.status||'غير مفعل'}</div></div><span class="badge badge-ok">${inst.status==='approved'?'نشط':'معلق'}</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div><div style="font-size:13px;font-weight:700;color:var(--navy)">الباقة الحالية: ${inst.packages?.name_ar||'—'}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">الاشتراك: ${sub?.status==='active'?'نشط':sub?.status||'غير مفعل'}</div></div><span class="badge ${sub?.status==='active'?'badge-ok':'badge-warn'}">${sub?.status==='active'?'نشط':sub?.status==='pending'?'بانتظار السداد':sub?.status==='expired'?'منتهي':inst.status==='approved'?'بانتظار التفعيل':'قيد المراجعة'}</span></div>
       <div class="quota-bar" style="margin-bottom:8px"><div class="quota-fill ${pct>=90?'danger':pct>=75?'warn':''}" style="width:${pct}%"></div></div>
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>مستخدم: ${inst.quota_used}</span><span>الكلي: ${inst.quota_total||'غير محدود'}</span></div>
       ${sub?.ends_at?`<div style="margin-top:10px;font-size:11px;color:var(--muted)">ينتهي الاشتراك: ${new Date(sub.ends_at).toLocaleDateString('ar-EG')}</div>`:''}
@@ -734,6 +734,7 @@ async function issuePayload(payload){
 function dbErrorMessage(error){
   const m=String(error?.message||error||'');
   if(m.includes('QUOTA_EXCEEDED'))return 'تم الوصول إلى حد الشهادات في باقتك الحالية.';
+  if(m.includes('SUBSCRIPTION_INACTIVE_OR_UNPAID'))return 'الاشتراك غير مفعل أو لم يتم تأكيد السداد بعد. تواصل مع الإدارة لتفعيل الباقة.';
   if(m.includes('INSTITUTION_NOT_APPROVED'))return 'المؤسسة غير معتمدة حتى الآن.';
   if(m.includes('NOT_ALLOWED'))return 'ليس لديك صلاحية إصدار الشهادات.';
   if(m.includes('AUTH_REQUIRED'))return 'انتهت جلسة الدخول، يرجى تسجيل الدخول مرة أخرى.';
