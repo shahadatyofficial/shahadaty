@@ -381,7 +381,7 @@ function sp(name,el){
 }
 
 // ── OVERVIEW ──────────────────────────────────────────────────
-async async function loadOverview(){
+async function loadOverview(){
   const [
     {data:stats,error:statsErr},
     {data:pending,error:pendingErr},
@@ -521,7 +521,7 @@ async function loadAdminCerts(){
     <td>${adminEsc(c.institutions?.name||'—')}</td><td>${new Date(c.issue_date).toLocaleDateString('ar-EG')}</td>
     <td><span class="badge ${c.status==='active'?'bok':'berr'}">${c.status==='active'?'نشط':'ملغي'}</span></td>
     <td><div style="display:flex;gap:6px">
-      <a href="certificate.html?id=${c.cert_number}" target="_blank" class="btn-s" style="font-size:10px;padding:5px 10px">عرض</a>
+      <a href="certificate.html?id=${encodeURIComponent(c.cert_number||'')}" target="_blank" class="btn-s" style="font-size:10px;padding:5px 10px">عرض</a>
       ${c.status==='active'?`<button onclick="revokeCert('${c.id}')" class="btn-d" style="font-size:10px;padding:5px 10px">إلغاء</button>`:''}
     </div></td>
   </tr>`).join('');
@@ -553,11 +553,11 @@ async function loadRec(){
   <div style="border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div><div style="font-size:15px;font-weight:800;color:var(--navy)">${adminEsc(r.company_name)}</div><div style="font-size:11px;color:var(--muted)">${adminEsc(r.contact_name)} · ${adminEsc(r.contact_email)}</div></div>
-      <span class="badge ${r.status==='new'?'bnew':r.status==='fulfilled'?'bok':'bwarn'}">${sts[r.status]||r.status}</span>
+      <span class="badge ${['new','processing','fulfilled','closed'].includes(r.status)?(r.status==='new'?'bnew':r.status==='fulfilled'?'bok':'bwarn'):'bwarn'}">${adminEsc(sts[r.status]||r.status)}</span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
       <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المؤهل</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${adminEsc(r.qualification)}</div></div>
-      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المحافظة</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${r.governorate||'أي محافظة'}</div></div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المحافظة</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${adminEsc(r.governorate||'أي محافظة')}</div></div>
       <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">العدد المطلوب</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${r.positions_needed} وظيفة</div></div>
     </div>
     <div style="display:flex;gap:8px">
