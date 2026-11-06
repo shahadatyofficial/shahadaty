@@ -620,7 +620,7 @@ async function loadPkgs(){
     <td>${Number(p.quota_limit||0).toLocaleString('ar-EG')} شهادة</td>
     <td><span style="font-size:13px;font-weight:800;color:var(--blue)">${p.institutions?.length||0}</span></td>
   </tr>`).join('');
-  const unpaid=(subs||[]).filter(s=>s.payment_status!=='paid'&&!['cancelled','expired'].includes(s.status));
+  const unpaid=(subs||[]).filter(s=>Number(s.amount||0)>0&&s.payment_status!=='paid'&&!['cancelled','expired'].includes(s.status));
   const body=document.getElementById('subTable');
   if(subErr){body.innerHTML='<tr><td colspan="7">تعذر تحميل الاشتراكات: '+adminEsc(subErr.message)+'</td></tr>';return;}
   body.innerHTML=!unpaid.length?'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">لا توجد مدفوعات معلقة</td></tr>':unpaid.map(s=>`<tr>
