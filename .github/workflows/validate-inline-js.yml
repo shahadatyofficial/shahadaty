@@ -1,0 +1,16 @@
+name: Validate inline JavaScript
+on:
+  push:
+    branches: [development/platform-core]
+  pull_request:
+    branches: [main]
+jobs:
+  inline-js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate inline JavaScript in platform pages
+        run: python3 scripts/check-inline-js.py
