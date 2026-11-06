@@ -24,3 +24,23 @@ Environment: Supabase project `snteiiavvaaumgaegazn`. This review used live read
 
 ## Production change status
 No production SQL migrations, grants, policies, user records, or passwords were changed. The intended initial admin was already active, so no modification was required.
+
+
+## Follow-up review (2026-11-06)
+
+### Current project state
+- Supabase project reports `ACTIVE_HEALTHY` on PostgreSQL 17.6.1.
+- Security advisor still reports 6 RLS-enabled tables without policies: `accreditation_requests`, `activity_log`, `certificate_sequences`, `certificate_verifications`, `platform_admins`, and `profiles`. Treat this as intentional deny-by-default until each table's access model and RPC dependencies are verified; do not add blanket policies.
+- Advisor reports 25 `SECURITY DEFINER` functions executable by `authenticated`, plus `public_platform_stats()` and `verify_certificate(text)` executable by `anon`. These require body-level authorization and output-scope review; advisor exposure alone does not prove exploitability.
+- Leaked-password protection is disabled in Auth and should be enabled after checking the user-facing password policy impact.
+- Performance advisor reports 3 unindexed foreign keys, 7 RLS initplan notices, 5 multiple-permissive-policy notices, and duplicate indexes. Defer index/policy cleanup until query and policy semantics are verified.
+
+### Source review notes
+- `supabase_admin_hardening.sql` uses explicit `is_platform_admin()` checks in the inspected admin RPC bodies and sets `search_path=public`.
+- `fix_missing_rpcs.sql` defines `graduate_my_certificates()` with an explicit `auth.uid() IS NOT NULL` guard and joins graduate profiles by the authenticated user ID.
+- The current registration UI calls `register_institution` after sign-up and uploads required documents to the `institution-documents` bucket. End-to-end RLS/storage tests remain necessary, especially for cross-institution access and partial-upload retry behavior.
+
+### Verification limitation
+- The direct SQL execution tool was blocked by its safety checks during this follow-up, so no live policy catalog query or adversarial RPC test was completed in this pass.
+- No production schema, grants, policies, Auth settings, users, or passwords were changed.
+- Do not treat this report as a completed penetration test or production security sign-off.
