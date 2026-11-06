@@ -650,7 +650,7 @@ async function loadPublicStats(){const{data}=await sb.rpc('public_platform_stats
 loadPublicStats();
 let camStream=null;
 
-async async function doSearch(){
+async function doSearch(){
   const q=document.getElementById('sInp').value.trim();
   if(!q)return;
   if(camStream)toggleScanner();
