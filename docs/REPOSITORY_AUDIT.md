@@ -59,3 +59,20 @@ The advisor endpoints returned empty lint arrays while the database was still co
 4. Produce a frontend-to-database RPC contract matrix with parameter and return types.
 5. Fix admin bootstrap and authorization through a reviewed migration in a non-production environment first.
 6. Add a repeatable test harness and CI workflow before feature implementation.
+
+
+## Live database audit — 2026-11-06 (after recovery)
+- Supabase now reports `ACTIVE_HEALTHY`; PostgreSQL introspection succeeds.
+- The live public schema contains 15 application tables. All 15 currently have RLS enabled.
+- Storage bucket `institution-documents` exists and is private.
+- 12 recorded migrations are present, dated 2026-10-14 through 2026-10-15.
+- Existing tables include profiles, packages, institutions, certificates, activity_log, companies, recruitment_requests, accreditation_requests, institution_documents, institution_users, subscriptions, certificate_sequences, certificate_verifications, platform_admins and graduate_profiles.
+- The live database confirms `platform_admins` exists; the earlier source-only concern that the base SQL file did not create it is superseded by later applied migrations.
+
+### Live security findings — remediation pending
+- Security advisor reports 6 RLS-enabled tables with no policies: `accreditation_requests`, `activity_log`, `certificate_sequences`, `certificate_verifications`, `platform_admins`, `profiles`.
+- Advisor reports 2 SECURITY DEFINER RPCs executable by `anon`: `public_platform_stats()` and `verify_certificate(text)`. These may be intentional public endpoints, but must be reviewed for minimal disclosure and explicit grants.
+- Advisor reports 25 SECURITY DEFINER functions executable by `authenticated`. Review function bodies and authorization before changing grants.
+- Performance advisor reports duplicate indexes and multiple permissive SELECT policies on institution and certificate tables.
+- Health advisor currently reports no lints.
+- No database changes were made during this live audit. Findings are queued for targeted, reviewed migrations; blanket grant revocation or broad policy changes could break public verification and institution workflows.
