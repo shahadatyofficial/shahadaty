@@ -90,7 +90,9 @@ begin
   select id,status into v_id,v_status from public.support_conversations
   where visitor_token_hash=encode(sha256(convert_to(p_token,'UTF8')),'hex') for update;
   if not found then raise exception 'CHAT_NOT_FOUND'; end if;
-  if v_status='closed' then raise exception 'CHAT_CLOSED'; end if;
+  if v_status='closed' then
+    update public.support_conversations set status='open',updated_at=now() where id=v_id;
+  end if;
   if (select count(*) from public.support_messages
       where conversation_id=v_id and sender_role='visitor' and created_at>now()-interval '1 minute')>=15 then
     raise exception 'CHAT_RATE_LIMIT';
