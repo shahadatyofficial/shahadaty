@@ -1,10 +1,10 @@
 name: Validate inline JavaScript
 on:
   push:
-    branches: [development/platform-core]
+    branches: [main, development/platform-core]
   pull_request:
     types: [opened, synchronize, reopened, edited]
-    branches: [development/phase-0-audit]
+    branches: [main, development/phase-0-audit]
 jobs:
   inline-js:
     runs-on: ubuntu-latest
