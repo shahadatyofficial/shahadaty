@@ -127,6 +127,25 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 .modal-body{padding:24px;}
 .modal-foot{padding:16px 24px;border-top:1px solid #f0f7ff;display:flex;gap:10px;justify-content:flex-end;}
 .btn-cancel{background:var(--bg);color:var(--navy);font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;padding:9px 20px;border-radius:9px;border:1.5px solid var(--border);cursor:pointer;}
+
+.support-layout{display:grid;grid-template-columns:minmax(250px,340px) minmax(0,1fr);gap:16px;align-items:start}
+.support-list-card,.support-chat-card{padding:16px;min-width:0}
+.support-thread{padding:13px;border-bottom:1px solid #edf2f7;cursor:pointer;transition:background .15s}
+.support-thread:hover,.support-thread.active{background:#eff6ff}
+.support-thread-top{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.support-thread-name{font-size:13px;font-weight:800}.support-thread-time{font-size:10px;color:var(--muted)}
+.support-thread-preview{font-size:11px;color:var(--muted);margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.support-unread{display:inline-grid;place-items:center;min-width:19px;height:19px;padding:0 5px;border-radius:20px;background:#dc2626;color:#fff;font-size:10px;font-weight:800}
+.support-empty{padding:25px 12px;text-align:center;color:var(--muted);font-size:12px}
+.support-messages{height:420px;overflow:auto;background:#f4f7fb;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:9px}
+.support-msg{max-width:85%;padding:10px 12px;border-radius:13px;font-size:12px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}
+.support-msg.visitor{align-self:flex-start;background:#e2effb;color:#173b5c;border-bottom-right-radius:4px}
+.support-msg.admin{align-self:flex-end;background:#fff;color:#20344d;border:1px solid #dce6f0;border-bottom-left-radius:4px}
+.support-msg small{display:block;font-size:9px;opacity:.65;margin-top:4px}
+.support-reply{display:flex;gap:9px;margin-top:12px}
+.support-reply input{flex:1;min-width:0;padding:11px 13px;border:1px solid var(--border);border-radius:10px;font:13px 'Cairo',sans-serif}
+@media(max-width:800px){.support-layout{grid-template-columns:1fr}.support-messages{height:340px}}
+
 </style>
 </head>
 <body>
@@ -171,6 +190,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="sb-sec">الشركات</div>
     <div class="sb-item" onclick="sp('recruitment',this)"><span class="material-symbols-outlined">work</span>طلبات الترشيح<span class="sb-badge" id="recBadge">0</span></div>
     <div class="sb-item" onclick="sp('companies',this)"><span class="material-symbols-outlined">business_center</span>الشركات المشتركة</div>
+    <div class="sb-item" onclick="sp('support',this)"><span class="material-symbols-outlined">forum</span>رسائل الدعم <span class="sb-badge" id="supportBadge">0</span></div>
     <div class="sb-sec">النظام</div>
     <div class="sb-item" onclick="sp('packages',this)"><span class="material-symbols-outlined">layers</span>إدارة الباقات</div>
     <div class="sb-item" onclick="sp('reports',this)"><span class="material-symbols-outlined">bar_chart</span>التقارير</div>
@@ -303,7 +323,14 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     </div>
 
     <!-- REPORTS -->
-    <div class="page" id="page-reports">
+    <div class="page" id="page-support">
+  <div class="card" style="padding:18px;margin-bottom:16px"><div class="card-head"><span class="card-title">صندوق رسائل الزوار</span><button class="btn-s" onclick="loadSupportInbox()">تحديث</button></div><p style="font-size:12px;color:var(--muted)">رسائل مباشرة من زوار الموقع. اختر محادثة لعرض الرسائل والرد عليها.</p></div>
+  <div class="support-layout">
+    <div class="card support-list-card"><div class="card-head"><span class="card-title">المحادثات</span><span id="supportCount" class="sb-badge">0</span></div><div id="supportThreads"><div class="support-empty">جاري تحميل المحادثات...</div></div></div>
+    <div class="card support-chat-card"><div class="card-head"><div><span class="card-title" id="supportCurrentName">اختر محادثة</span><div id="supportCurrentMeta" style="font-size:11px;color:var(--muted);margin-top:3px"></div></div><button id="supportCloseBtn" class="btn-s" style="display:none" onclick="toggleSupportStatus()">إغلاق المحادثة</button></div><div id="supportMessages" class="support-messages"><div class="support-empty">ستظهر الرسائل هنا</div></div><form id="supportReplyForm" class="support-reply" onsubmit="sendSupportReply(event)"><input id="supportReplyInput" placeholder="اكتب ردك للزائر..." maxlength="2000" disabled required><button class="btn-p" id="supportReplyBtn" disabled>إرسال الرد</button></form></div>
+  </div>
+</div>
+<div class="page" id="page-reports">
       <div class="stats-row">
         <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#eff6ff"><span class="material-symbols-outlined" style="color:#0369a1">trending_up</span></div></div><span class="sc-val stat-num" id="rep_today">—</span><span class="sc-lbl">المؤسسات المعتمدة</span></div>
         <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#f0fdf4"><span class="material-symbols-outlined" style="color:#059669">calendar_month</span></div></div><span class="sc-val stat-num" id="rep_month">—</span><span class="sc-lbl">المؤسسات بانتظار الاعتماد</span></div>
@@ -365,7 +392,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
-const ptitles={overview:'نظرة عامة',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام'};
+const ptitles={overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام'};
 let allInstitutions=[], allAdminCerts=[];
 function adminEsc(v){return String(v??'—').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}
 
@@ -383,7 +410,7 @@ async function doLogin(){
   if(adminErr||isAdmin!==true){await sb.auth.signOut();err.textContent='هذا الحساب ليس حساب إدارة';err.style.display='block';return;}
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('adminEmail').textContent=email;
-  loadOverview();loadBadges();
+  loadOverview();loadBadges();startSupportRealtime();loadSupportInbox();
 }
 async function doLogout(){await sb.auth.signOut();location.reload();}
 
@@ -394,7 +421,7 @@ function sp(name,el){
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('pageTitle').textContent=ptitles[name]||name;
   if(el)el.classList.add('active');
-  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,reports:loadReports};
+  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,reports:loadReports,support:()=>{loadSupportInbox();startSupportRealtime();}};
   if(loaders[name])loaders[name]();
 }
 
@@ -709,6 +736,48 @@ async function confirmSubscriptionPayment(id){
   if(error){toast(error.message,'err');return;}
   toast('تم تسجيل السداد وتفعيل الاشتراك','ok');loadPkgs();
 }
+
+let activeSupportConversation=null,supportRealtimeChannel=null;
+function supportEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function supportTime(v){return v?new Date(v).toLocaleString('ar-EG',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';}
+async function loadSupportInbox(){
+ const{data:threads,error}=await sb.from('support_conversations').select('id,visitor_name,visitor_email,status,created_at,updated_at').order('updated_at',{ascending:false}).limit(100);
+ if(error){document.getElementById('supportThreads').innerHTML='<div class="support-empty">تعذر تحميل الرسائل: '+supportEsc(error.message)+'</div>';return;}
+ const ids=(threads||[]).map(t=>t.id);let messages=[];
+ if(ids.length){const r=await sb.from('support_messages').select('id,conversation_id,sender,body,created_at,read_at').in('conversation_id',ids).order('created_at',{ascending:false});if(!r.error)messages=r.data||[];}
+ const lastBy={},unreadBy={};for(const m of messages){if(!lastBy[m.conversation_id])lastBy[m.conversation_id]=m;if(m.sender==='visitor'&&!m.read_at)unreadBy[m.conversation_id]=(unreadBy[m.conversation_id]||0)+1;}
+ const unread=Object.values(unreadBy).reduce((a,b)=>a+b,0),badge=document.getElementById('supportBadge');badge.textContent=unread;badge.style.display=unread?'inline-flex':'none';document.getElementById('supportCount').textContent=(threads||[]).length;
+ document.getElementById('supportThreads').innerHTML=threads?.length?threads.map(t=>'<div class="support-thread '+(activeSupportConversation===t.id?'active':'')+'" onclick="openSupportConversation(\''+t.id+'\')"><div class="support-thread-top"><span class="support-thread-name">'+supportEsc(t.visitor_name)+'</span><span class="support-thread-time">'+supportTime(lastBy[t.id]?.created_at||t.created_at)+'</span></div><div class="support-thread-preview">'+supportEsc(lastBy[t.id]?.body||'بدأ محادثة جديدة')+'</div>'+(unreadBy[t.id]?'<span class="support-unread">'+unreadBy[t.id]+'</span>':'')+'</div>').join(''):'<div class="support-empty">لا توجد محادثات حتى الآن</div>';
+ if(activeSupportConversation&&!threads.some(t=>t.id===activeSupportConversation))activeSupportConversation=null;
+}
+async function openSupportConversation(id){
+ activeSupportConversation=id;await loadSupportInbox();
+ const{data:t,error}=await sb.from('support_conversations').select('*').eq('id',id).maybeSingle();if(error||!t)return;
+ document.getElementById('supportCurrentName').textContent=t.visitor_name||'زائر';document.getElementById('supportCurrentMeta').textContent=(t.visitor_email||'بدون بريد إلكتروني')+' • '+(t.status==='open'?'مفتوحة':'مغلقة');
+ document.getElementById('supportCloseBtn').style.display='inline-flex';document.getElementById('supportCloseBtn').textContent=t.status==='open'?'إغلاق المحادثة':'إعادة فتح المحادثة';
+ document.getElementById('supportReplyInput').disabled=t.status!=='open';document.getElementById('supportReplyBtn').disabled=t.status!=='open';
+ const{data:m,error:me}=await sb.from('support_messages').select('*').eq('conversation_id',id).order('created_at',{ascending:true});
+ const box=document.getElementById('supportMessages');box.innerHTML=me?'<div class="support-empty">تعذر تحميل الرسائل</div>':(m||[]).map(x=>'<div class="support-msg '+x.sender+'">'+supportEsc(x.body)+'<small>'+(x.sender==='admin'?'فريق شهادتي':'الزائر')+' • '+supportTime(x.created_at)+'</small></div>').join('');
+ box.scrollTop=box.scrollHeight;
+ await sb.from('support_messages').update({read_at:new Date().toISOString()}).eq('conversation_id',id).eq('sender','visitor').is('read_at',null);
+ await loadSupportInbox();
+}
+async function sendSupportReply(e){
+ e.preventDefault();if(!activeSupportConversation)return;const input=document.getElementById('supportReplyInput'),body=input.value.trim();if(!body)return;
+ const btn=document.getElementById('supportReplyBtn');btn.disabled=true;
+ const{error}=await sb.from('support_messages').insert({conversation_id:activeSupportConversation,sender:'admin',body});
+ btn.disabled=false;if(error){toast(error.message,'err');return;}input.value='';await openSupportConversation(activeSupportConversation);
+}
+async function toggleSupportStatus(){
+ if(!activeSupportConversation)return;const{data:t}=await sb.from('support_conversations').select('status').eq('id',activeSupportConversation).maybeSingle();if(!t)return;
+ const{error}=await sb.from('support_conversations').update({status:t.status==='open'?'closed':'open'}).eq('id',activeSupportConversation);
+ if(error){toast(error.message,'err');return;}await openSupportConversation(activeSupportConversation);toast('تم تحديث حالة المحادثة','ok');
+}
+function startSupportRealtime(){
+ if(supportRealtimeChannel)return;
+ supportRealtimeChannel=sb.channel('admin-support-inbox').on('postgres_changes',{event:'INSERT',schema:'public',table:'support_messages',filter:'sender=eq.visitor'},payload=>{loadSupportInbox();if(activeSupportConversation===payload.new.conversation_id)openSupportConversation(activeSupportConversation);else toast('وصلت رسالة دعم جديدة','ok');}).subscribe();
+}
+
 // ── REPORTS ───────────────────────────────────────────────────
 async function loadReports(){
   const{data,error}=await sb.rpc('admin_platform_stats');
@@ -741,7 +810,7 @@ window.addEventListener('load',async()=>{
   if(error||!isAdmin){await sb.auth.signOut();return;}
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('adminEmail').textContent=session.user.email||'';
-  loadOverview();loadBadges();
+  loadOverview();loadBadges();startSupportRealtime();loadSupportInbox();
 });
 </script>
 </body>
