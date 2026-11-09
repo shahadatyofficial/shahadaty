@@ -324,6 +324,21 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 
     <!-- REPORTS -->
     <div class="page" id="page-support">
+  <div class="card" style="padding:18px;margin-bottom:16px">
+   <div class="card-head"><span class="card-title">إعدادات خدمة العملاء</span><button class="btn-s" onclick="loadSupportSettings()">إعادة تحميل</button></div>
+   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:12px 0">
+    <div><label class="form-lbl">بداية العمل</label><input class="inp" id="supportWorkStart" type="time" value="09:00" style="width:100%"></div>
+    <div><label class="form-lbl">نهاية العمل</label><input class="inp" id="supportWorkEnd" type="time" value="17:00" style="width:100%"></div>
+    <div><label class="form-lbl">أيام العمل</label><input class="inp" value="الأحد إلى الخميس" disabled style="width:100%"></div>
+   </div>
+   <div style="display:grid;gap:10px">
+    <label class="form-lbl">رسالة الترحيب<textarea class="inp" id="supportWelcome" rows="2" style="width:100%;resize:vertical"></textarea></label>
+    <label class="form-lbl">رسالة خارج أوقات العمل<textarea class="inp" id="supportOffline" rows="2" style="width:100%;resize:vertical"></textarea></label>
+    <label class="form-lbl">رسالة انتظار الرد<textarea class="inp" id="supportWaiting" rows="2" style="width:100%;resize:vertical"></textarea></label>
+   </div>
+   <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn-p" onclick="saveSupportSettings()">حفظ إعدادات الدعم</button></div>
+   <p style="font-size:11px;color:var(--muted);margin-top:8px">التوقيت المحلي لمصر. أيام العمل: الأحد–الخميس، والإجازة الجمعة والسبت.</p>
+  </div>
   <div class="card" style="padding:18px;margin-bottom:16px"><div class="card-head"><span class="card-title">صندوق رسائل الزوار</span><button class="btn-s" onclick="loadSupportInbox()">تحديث</button></div><p style="font-size:12px;color:var(--muted)">رسائل مباشرة من زوار الموقع. اختر محادثة لعرض الرسائل والرد عليها.</p></div>
   <div class="support-layout">
     <div class="card support-list-card"><div class="card-head"><span class="card-title">المحادثات</span><span id="supportCount" class="sb-badge">0</span></div><div id="supportThreads"><div class="support-empty">جاري تحميل المحادثات...</div></div></div>
@@ -410,7 +425,7 @@ async function doLogin(){
   if(adminErr||isAdmin!==true){await sb.auth.signOut();err.textContent='هذا الحساب ليس حساب إدارة';err.style.display='block';return;}
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('adminEmail').textContent=email;
-  loadOverview();loadBadges();startSupportRealtime();loadSupportInbox();
+  loadOverview();loadBadges();startSupportRealtime();loadSupportSettings();loadSupportInbox();
 }
 async function doLogout(){await sb.auth.signOut();location.reload();}
 
@@ -421,7 +436,7 @@ function sp(name,el){
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('pageTitle').textContent=ptitles[name]||name;
   if(el)el.classList.add('active');
-  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,reports:loadReports,support:()=>{loadSupportInbox();startSupportRealtime();}};
+  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
   if(loaders[name])loaders[name]();
 }
 
@@ -737,6 +752,23 @@ async function confirmSubscriptionPayment(id){
 }
 
 let activeSupportConversation=null,supportRealtimeChannel=null;
+async function loadSupportSettings(){
+ const{data,error}=await sb.from('support_settings').select('*').eq('id',true).maybeSingle();
+ if(error){toast('تعذر تحميل إعدادات الدعم: '+error.message,'err');return;}
+ if(!data)return;
+ document.getElementById('supportWorkStart').value=String(data.work_start||'09:00').slice(0,5);
+ document.getElementById('supportWorkEnd').value=String(data.work_end||'17:00').slice(0,5);
+ document.getElementById('supportWelcome').value=data.welcome_message||'';
+ document.getElementById('supportOffline').value=data.offline_message||'';
+ document.getElementById('supportWaiting').value=data.waiting_message||'';
+}
+async function saveSupportSettings(){
+ const payload={work_start:document.getElementById('supportWorkStart').value,work_end:document.getElementById('supportWorkEnd').value,welcome_message:document.getElementById('supportWelcome').value.trim(),offline_message:document.getElementById('supportOffline').value.trim(),waiting_message:document.getElementById('supportWaiting').value.trim(),updated_at:new Date().toISOString()};
+ if(!payload.work_start||!payload.work_end||payload.work_start>=payload.work_end||!payload.welcome_message||!payload.offline_message||!payload.waiting_message){toast('راجع المواعيد والرسائل؛ كل الحقول مطلوبة','err');return;}
+ const{error}=await sb.from('support_settings').update(payload).eq('id',true);
+ if(error){toast('تعذر حفظ الإعدادات: '+error.message,'err');return;}
+ toast('تم حفظ إعدادات خدمة العملاء','ok');
+}
 function supportEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function supportTime(v){return v?new Date(v).toLocaleString('ar-EG',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';}
 async function loadSupportInbox(){
