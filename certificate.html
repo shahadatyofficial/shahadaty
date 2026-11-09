@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="support-chat.css">
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
 :root{--navy:#0c2d4e;--blue:#0369a1;--sky:#0284c7;--gold:#b08d48;--bg:#f5f7fa;--border:#e2e8f0;--muted:#64748b}
@@ -48,4 +49,5 @@ async function load(){
 function showError(msg){document.getElementById('app').innerHTML=`<div class="error"><div style="font-size:45px">❌</div><h2>تعذر عرض الشهادة</h2><p>${esc(msg)}</p><a href="verify.html" style="color:var(--blue);font-weight:800">العودة لصفحة التحقق</a></div>`}
 load();
 </script>
+<script src="support-chat.js"></script>
 </body></html>
