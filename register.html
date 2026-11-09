@@ -479,7 +479,7 @@ function submitStep3(){
   if(email&&!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(email)){document.getElementById('err_email').classList.add('show');document.getElementById('email').classList.add('err');valid=false;}
   else{document.getElementById('err_email').classList.remove('show');document.getElementById('email').classList.remove('err');formData.email=email.toLowerCase();}
   const normalizedPhone=normalizeEgyptianPhone(phone);
-  if(!/^\\+20(?:10|11|12|15)\\d{8}$/.test(normalizedPhone)){document.getElementById('err_phone').classList.add('show');document.getElementById('phone').classList.add('err');valid=false;}
+  if(!/^\\+[1-9]\\d{7,14}$/.test(normalizedPhone)){document.getElementById('err_phone').classList.add('show');document.getElementById('phone').classList.add('err');valid=false;}
   else{document.getElementById('err_phone').classList.remove('show');document.getElementById('phone').classList.remove('err');formData.phone=phone;formData.auth_phone=normalizedPhone;}
   if(pass.length<8){document.getElementById('err_password').classList.add('show');document.getElementById('password').classList.add('err');valid=false;}
   else{document.getElementById('err_password').classList.remove('show');document.getElementById('password').classList.remove('err');formData.password=pass;}
