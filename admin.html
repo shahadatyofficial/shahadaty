@@ -392,7 +392,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
-const ptitles={overview:'نظرة عامة',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام'};
+const ptitles={overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام'};
 let allInstitutions=[], allAdminCerts=[];
 function adminEsc(v){return String(v??'—').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}
 
@@ -810,7 +810,7 @@ window.addEventListener('load',async()=>{
   if(error||!isAdmin){await sb.auth.signOut();return;}
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('adminEmail').textContent=session.user.email||'';
-  loadOverview();loadBadges();
+  loadOverview();loadBadges();startSupportRealtime();loadSupportInbox();
 });
 </script>
 </body>
