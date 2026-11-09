@@ -1213,7 +1213,7 @@ window.addEventListener('load',()=>{
 <script>
 (function(){
  const panel=document.getElementById('sh-support-panel'),launcher=document.getElementById('sh-support-launcher'),toast=document.getElementById('sh-support-toast');
- window.shOpenSupport=function(){panel.classList.add('sh-open');panel.setAttribute('aria-hidden','false');launcher.setAttribute('aria-expanded','true');if(toast)toast.hidden=true;setTimeout(()=>document.getElementById('sh-chat-message')?.focus(),80);shPollSupport();if(!shSupportPoll)shSupportPoll=setInterval(()=>{if(panel.classList.contains('sh-open'))shPollSupport();},5000);};
+ window.shOpenSupport=async function(){panel.classList.add('sh-open');panel.setAttribute('aria-hidden','false');launcher.setAttribute('aria-expanded','true');if(toast)toast.hidden=true;const saved=await shLoadSupportSession();if(saved){window.shSupportSession=saved;document.getElementById('sh-chat-name').value=saved.name||'';document.getElementById('sh-chat-email').value=saved.email||'';await shPollSupport();}setTimeout(()=>document.getElementById('sh-chat-message')?.focus(),80);if(!shSupportPoll)shSupportPoll=setInterval(()=>{if(panel.classList.contains('sh-open'))shPollSupport();},5000);};
  window.shCloseSupport=function(){panel.classList.remove('sh-open');panel.setAttribute('aria-hidden','true');launcher.setAttribute('aria-expanded','false');};
  window.shToggleSupport=function(){panel.classList.contains('sh-open')?shCloseSupport():shOpenSupport();};
  window.shSupportSession=null;let shSupportPoll=null;let shSupportMessages=[];
@@ -1224,7 +1224,7 @@ window.addEventListener('load',()=>{
  window.shSendSupport=async function(e){e.preventDefault();const input=document.getElementById('sh-chat-message'),name=document.getElementById('sh-chat-name'),email=document.getElementById('sh-chat-email'),btn=document.getElementById('sh-chat-send');const body=(input.value||'').trim(),visitorName=(name.value||'').trim();if(!body)return;if(!visitorName){name.focus();name.style.borderColor='#dc2626';return;}name.style.borderColor='';btn.disabled=true;btn.textContent='جارٍ الإرسال';
  try{
   let session=window.shSupportSession||await shLoadSupportSession();
-  if(!session){session={id:crypto.randomUUID(),token:crypto.randomUUID()};const{error}=await sb.from('support_conversations').insert({id:session.id,access_token:session.token,visitor_name:visitorName,visitor_email:(email.value||'').trim()||null});if(error)throw error;localStorage.setItem('shahadaty_support_session',JSON.stringify(session));window.shSupportSession=session;}
+  if(!session){session={id:crypto.randomUUID(),token:crypto.randomUUID(),name:visitorName,email:(email.value||'').trim()};const{error}=await sb.from('support_conversations').insert({id:session.id,access_token:session.token,visitor_name:visitorName,visitor_email:session.email||null});if(error)throw error;localStorage.setItem('shahadaty_support_session',JSON.stringify(session));window.shSupportSession=session;}
   const{error}=await sb.from('support_messages').insert({conversation_id:session.id,sender:'visitor',access_token:session.token,body});if(error)throw error;
   input.value='';await shPollSupport();
  }catch(err){alert('تعذر إرسال الرسالة الآن. '+(err?.message||'حاول مرة أخرى.'));}finally{btn.disabled=false;btn.textContent='إرسال ↗';}
