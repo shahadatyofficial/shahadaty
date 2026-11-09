@@ -1,6 +1,9 @@
 /* Shahadaty live support chat — uses the page's existing Supabase client. */
 (function(){
-  if(!window.sb || document.getElementById('sh-chat-root')) return;
+  if(!window.supabase || document.getElementById('sh-chat-root')) return;
+  const SU='https://snteiiavvaaumgaegazn.supabase.co';
+  const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
+  const client=window.supabase.createClient(SU,SK);
   const PHONE='20123333805';
   const EMAIL='shahadatyofficial@gmail.com';
   const TOKEN_KEY='shahadaty_support_chat_token_v1';
@@ -45,7 +48,7 @@
   }
   async function refresh(initial=false){
     if(!token||loading)return;loading=true;
-    const{data,error}=await sb.rpc('support_chat_messages',{p_token:token});
+    const{data,error}=await client.rpc('support_chat_messages',{p_token:token});
     loading=false;
     if(error){if(String(error.message||'').includes('CHAT_NOT_FOUND')){localStorage.removeItem(TOKEN_KEY);token='';welcome.style.display='block';messages.style.display='none';compose.style.display='none';}return;}
     showMessages(data||[],initial);
@@ -55,7 +58,7 @@
     if(!msg)return;
     btn.disabled=true;btn.textContent='جارٍ الإرسال...';
     if(!token){const bytes=new Uint8Array(32);crypto.getRandomValues(bytes);token=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');}
-    const{data,error}=await sb.rpc('support_chat_start',{p_token:token,p_name:root.querySelector('#sh-chat-name').value.trim()||null,p_email:root.querySelector('#sh-chat-email').value.trim()||null,p_message:msg});
+    const{data,error}=await client.rpc('support_chat_start',{p_token:token,p_name:root.querySelector('#sh-chat-name').value.trim()||null,p_email:root.querySelector('#sh-chat-email').value.trim()||null,p_message:msg});
     btn.disabled=false;btn.textContent='ابدأ المحادثة';
     if(error){alert('تعذر بدء المحادثة حالياً. حاول مرة أخرى بعد قليل.');return;}
     localStorage.setItem(TOKEN_KEY,token);root.querySelector('#sh-chat-first-message').value='';started=true;await refresh(true);startPolling();
@@ -63,7 +66,7 @@
   async function sendMessage(){
     const input=root.querySelector('#sh-chat-text'),btn=root.querySelector('#sh-chat-send-btn'),value=input.value.trim();
     if(!value||!token||btn.disabled)return;btn.disabled=true;
-    const{error}=await sb.rpc('support_chat_send',{p_token:token,p_message:value});
+    const{error}=await client.rpc('support_chat_send',{p_token:token,p_message:value});
     btn.disabled=false;
     if(error){alert(error.message==='CHAT_CLOSED'?'المحادثة مغلقة.':'تعذر إرسال الرسالة. حاول مرة أخرى.');return;}
     input.value='';await refresh(true);
