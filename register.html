@@ -6,6 +6,7 @@
 <title>تسجيل مؤسسة جديدة - شهادتي</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Tajawal:wght@700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="support-chat.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--navy:#0c2d4e;--blue:#0369a1;--sky:#0284c7;--gold:#b08d48;--bg:#f8faff;--bg2:#f0f9ff;--border:#e0f0ff;--muted:#64748b;}
@@ -728,5 +729,6 @@ function goBack(step){currentStep=step;renderProgress();[renderStep1,renderStep2
 // INIT
 loadPackages().finally(()=>{ renderProgress(); renderStep1(); });
 </script>
+<script src="support-chat.js"></script>
 </body>
 </html>
