@@ -295,18 +295,20 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <!-- PACKAGES -->
     <div class="page" id="page-packages">
       <div class="card">
-        <div class="card-head"><span class="card-title">إدارة الباقات</span></div>
-        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الباقة</th><th>السعر الشهري</th><th>السعر السنوي</th><th>الكوتا</th><th>المشتركون</th></tr></thead><tbody id="pkgTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+        <div class="card-head"><span class="card-title">إدارة الباقات</span><button class="btn-p" onclick="openPackageEditor()"><span class="material-symbols-outlined">add</span>إضافة باقة</button></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الباقة</th><th>السعر الشهري</th><th>السعر السنوي</th><th>الكوتا</th><th>المشتركون</th><th>الإجراءات</th></tr></thead><tbody id="pkgTable"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+        <div class="card-head" style="margin-top:22px"><span class="card-title">الاشتراكات والمدفوعات غير المؤكدة</span><button class="btn-s" onclick="loadPkgs()">تحديث</button></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>المؤسسة</th><th>الباقة</th><th>القيمة</th><th>دورة الفوترة</th><th>الحالة</th><th>مرجع الدفع</th><th>إجراء</th></tr></thead><tbody id="subTable"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
       </div>
     </div>
 
     <!-- REPORTS -->
     <div class="page" id="page-reports">
       <div class="stats-row">
-        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#eff6ff"><span class="material-symbols-outlined" style="color:#0369a1">trending_up</span></div></div><span class="sc-val stat-num" id="rep_today">—</span><span class="sc-lbl">شهادات اليوم</span></div>
-        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#f0fdf4"><span class="material-symbols-outlined" style="color:#059669">calendar_month</span></div></div><span class="sc-val stat-num" id="rep_month">—</span><span class="sc-lbl">شهادات الشهر</span></div>
-        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#fef9ee"><span class="material-symbols-outlined" style="color:#b08d48">monetization_on</span></div></div><span class="sc-val stat-num" id="rep_rev">—</span><span class="sc-lbl">الإيرادات المقدرة (ج)</span></div>
-        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#fdf4ff"><span class="material-symbols-outlined" style="color:#7c3aed">verified</span></div></div><span class="sc-val stat-num" id="rep_verify">—</span><span class="sc-lbl">عمليات تحقق</span></div>
+        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#eff6ff"><span class="material-symbols-outlined" style="color:#0369a1">trending_up</span></div></div><span class="sc-val stat-num" id="rep_today">—</span><span class="sc-lbl">المؤسسات المعتمدة</span></div>
+        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#f0fdf4"><span class="material-symbols-outlined" style="color:#059669">calendar_month</span></div></div><span class="sc-val stat-num" id="rep_month">—</span><span class="sc-lbl">المؤسسات بانتظار الاعتماد</span></div>
+        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#fef9ee"><span class="material-symbols-outlined" style="color:#b08d48">monetization_on</span></div></div><span class="sc-val stat-num" id="rep_rev">—</span><span class="sc-lbl">إجمالي الشهادات</span></div>
+        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#fdf4ff"><span class="material-symbols-outlined" style="color:#7c3aed">verified</span></div></div><span class="sc-val stat-num" id="rep_verify">—</span><span class="sc-lbl">الشهادات السارية</span></div>
       </div>
       <div class="card">
         <div class="card-head"><span class="card-title">تصدير التقارير</span></div>
@@ -339,6 +341,24 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
   </div>
 </div>
 
+<div class="modal-ov" id="packageModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="packageModalTitle">
+  <div class="modal-box">
+    <div class="modal-head"><span class="modal-title" id="packageModalTitle">إضافة باقة جديدة</span><button class="modal-close" type="button" onclick="closePackageEditor()">✕</button></div>
+    <form id="packageForm" onsubmit="savePackage(event)">
+      <div class="modal-body">
+        <input type="hidden" id="packageId">
+        <label class="form-lbl" for="packageName">المعرف البرمجي (بالإنجليزية)</label><input class="form-inp" id="packageName" required maxlength="60" pattern="[a-zA-Z0-9_-]+" placeholder="professional" dir="ltr">
+        <label class="form-lbl" for="packageNameAr">اسم الباقة بالعربية</label><input class="form-inp" id="packageNameAr" required maxlength="100" placeholder="احترافية">
+        <label class="form-lbl" for="packageMonthly">السعر الشهري بالجنيه</label><input class="form-inp" id="packageMonthly" type="number" min="0" step="1" required>
+        <label class="form-lbl" for="packageYearly">السعر السنوي بالجنيه</label><input class="form-inp" id="packageYearly" type="number" min="0" step="1" required>
+        <label class="form-lbl" for="packageQuota">عدد الشهادات المسموح</label><input class="form-inp" id="packageQuota" type="number" min="0" step="1" required>
+        <label class="form-lbl" for="packageOrder">ترتيب العرض</label><input class="form-inp" id="packageOrder" type="number" min="0" step="1" value="10" required>
+        <div id="packageFormError" class="login-err" role="alert"></div>
+      </div>
+      <div class="modal-foot"><button class="btn-cancel" type="button" onclick="closePackageEditor()">إلغاء</button><button class="btn-p" id="packageSaveBtn" type="submit">حفظ الباقة</button></div>
+    </form>
+  </div>
+</div>
 <div id="toast" class="toast" style="display:none"></div>
 
 <script>
@@ -347,6 +367,7 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 const sb=supabase.createClient(SU,SK);
 const ptitles={overview:'نظرة عامة',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام'};
 let allInstitutions=[], allAdminCerts=[];
+function adminEsc(v){return String(v??'—').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}
 
 // ── AUTH ──────────────────────────────────────────────────────
 async function doLogin(){
@@ -373,33 +394,48 @@ function sp(name,el){
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('pageTitle').textContent=ptitles[name]||name;
   if(el)el.classList.add('active');
-  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:()=>{},recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,reports:loadReports};
+  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,reports:loadReports};
   if(loaders[name])loaders[name]();
 }
 
 // ── OVERVIEW ──────────────────────────────────────────────────
 async function loadOverview(){
-  const [{data:pending,error:pendingErr},{data:approved,error:approvedErr}]=await Promise.all([
+  const [
+    {data:stats,error:statsErr},
+    {data:pending,error:pendingErr},
+    {data:approved,error:approvedErr},
+    {data:newRecruitment,error:recErr}
+  ]=await Promise.all([
+    sb.rpc('admin_platform_stats'),
     sb.rpc('admin_list_institutions',{p_status:'pending'}),
-    sb.rpc('admin_list_institutions',{p_status:'approved'})
+    sb.rpc('admin_list_institutions',{p_status:'approved'}),
+    sb.rpc('admin_list_recruitment_requests',{p_status:'new'})
   ]);
-  if(pendingErr||approvedErr){toast((pendingErr||approvedErr).message||'تعذر تحميل لوحة الإدارة','err');return;}
-  document.getElementById('ov_inst').textContent=(approved||[]).length.toLocaleString('ar');
-  document.getElementById('ov_certs').textContent='—';
-  document.getElementById('ov_pending').textContent=(pending||[]).length.toLocaleString('ar');
-  document.getElementById('ov_rec').textContent='—';
-  document.getElementById('ov_reqs').innerHTML=(pending||[]).slice(0,5).map(r=>`<tr><td>${r.name||'—'}</td><td>${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG'):'—'}</td><td><span class="badge bwarn">معلق</span></td><td><button onclick="setInstSt('${r.id}','approved')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button></td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--muted)">لا توجد طلبات معلقة</td></tr>';
-  document.getElementById('ov_quota').innerHTML=(approved||[]).slice(0,6).map(i=>{const used=Number(i.quota_used||0),total=Number(i.quota_total||0),p=total?Math.round(used/total*100):0;return`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="font-weight:600;color:var(--navy)">${i.name||'—'}</span><span style="color:var(--muted)">${used}/${total}</span></div><div class="q-bar"><div class="q-fill ${p>=90?'danger':p>=75?'warn':''}" style="width:${p}%"></div></div></div>`}).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">لا توجد مؤسسات معتمدة</div>';
+  const failure=statsErr||pendingErr||approvedErr||recErr;
+  if(failure){toast(failure.message||'تعذر تحميل إحصائيات لوحة الإدارة','err');return;}
+  const totals=stats||{};
+  document.getElementById('ov_inst').textContent=Number(totals.approved_institutions||0).toLocaleString('ar-EG');
+  document.getElementById('ov_certs').textContent=Number(totals.certificates||0).toLocaleString('ar-EG');
+  document.getElementById('ov_pending').textContent=Number(totals.pending_institutions||0).toLocaleString('ar-EG');
+  document.getElementById('ov_rec').textContent=(newRecruitment||[]).length.toLocaleString('ar-EG');
+  document.getElementById('ov_reqs').innerHTML=!(pending||[]).length?'<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--muted)">لا توجد طلبات معلقة</td></tr>':pending.slice(0,5).map(r=>`<tr><td>${adminEsc(r.name||'—')}</td><td>${r.created_at?new Date(r.created_at).toLocaleDateString('ar-EG'):'—'}</td><td><span class="badge bwarn">معلق</span></td><td><button onclick="setInstSt('${r.id}','approved')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button></td></tr>`).join('');
+  document.getElementById('ov_quota').innerHTML=(approved||[]).slice(0,6).map(i=>{const used=Number(i.quota_used||0),total=Number(i.quota_total||0),p=total?Math.min(100,Math.round(used/total*100)):0;return `<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="font-weight:600;color:var(--navy)">${adminEsc(i.name||'—')}</span><span style="color:var(--muted)">${used}/${total}</span></div><div class="q-bar"><div class="q-fill ${p>=90?'danger':p>=75?'warn':''}" style="width:${p}%"></div></div></div>`}).join('')||'<div style="text-align:center;padding:20px;color:var(--muted)">لا توجد مؤسسات معتمدة</div>';
 }
 
 async function loadBadges(){
-  const{data,error}=await sb.rpc('admin_list_institutions',{p_status:'pending'});
-  if(error){return;}
-  const n=(data||[]).length;
-  document.getElementById('reqBadge').textContent=n;
-  document.getElementById('reqBadge').style.display=n?'inline':'none';
-  document.getElementById('recBadge').textContent='0';
-  document.getElementById('recBadge').style.display='none';
+  const [{data:pending,error:pendingErr},{data:newRecruitment,error:recErr}]=await Promise.all([
+    sb.rpc('admin_list_institutions',{p_status:'pending'}),
+    sb.rpc('admin_list_recruitment_requests',{p_status:'new'})
+  ]);
+  if(pendingErr||recErr){return;}
+  const pendingCount=(pending||[]).length;
+  const recruitmentCount=(newRecruitment||[]).length;
+  const reqBadge=document.getElementById('reqBadge');
+  reqBadge.textContent=pendingCount;
+  reqBadge.style.display=pendingCount?'inline':'none';
+  const recBadge=document.getElementById('recBadge');
+  recBadge.textContent=recruitmentCount;
+  recBadge.style.display=recruitmentCount?'inline':'none';
 }
 
 // ── INSTITUTIONS ──────────────────────────────────────────────
@@ -411,10 +447,10 @@ async function loadInstitutions(){
 }
 function renderInst(rows){
   document.getElementById('instTable').innerHTML=!rows.length?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج</td></tr>':rows.map(r=>`<tr>
-    <td>${r.name}</td><td dir="ltr" style="font-size:11px">${r.contact_email}</td>
-    <td>${r.package_name_ar||'—'}</td>
+    <td>${adminEsc(r.name)}</td><td dir="ltr" style="font-size:11px">${adminEsc(r.contact_email)}</td>
+    <td>${adminEsc(r.package_name_ar)}</td>
     <td><div style="min-width:100px">${r.quota_used||0}/${r.quota_total||0}<div class="q-bar" style="margin-top:3px"><div class="q-fill" style="width:${r.quota_total>0?Math.round((r.quota_used||0)/r.quota_total*100):0}%"></div></div></div></td>
-    <td><span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${r.status==='approved'?'معتمد':r.status==='pending'?'معلق':'موقوف'}</span></td>
+    <td><span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${r.status==='approved'?'معتمد':r.status==='pending'?'معلق':r.status==='rejected'?'مرفوض':'موقوف'}</span></td>
     <td><div style="display:flex;gap:6px">
       ${r.status==='pending'||r.status==='rejected'?`<button onclick="setInstSt('${r.id}','approved')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button>`:''}
       ${r.status==='approved'?`<button onclick="setInstSt('${r.id}','suspended')" class="btn-d" style="font-size:10px;padding:5px 10px">إيقاف</button>`:''}
@@ -456,33 +492,36 @@ async function loadReqs(){
   const rows=data||[];
   document.getElementById('reqsList').innerHTML=!rows.length?'<div style="text-align:center;padding:24px;color:var(--muted)">لا توجد طلبات</div>':rows.map(r=>`
   <div style="border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div><div style="font-size:15px;font-weight:800;color:var(--navy)">${r.name||'—'}</div><div style="font-size:11px;color:var(--muted)">${r.contact_email||'—'} · ${r.contact_phone||'—'}</div></div><span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${r.status==='approved'?'معتمد':r.status==='pending'?'معلق':r.status==='rejected'?'مرفوض':'موقوف'}</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div><div style="font-size:15px;font-weight:800;color:var(--navy)">${adminEsc(r.name)}</div><div style="font-size:11px;color:var(--muted)">${adminEsc(r.contact_email)} · ${adminEsc(r.contact_phone)}</div></div><span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${r.status==='approved'?'معتمد':r.status==='pending'?'معلق':r.status==='rejected'?'مرفوض':'موقوف'}</span></div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
-      ${[['النوع',r.institution_type||r.type],['المحافظة',r.governorate],['العنوان',r.address],['السجل التجاري',r.commercial_registration_number||r.commercial_registration],['البطاقة الضريبية',r.tax_card_number],['المالك',r.owner_name],['المدير',r.manager_name],['الباقة',r.package_name_ar||r.package_name]].map(x=>`<div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${x[0]}</div><div style="font-size:12px;font-weight:700;color:var(--navy);word-break:break-word">${x[1]||'—'}</div></div>`).join('')}
+      ${[['النوع',r.institution_type],['المحافظة',r.governorate],['العنوان',r.address],['رقم الطلب',r.request_number],['الباقة',r.package_name_ar],['الشهادات المستخدمة',r.quota_used],['إجمالي الحصة',r.quota_total]].map(x=>`<div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${adminEsc(x[0])}</div><div style="font-size:12px;font-weight:700;color:var(--navy);word-break:break-word">${adminEsc(x[1])}</div></div>`).join('')}
+
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-s" onclick="loadRequestDocs('${r.id}')">📎 مستندات المؤسسة</button>
       ${r.status==='pending'?'<button onclick="setInstSt(\''+r.id+'\',\'approved\')" class="btn-p">✓ اعتماد</button><button onclick="setInstSt(\''+r.id+'\',\'rejected\')" class="btn-d">رفض</button>':''}
     </div>
+    <div id="docs-${r.id}" style="margin-top:12px;padding:10px;background:var(--bg);border-radius:10px">اضغط «مستندات المؤسسة» لعرض الملفات ومراجعتها.</div>
   </div>`).join('');
 }
 async function loadRequestDocs(instId){
   const el=document.getElementById('docs-'+instId); if(!el)return;
   const{data,error}=await sb.rpc('admin_list_institution_documents',{p_institution_id:instId});
-  if(error){el.innerHTML='<span style="color:#dc2626">تعذر تحميل المستندات: '+error.message+'</span>';return;}
+  if(error){el.innerHTML='<span style="color:#dc2626">تعذر تحميل المستندات: '+adminEsc(error.message)+'</span>';return;}
   const docs=data||[];
   if(!docs.length){el.innerHTML='<span style="color:var(--muted)">لا توجد مستندات مرفوعة.</span>';return;}
   el.innerHTML=docs.map(d=>`
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div><div style="font-weight:800;font-size:12px">${d.document_type||'مستند'}</div><div style="font-size:10px;color:var(--muted)">${d.file_name||'—'} · ${d.status||'pending'}</div></div>
+      <div><div style="font-weight:800;font-size:12px">${adminEsc(d.document_type||'مستند')}</div><div style="font-size:10px;color:var(--muted)">${adminEsc(d.file_name)} · ${adminEsc(d.status||'pending')}</div></div>
       <div style="display:flex;gap:6px">
-        <button class="btn-s" style="font-size:10px;padding:5px 8px" onclick="openDoc('${String(d.file_path||'').replace(/'/g,"\\'")}')">عرض</button>
+        <button class="btn-s" style="font-size:10px;padding:5px 8px" onclick="openDoc(decodeURIComponent('${encodeURIComponent(d.file_path||'')}'))">عرض</button>
         ${d.status==='pending'? `<button class="btn-p" style="font-size:10px;padding:5px 8px" onclick="reviewDoc('${d.id}','approved')">اعتماد</button><button class="btn-d" style="font-size:10px;padding:5px 8px" onclick="reviewDoc('${d.id}','rejected')">رفض</button>` : ''}
       </div>
     </div>`).join('');
 }
 async function reviewDoc(id,status){
   const reason=status==='rejected'?prompt('سبب رفض المستند:',''):null;
-  if(status==='rejected' && !reason)return;
+  if(status==='rejected' && (reason===null||!reason.trim()))return;
   const{error}=await sb.rpc('review_document',{p_document_id:id,p_status:status,p_reason:reason});
   if(error){toast(error.message,'err');return;}
   toast('تم تحديث المستند','ok');loadReqs();
@@ -491,16 +530,16 @@ async function reviewDoc(id,status){
 // ── CERTS ─────────────────────────────────────────────────────
 async function loadAdminCerts(){
   const q=document.getElementById('certsSearch').value.trim();
-  if(q.length<2){document.getElementById('certsTable').innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">أدخل كلمة بحث (حرفان على الأقل)</td></tr>';return;}
-  const{data,error}=await sb.rpc('admin_list_certificates',{p_search:q});
+  if(q.length===1){document.getElementById('certsTable').innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">أدخل حرفاً إضافياً للبحث، أو اترك الحقل فارغاً لعرض أحدث الشهادات</td></tr>';return;}
+  const{data,error}=await sb.rpc('admin_list_certificates',{p_search:q||null});
   if(error){toast(error.message,'err');return;}
   allAdminCerts=(data||[]).map(c=>({...c,institutions:{name:c.institution_name}}));
   document.getElementById('certsTable').innerHTML=!allAdminCerts.length?'<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج</td></tr>':allAdminCerts.map(c=>`<tr>
-    <td>${c.student_name}</td><td style="font-family:monospace;font-size:11px">${c.cert_number}</td><td>${c.course}</td>
-    <td>${c.institutions?.name||'—'}</td><td>${new Date(c.issue_date).toLocaleDateString('ar-EG')}</td>
-    <td><span class="badge ${c.status==='active'?'bok':'berr'}">${c.status==='active'?'نشط':'ملغي'}</span></td>
+    <td>${adminEsc(c.student_name)}</td><td style="font-family:monospace;font-size:11px">${adminEsc(c.cert_number)}</td><td>${adminEsc(c.course)}</td>
+    <td>${adminEsc(c.institutions?.name||'—')}</td><td>${new Date(c.issue_date).toLocaleDateString('ar-EG')}</td>
+    <td><span class="badge ${c.status==='active'?'bok':c.status==='suspended'?'bwarn':'berr'}">${c.status==='active'?'نشط':c.status==='suspended'?'موقوف مؤقتاً':'ملغي'}</span></td>
     <td><div style="display:flex;gap:6px">
-      <a href="certificate.html?id=${c.cert_number}" target="_blank" class="btn-s" style="font-size:10px;padding:5px 10px">عرض</a>
+      <a href="certificate.html?id=${encodeURIComponent(c.cert_number||'')}" target="_blank" class="btn-s" style="font-size:10px;padding:5px 10px">عرض</a>
       ${c.status==='active'?`<button onclick="revokeCert('${c.id}')" class="btn-d" style="font-size:10px;padding:5px 10px">إلغاء</button>`:''}
     </div></td>
   </tr>`).join('');
@@ -531,12 +570,12 @@ async function loadRec(){
   document.getElementById('recList').innerHTML=!(data||[]).length?'<div style="text-align:center;padding:24px;color:var(--muted)">لا توجد طلبات</div>':(data||[]).map(r=>`
   <div style="border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div><div style="font-size:15px;font-weight:800;color:var(--navy)">${r.company_name}</div><div style="font-size:11px;color:var(--muted)">${r.contact_name} · ${r.contact_email}</div></div>
-      <span class="badge ${r.status==='new'?'bnew':r.status==='fulfilled'?'bok':'bwarn'}">${sts[r.status]||r.status}</span>
+      <div><div style="font-size:15px;font-weight:800;color:var(--navy)">${adminEsc(r.company_name)}</div><div style="font-size:11px;color:var(--muted)">${adminEsc(r.contact_name)} · ${adminEsc(r.contact_email)}</div></div>
+      <span class="badge ${['new','processing','fulfilled','closed'].includes(r.status)?(r.status==='new'?'bnew':r.status==='fulfilled'?'bok':'bwarn'):'bwarn'}">${adminEsc(sts[r.status]||r.status)}</span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
-      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المؤهل</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${r.qualification}</div></div>
-      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المحافظة</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${r.governorate||'أي محافظة'}</div></div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المؤهل</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${adminEsc(r.qualification)}</div></div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">المحافظة</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${adminEsc(r.governorate||'أي محافظة')}</div></div>
       <div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">العدد المطلوب</div><div style="font-size:12px;font-weight:700;color:var(--navy)">${r.positions_needed} وظيفة</div></div>
     </div>
     <div style="display:flex;gap:8px">
@@ -588,15 +627,88 @@ async function addCreds(id,current){const a=prompt('كم عملية بحث تض�
 
 // ── PACKAGES ──────────────────────────────────────────────────
 async function loadPkgs(){
-  const{data}=await sb.from('packages').select('*,institutions(id)').order('sort_order');
-  document.getElementById('pkgTable').innerHTML=!(data||[]).length?'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">لا توجد بيانات</td></tr>':data.map(p=>`<tr>
-    <td><span style="font-weight:800">${p.name_ar||p.name||'—'}</span></td>
-    <td>${p.price_monthly||0} ج</td><td>${p.price_yearly||0} ج</td>
-    <td>${p.quota_limit||0} شهادة</td>
+  const[{data:packages,error:pkgErr},{data:subs,error:subErr}]=await Promise.all([
+    sb.from('packages').select('*,institutions(id)').order('sort_order'),
+    sb.rpc('admin_list_subscriptions',{p_status:null})
+  ]);
+  if(pkgErr){toast(pkgErr.message,'err');return;}
+  const pkgBody=document.getElementById('pkgTable');
+  pkgBody.innerHTML=!(packages||[]).length?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">لا توجد باقات</td></tr>':packages.map(p=>`<tr>
+    <td><span style="font-weight:800">${adminEsc(p.name_ar||p.name)}</span><div style="font-size:10px;color:var(--muted)" dir="ltr">${adminEsc(p.name)}</div></td>
+    <td>${Number(p.price_monthly||0).toLocaleString('ar-EG')} ج</td><td>${Number(p.price_yearly||0).toLocaleString('ar-EG')} ج</td>
+    <td>${Number(p.quota_limit||0).toLocaleString('ar-EG')} شهادة</td>
     <td><span style="font-size:13px;font-weight:800;color:var(--blue)">${p.institutions?.length||0}</span></td>
+    <td><button class="btn-s" type="button" onclick="editPackage('${p.id}')">تعديل</button> <button class="btn-d" type="button" onclick="deletePackage('${p.id}')">حذف</button></td>
+  </tr>`).join('');
+  const unpaid=(subs||[]).filter(s=>Number(s.amount||0)>0&&s.payment_status!=='paid'&&!['cancelled','expired'].includes(s.status));
+  const body=document.getElementById('subTable');
+  if(subErr){body.innerHTML='<tr><td colspan="7">تعذر تحميل الاشتراكات: '+adminEsc(subErr.message)+'</td></tr>';return;}
+  body.innerHTML=!unpaid.length?'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">لا توجد مدفوعات معلقة</td></tr>':unpaid.map(s=>`<tr>
+    <td>${adminEsc(s.institution_name)}</td><td>${adminEsc(s.package_name)}</td>
+    <td>${Number(s.amount||0).toLocaleString('ar-EG')} ${adminEsc(s.currency||'EGP')}</td>
+    <td>${s.billing_cycle==='yearly'?'سنوي':'شهري'}</td>
+    <td>${adminEsc(s.payment_status)} / ${adminEsc(s.status)}</td>
+    <td>${adminEsc(s.payment_reference)}</td>
+    <td><button class="btn-p" onclick="confirmSubscriptionPayment('${s.id}')">تأكيد السداد</button></td>
   </tr>`).join('');
 }
+function openPackageEditor(pkg=null){
+  document.getElementById('packageForm').reset();
+  document.getElementById('packageFormError').style.display='none';
+  document.getElementById('packageId').value=pkg?.id||'';
+  document.getElementById('packageName').value=pkg?.name||'';
+  document.getElementById('packageName').readOnly=!!pkg;
+  document.getElementById('packageNameAr').value=pkg?.name_ar||'';
+  document.getElementById('packageMonthly').value=pkg?.price_monthly??0;
+  document.getElementById('packageYearly').value=pkg?.price_yearly??0;
+  document.getElementById('packageQuota').value=pkg?.quota_limit??10;
+  document.getElementById('packageOrder').value=pkg?.sort_order??10;
+  document.getElementById('packageModalTitle').textContent=pkg?'تعديل الباقة':'إضافة باقة جديدة';
+  document.getElementById('packageModal').style.display='flex';
+}
+function closePackageEditor(){document.getElementById('packageModal').style.display='none';}
+async function editPackage(id){
+  const{data,error}=await sb.from('packages').select('*').eq('id',id).maybeSingle();
+  if(error||!data){toast(error?.message||'تعذر تحميل الباقة','err');return;}
+  openPackageEditor(data);
+}
+async function savePackage(event){
+  event.preventDefault();
+  const btn=document.getElementById('packageSaveBtn'),errorBox=document.getElementById('packageFormError');
+  const packageId=document.getElementById('packageId').value||null;
+  const payload={
+    p_package_id:packageId,p_name:document.getElementById('packageName').value.trim(),
+    p_name_ar:document.getElementById('packageNameAr').value.trim(),
+    p_price_monthly:Number(document.getElementById('packageMonthly').value),
+    p_price_yearly:Number(document.getElementById('packageYearly').value),
+    p_quota_limit:Number(document.getElementById('packageQuota').value),
+    p_sort_order:Number(document.getElementById('packageOrder').value)
+  };
+  if(!payload.p_name||!payload.p_name_ar||Object.values(payload).some((v,i)=>i>1&&(!Number.isInteger(v)||v<0))){
+    errorBox.textContent='راجع البيانات: الأسعار والكوتا والترتيب يجب أن تكون أرقاماً صحيحة غير سالبة.';errorBox.style.display='block';return;
+  }
+  btn.disabled=true;btn.textContent='جارٍ الحفظ...';errorBox.style.display='none';
+  const{error}=await sb.rpc('admin_save_package',payload);
+  btn.disabled=false;btn.textContent='حفظ الباقة';
+  if(error){errorBox.textContent=error.message;errorBox.style.display='block';return;}
+  closePackageEditor();toast(packageId?'تم تحديث الباقة':'تمت إضافة الباقة','ok');loadPkgs();
+}
+async function deletePackage(id){
+  if(!confirm('هل تريد حذف هذه الباقة؟ لن يُسمح بالحذف إذا كانت مرتبطة بمؤسسة أو اشتراك.'))return;
+  const{error}=await sb.rpc('admin_delete_package',{p_package_id:id});
+  if(error){toast(error.message,'err');return;}
+  toast('تم حذف الباقة','ok');loadPkgs();
+}
 
+async function confirmSubscriptionPayment(id){
+  const reference=prompt('أدخل رقم إيصال التحويل أو مرجع الدفع بعد التحقق منه:','');
+  if(reference===null)return;
+  if(!reference.trim()){toast('مرجع الدفع مطلوب بعد مراجعة إثبات السداد','err');return;}
+  if(!confirm('هل تحققت فعلياً من استلام المبلغ وتريد تفعيل الاشتراك؟'))return;
+  const{error}=await sb.rpc('admin_confirm_subscription_payment',{p_subscription_id:id,p_payment_reference:reference.trim()});
+  if(error){toast(error.message,'err');return;}
+  toast('تم تسجيل السداد وتفعيل الاشتراك','ok');loadPkgs();
+}
 // ── REPORTS ───────────────────────────────────────────────────
 async function loadReports(){
   const{data,error}=await sb.rpc('admin_platform_stats');
@@ -616,7 +728,7 @@ async function exportReport(table){
   toast('تم تصدير التقرير','ok');
 }
 
-async function openDoc(path){const{data,error}=await sb.storage.from('institution-documents').createSignedUrl(path,300);if(error){toast(error.message,'err');return;}window.open(data.signedUrl,'_blank','noopener');}
+async function openDoc(path){const tab=window.open('about:blank','_blank');if(!tab){toast('اسمح بفتح النوافذ المنبثقة لعرض المستند','err');return;}const{data,error}=await sb.storage.from('institution-documents').createSignedUrl(path,300);if(error){tab.close();toast(error.message,'err');return;}tab.opener=null;tab.location.href=data.signedUrl;}
 
 // ── HELPERS ───────────────────────────────────────────────────
 function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=type==='ok'?'#0369a1':'#dc2626';t.style.display='block';setTimeout(()=>t.style.display='none',3500);}

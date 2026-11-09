@@ -164,6 +164,10 @@ const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
 
+function escapeHtml(value){
+  return String(value??'').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));
+}
+
 const STEPS=[
   {icon:'🏢',label:'بيانات المؤسسة'},
   {icon:'⚖️',label:'البيانات القانونية'},
@@ -173,6 +177,8 @@ const STEPS=[
 ];
 
 let currentStep=0;
+let registrationSubmitting=false;
+let registrationFinishing=false;
 const formData={
   // Step 1
   inst_name:'',inst_type:'',governorate:'',address:'',
@@ -247,7 +253,7 @@ function renderStep1(){
     <div class="card-body">
       <div class="form-row full"><div class="form-group">
         <label class="form-label"><span>*</span> اسم المؤسسة</label>
-        <input class="form-inp" id="inst_name" placeholder="مثال: مركز شهادتي للتدريب" value="${formData.inst_name}">
+        <input class="form-inp" id="inst_name" placeholder="مثال: مركز شهادتي للتدريب" value="${escapeHtml(formData.inst_name)}">
         <div class="form-err" id="err_inst_name">الرجاء إدخال اسم المؤسسة</div>
       </div></div>
       <div class="form-row">
@@ -270,7 +276,7 @@ function renderStep1(){
       </div>
       <div class="form-row full"><div class="form-group">
         <label class="form-label"><span>*</span> العنوان بالتفصيل</label>
-        <input class="form-inp" id="address" placeholder="الشارع، الحي، المدينة..." value="${formData.address}">
+        <input class="form-inp" id="address" placeholder="الشارع، الحي، المدينة..." value="${escapeHtml(formData.address)}">
         <div class="form-err" id="err_address">الرجاء إدخال العنوان</div>
       </div></div>
       <div class="btn-row">
@@ -307,24 +313,24 @@ function renderStep2(){
       <div class="form-row">
         <div class="form-group">
           <label class="form-label"><span>*</span> رقم السجل التجاري</label>
-          <input class="form-inp" id="commercial_reg" placeholder="مثال: 123456" value="${formData.commercial_reg}">
+          <input class="form-inp" id="commercial_reg" placeholder="مثال: 123456" value="${escapeHtml(formData.commercial_reg)}">
           <div class="form-err" id="err_commercial_reg">الرجاء إدخال رقم السجل التجاري</div>
         </div>
         <div class="form-group">
           <label class="form-label"><span>*</span> رقم البطاقة الضريبية</label>
-          <input class="form-inp" id="tax_num" placeholder="مثال: 789012" value="${formData.tax_num}">
+          <input class="form-inp" id="tax_num" placeholder="مثال: 789012" value="${escapeHtml(formData.tax_num)}">
           <div class="form-err" id="err_tax_num">الرجاء إدخال رقم البطاقة الضريبية</div>
         </div>
       </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label"><span>*</span> اسم المالك</label>
-          <input class="form-inp" id="owner_name" placeholder="الاسم الكامل" value="${formData.owner_name}">
+          <input class="form-inp" id="owner_name" placeholder="الاسم الكامل" value="${escapeHtml(formData.owner_name)}">
           <div class="form-err" id="err_owner_name">الرجاء إدخال اسم المالك</div>
         </div>
         <div class="form-group">
           <label class="form-label"><span>*</span> اسم المدير المسؤول</label>
-          <input class="form-inp" id="manager_name" placeholder="الاسم الكامل" value="${formData.manager_name}">
+          <input class="form-inp" id="manager_name" placeholder="الاسم الكامل" value="${escapeHtml(formData.manager_name)}">
           <div class="form-err" id="err_manager_name">الرجاء إدخال اسم المدير</div>
         </div>
       </div>
@@ -384,6 +390,14 @@ function renderStep2(){
 function handleFile(type,inp){
   const file=inp.files[0];
   if(!file)return;
+  const allowed=file.type==='application/pdf'||/^image\/(png|jpeg|webp)$/.test(file.type);
+  if(!allowed||file.size>5*1024*1024){
+    inp.value='';
+    const label=document.getElementById('fn_'+type);
+    label.textContent=!allowed?'نوع الملف غير مدعوم. استخدم PDF أو JPG أو PNG أو WEBP':'حجم الملف أكبر من 5MB';
+    label.style.color='#dc2626';
+    return;
+  }
   formData['doc_'+type]=file;
   document.getElementById('fn_'+type).textContent='✅ '+file.name;
   document.getElementById('fu_'+type).classList.add('uploaded');
@@ -413,12 +427,12 @@ function renderStep3(){
       <div class="form-row">
         <div class="form-group">
           <label class="form-label"><span>*</span> البريد الإلكتروني الرسمي</label>
-          <input class="form-inp" id="email" type="email" placeholder="example@institution.com" dir="ltr" value="${formData.email}">
+          <input class="form-inp" id="email" type="email" placeholder="example@institution.com" dir="ltr" value="${escapeHtml(formData.email)}">
           <div class="form-err" id="err_email">الرجاء إدخال بريد إلكتروني صحيح</div>
         </div>
         <div class="form-group">
           <label class="form-label"><span>*</span> رقم الهاتف</label>
-          <input class="form-inp" id="phone" type="tel" placeholder="01XXXXXXXXX" dir="ltr" value="${formData.phone}">
+          <input class="form-inp" id="phone" type="tel" placeholder="01XXXXXXXXX" dir="ltr" value="${escapeHtml(formData.phone)}">
           <div class="form-err" id="err_phone">الرجاء إدخال رقم الهاتف</div>
         </div>
       </div>
@@ -454,13 +468,13 @@ function submitStep3(){
   const phone=document.getElementById('phone').value.trim();
   const pass=document.getElementById('password').value;
   const pass2=document.getElementById('password_confirm').value;
-  if(!email||!email.includes('@')){document.getElementById('err_email').classList.add('show');document.getElementById('email').classList.add('err');valid=false;}
+  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){document.getElementById('err_email').classList.add('show');document.getElementById('email').classList.add('err');valid=false;}
   else{document.getElementById('err_email').classList.remove('show');document.getElementById('email').classList.remove('err');formData.email=email;}
-  if(!phone){document.getElementById('err_phone').classList.add('show');document.getElementById('phone').classList.add('err');valid=false;}
+  if(!/^[+0-9٠-٩۰-۹\\s()-]{8,20}$/.test(phone)){document.getElementById('err_phone').classList.add('show');document.getElementById('phone').classList.add('err');valid=false;}
   else{document.getElementById('err_phone').classList.remove('show');document.getElementById('phone').classList.remove('err');formData.phone=phone;}
   if(pass.length<8){document.getElementById('err_password').classList.add('show');document.getElementById('password').classList.add('err');valid=false;}
   else{document.getElementById('err_password').classList.remove('show');document.getElementById('password').classList.remove('err');formData.password=pass;}
-  if(pass!==pass2){document.getElementById('err_password_confirm').classList.add('show');document.getElementById('password_confirm').classList.add('err');valid=false;}
+  if(!pass2||pass!==pass2){document.getElementById('err_password_confirm').classList.add('show');document.getElementById('password_confirm').classList.add('err');valid=false;}
   else{document.getElementById('err_password_confirm').classList.remove('show');document.getElementById('password_confirm').classList.remove('err');}
   if(valid){currentStep=3;renderProgress();renderStep4();}
 }
@@ -476,7 +490,7 @@ function renderStep4(){
     <div class="card-body">
       <div class="pkg-grid">
         ${PACKAGES.map(p=>`
-        <div class="pkg-option ${p.popular?'popular':''} ${formData.package_id===p.id?'selected':''}" onclick="selectPkg('${p.id}','${p.name}')">
+        <div class="pkg-option ${p.popular?'popular':''} ${formData.package_id===p.id?'selected':''}" onclick="selectPkg('${p.id}','${p.name}',this)">
           <span class="pkg-emoji">${p.emoji}</span>
           <div class="pkg-name" style="color:${p.color}">${p.name}</div>
           <div class="pkg-price" style="color:${p.color}">${p.price===null?'تواصل':`<sup>ج</sup>${p.price.toLocaleString()} <span style="font-size:10px;font-weight:700">شهريًا</span>`}</div>
@@ -497,10 +511,10 @@ function renderStep4(){
   </div>`;
 }
 
-function selectPkg(id,name){
+function selectPkg(id,name,el){
   formData.package_id=id;formData.package_name=name;
   document.querySelectorAll('.pkg-option').forEach(p=>p.classList.remove('selected'));
-  event.currentTarget.classList.add('selected');
+  (el||document.querySelector(`.pkg-option[onclick*="${id}"]`))?.classList.add('selected');
 }
 
 function submitStep4(){
@@ -522,35 +536,35 @@ function renderStep5(){
       <div class="review-section">
         <div class="review-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/></svg>بيانات المؤسسة <span class="review-edit" onclick="goBack(0)">تعديل</span></div>
         <div class="review-grid">
-          <div class="review-item"><div class="review-lbl">اسم المؤسسة</div><div class="review-val">${formData.inst_name}</div></div>
-          <div class="review-item"><div class="review-lbl">نوع المؤسسة</div><div class="review-val">${formData.inst_type}</div></div>
-          <div class="review-item"><div class="review-lbl">المحافظة</div><div class="review-val">${formData.governorate}</div></div>
-          <div class="review-item"><div class="review-lbl">العنوان</div><div class="review-val">${formData.address}</div></div>
+          <div class="review-item"><div class="review-lbl">اسم المؤسسة</div><div class="review-val">${escapeHtml(formData.inst_name)}</div></div>
+          <div class="review-item"><div class="review-lbl">نوع المؤسسة</div><div class="review-val">${escapeHtml(formData.inst_type)}</div></div>
+          <div class="review-item"><div class="review-lbl">المحافظة</div><div class="review-val">${escapeHtml(formData.governorate)}</div></div>
+          <div class="review-item"><div class="review-lbl">العنوان</div><div class="review-val">${escapeHtml(formData.address)}</div></div>
         </div>
       </div>
 
       <div class="review-section">
         <div class="review-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>البيانات القانونية <span class="review-edit" onclick="goBack(1)">تعديل</span></div>
         <div class="review-grid">
-          <div class="review-item"><div class="review-lbl">رقم السجل التجاري</div><div class="review-val">${formData.commercial_reg}</div></div>
-          <div class="review-item"><div class="review-lbl">رقم البطاقة الضريبية</div><div class="review-val">${formData.tax_num}</div></div>
-          <div class="review-item"><div class="review-lbl">اسم المالك</div><div class="review-val">${formData.owner_name}</div></div>
-          <div class="review-item"><div class="review-lbl">اسم المدير</div><div class="review-val">${formData.manager_name}</div></div>
+          <div class="review-item"><div class="review-lbl">رقم السجل التجاري</div><div class="review-val">${escapeHtml(formData.commercial_reg)}</div></div>
+          <div class="review-item"><div class="review-lbl">رقم البطاقة الضريبية</div><div class="review-val">${escapeHtml(formData.tax_num)}</div></div>
+          <div class="review-item"><div class="review-lbl">اسم المالك</div><div class="review-val">${escapeHtml(formData.owner_name)}</div></div>
+          <div class="review-item"><div class="review-lbl">اسم المدير</div><div class="review-val">${escapeHtml(formData.manager_name)}</div></div>
         </div>
       </div>
 
       <div class="review-section">
         <div class="review-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>بيانات التواصل <span class="review-edit" onclick="goBack(2)">تعديل</span></div>
         <div class="review-grid">
-          <div class="review-item"><div class="review-lbl">البريد الإلكتروني</div><div class="review-val" dir="ltr" style="text-align:right">${formData.email}</div></div>
-          <div class="review-item"><div class="review-lbl">رقم الهاتف</div><div class="review-val" dir="ltr" style="text-align:right">${formData.phone}</div></div>
+          <div class="review-item"><div class="review-lbl">البريد الإلكتروني</div><div class="review-val" dir="ltr" style="text-align:right">${escapeHtml(formData.email)}</div></div>
+          <div class="review-item"><div class="review-lbl">رقم الهاتف</div><div class="review-val" dir="ltr" style="text-align:right">${escapeHtml(formData.phone)}</div></div>
         </div>
       </div>
 
       <div class="review-section">
         <div class="review-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/></svg>الباقة المختارة <span class="review-edit" onclick="goBack(3)">تعديل</span></div>
         <div class="review-grid">
-          <div class="review-item"><div class="review-lbl">الباقة</div><div class="review-val">${pkg?.emoji} ${formData.package_name}</div></div>
+          <div class="review-item"><div class="review-lbl">الباقة</div><div class="review-val">${pkg?.emoji||''} ${escapeHtml(formData.package_name)}</div></div>
           <div class="review-item"><div class="review-lbl">السعر</div><div class="review-val">${pkg?.price===null?'تواصل معنا':pkg?.price===0?'مجاني':pkg?.price+' ج / شهر'}</div></div>
         </div>
       </div>
@@ -577,29 +591,32 @@ function renderStep5(){
 
 // ── SUBMIT ──
 async function submitFinal(){
+  if(registrationSubmitting)return;
   const t1=document.getElementById('terms1').checked;
   const t2=document.getElementById('terms2').checked;
   const errT=document.getElementById('err_terms');
   if(!t1||!t2){errT.style.display='block';return;}
   errT.style.display='none';
+  registrationSubmitting=true;
   const selectedPackage=PACKAGES.find(p=>p.id===formData.package_id);
-  if(!selectedPackage){return showSubmitError('الباقة المختارة غير متاحة حالياً. أعد تحميل الصفحة وحاول مرة أخرى.');}
-  if(!selectedPackage.dbId){return showSubmitError('تعذر تحميل الباقات من قاعدة البيانات. لم يتم إنشاء الحساب. أعد تحميل الصفحة وحاول مرة أخرى.');}
+  if(!selectedPackage){registrationSubmitting=false;return showSubmitError('الباقة المختارة غير متاحة حالياً. أعد تحميل الصفحة وحاول مرة أخرى.');}
+  if(!selectedPackage.dbId){registrationSubmitting=false;return showSubmitError('تعذر تحميل الباقات من قاعدة البيانات. لم يتم إنشاء الحساب. أعد تحميل الصفحة وحاول مرة أخرى.');}
   document.getElementById('mainContent').innerHTML=`<div style="text-align:center;padding:60px"><div class="spinner"></div><div style="font-size:15px;font-weight:700;color:var(--muted);margin-top:16px">جاري إنشاء الحساب وإرسال طلب التسجيل...</div></div>`;
   try{
     const {data:authData,error:authErr}=await sb.auth.signUp({email:formData.email.toLowerCase(),password:formData.password});
     if(authErr) throw authErr;
     if(!authData?.user) throw new Error('تعذر إنشاء حساب المستخدم.');
     if(!authData.session){
+      registrationSubmitting=false;
       document.getElementById('mainContent').innerHTML=`<div class="card"><div class="card-body" style="text-align:center;padding:40px">
         <div style="font-size:48px">✉️</div><h3 style="font-size:18px;font-weight:900;margin:12px 0">أكد بريدك الإلكتروني</h3>
-        <p style="line-height:1.9;color:var(--muted)">تم إنشاء حساب الدخول. افتح رسالة التأكيد المرسلة إلى ${formData.email}، ثم ارجع واضغط الزر أدناه لإكمال تسجيل المؤسسة ورفع المستندات. لا تعِد تعبئة النموذج.</p>
+        <p style="line-height:1.9;color:var(--muted)">تم إنشاء حساب الدخول. افتح رسالة التأكيد المرسلة إلى ${escapeHtml(formData.email)}، ثم ارجع واضغط الزر أدناه لإكمال تسجيل المؤسسة ورفع المستندات. لا تعِد تعبئة النموذج.</p>
         <button class="btn-next" onclick="resumeRegistrationAfterConfirmation()" style="margin:18px auto 0">أكدت البريد — أكمل التسجيل</button>
       </div></div>`;
       return;
     }
     await createInstitutionAndDocuments(selectedPackage);
-  }catch(err){showSubmitError(err.message||'تعذر إرسال طلب التسجيل. يرجى المحاولة مرة أخرى.');}
+  }catch(err){registrationSubmitting=false;showSubmitError(err.message||'تعذر إرسال طلب التسجيل. يرجى المحاولة مرة أخرى.');}
 }
 
 async function resumeRegistrationAfterConfirmation(){
@@ -617,6 +634,8 @@ async function resumeRegistrationAfterConfirmation(){
 let pendingInstitutionId=null;
 let pendingRequestNumber=null;
 async function createInstitutionAndDocuments(selectedPackage){
+  if(registrationFinishing)return;
+  registrationFinishing=true;
   try{
     if(!pendingInstitutionId){
       const {data:regData,error:regErr}=await sb.rpc('register_institution',{
@@ -633,13 +652,14 @@ async function createInstitutionAndDocuments(selectedPackage){
     const uploadedDocs=await uploadRegistrationDocuments(pendingInstitutionId);
     renderSuccess({emailConfirmationRequired:false,uploadedDocs,requestNumber:pendingRequestNumber});
   }catch(err){showSubmitError(err.message||'تم حفظ جزء من الطلب. اضغط إعادة المحاولة لإكمال رفع المستندات دون إنشاء مؤسسة مكررة.',true);}
+  finally{registrationFinishing=false;}
 }
 
 async function uploadRegistrationDocuments(institutionId){
   if(!institutionId)return 0;
   const docs=[
-    {key:'commercial',type:'commercial_registration',required:true},
-    {key:'tax',type:'tax_card',required:true},
+    {key:'commercial',type:'commercial_registration',required:false},
+    {key:'tax',type:'tax_card',required:false},
     {key:'other',type:'institution_proof',required:false}
   ];
   const {data:existingDocs,error:existingErr}=await sb.from('institution_documents').select('document_type').eq('institution_id',institutionId);
@@ -675,7 +695,7 @@ function showSubmitError(message,canRetry=false){
   document.getElementById('mainContent').innerHTML=`<div class="card"><div class="card-body" style="text-align:center;padding:40px">
     <div style="font-size:48px;margin-bottom:16px">❌</div>
     <h3 style="font-size:18px;font-weight:900;color:#dc2626;margin-bottom:8px">تعذر إرسال الطلب</h3>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.8">${String(message).replace(/[<>]/g,'')}</p>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.8">${escapeHtml(message)}</p>
     ${canRetry&&pendingInstitutionId?'<button onclick="createInstitutionAndDocuments(PACKAGES.find(p=>p.id===formData.package_id))" class="btn-next" style="margin:0 auto 12px">إعادة المحاولة وإكمال المستندات</button>':''}
     <button onclick="currentStep=4;renderProgress();renderStep5()" class="btn-next" style="margin:auto">← العودة للمراجعة</button>
   </div></div>`;
@@ -684,14 +704,14 @@ function showSubmitError(message,canRetry=false){
 function renderSuccess({emailConfirmationRequired=false,uploadedDocs=0,requestNumber=null}={}){
   currentStep=5;renderProgress();
   const emailText=emailConfirmationRequired
-    ? `تم إنشاء الحساب وإرسال رسالة تأكيد إلى ${formData.email}. افتح الرسالة وأكّد بريدك الإلكتروني لإكمال الدخول.`
+    ? `تم إنشاء الحساب وإرسال رسالة تأكيد إلى ${escapeHtml(formData.email)}. افتح الرسالة وأكّد بريدك الإلكتروني لإكمال الدخول.`
     : `تم إنشاء الحساب واستلام طلب المؤسسة${requestNumber?` رقم ${requestNumber}`:''}. تم رفع ${uploadedDocs} مستندات قانونية وسيقوم فريقنا بمراجعتها.`;
   document.getElementById('mainContent').innerHTML=`
   <div class="card">
     <div class="success-screen">
       <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg></div>
       <div class="success-title">تم استلام طلبك بنجاح! 🎉</div>
-      <p class="success-sub">${emailText}</p>
+      <p class="success-sub">${escapeHtml(emailText)}</p>
       <div class="status-steps">
         <div class="status-step"><div class="ss-dot active"></div><div><div class="ss-label">✅ تم استلام الطلب</div><div class="ss-desc">تم تسجيل بيانات المؤسسة والبيانات القانونية.</div></div></div>
         <div class="status-step"><div class="ss-dot pending"></div><div><div class="ss-label">🔍 قيد المراجعة</div><div class="ss-desc">سيقوم فريق الإدارة بمراجعة البيانات والمستندات.</div></div></div>
