@@ -1,16 +1,22 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://shahadatyofficial.github.io",
+const allowedOrigins = new Set([
+  "https://shahadatyofficial.github.io",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+]);
+
+const corsFor = (origin: string) => ({
+  "Access-Control-Allow-Origin": allowedOrigins.has(origin) ? origin : "https://shahadatyofficial.github.io",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Vary": "Origin",
-};
+});
 
-const json = (status: number, body: Record<string, unknown>) =>
+const json = (status: number, body: Record<string, unknown>, origin: string) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsFor(origin), "Content-Type": "application/json" },
   });
 
 async function sha256(value: string) {
@@ -35,17 +41,11 @@ async function findUserByIdentifier(admin: any, email: string | null, phone: str
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json(405, { ok: false, message: "Method not allowed" });
-
   const origin = req.headers.get("origin") || "";
-  const allowedOrigins = new Set([
-    "https://shahadatyofficial.github.io",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-  ]);
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(origin) });
+  if (req.method !== "POST") return json(405, { ok: false, message: "Method not allowed" , origin});
   if (origin && !allowedOrigins.has(origin)) {
-    return json(403, { ok: false, message: "مصدر الطلب غير مسموح." });
+    return json(403, { ok: false, message: "مصدر الطلب غير مسموح." }, origin);
   }
 
   try {
@@ -55,16 +55,16 @@ Deno.serve(async (req: Request) => {
     const password = String(body?.password || "");
 
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-      return json(400, { ok: false, message: "راجع البريد الإلكتروني أو اتركه فارغًا." });
+      return json(400, { ok: false, message: "راجع البريد الإلكتروني أو اتركه فارغًا." }, origin);
     }
     if (!/^\+20(10|11|12|15)\d{8}$/.test(phone)) {
-      return json(400, { ok: false, message: "رقم الهاتف المصري غير صحيح." });
+      return json(400, { ok: false, message: "رقم الهاتف المصري غير صحيح." }, origin);
     }
     if (password.length < 8 || password.length > 128) {
-      return json(400, { ok: false, message: "كلمة المرور يجب ألا تقل عن 8 أحرف." });
+      return json(400, { ok: false, message: "كلمة المرور يجب ألا تقل عن 8 أحرف." }, origin);
     }
     if (!email && !phone) {
-      return json(400, { ok: false, message: "أدخل البريد الإلكتروني أو رقم الهاتف." });
+      return json(400, { ok: false, message: "أدخل البريد الإلكتروني أو رقم الهاتف." }, origin);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -88,7 +88,7 @@ Deno.serve(async (req: Request) => {
     );
     if (rateLimitError) throw rateLimitError;
     if (allowed !== true) {
-      return json(429, { ok: false, message: "تم تجاوز عدد محاولات التسجيل. انتظر 15 دقيقة ثم حاول مرة أخرى." });
+      return json(429, { ok: false, message: "تم تجاوز عدد محاولات التسجيل. انتظر 15 دقيقة ثم حاول مرة أخرى." }, origin);
     }
 
     const credentials = [
@@ -122,10 +122,10 @@ Deno.serve(async (req: Request) => {
       const currentEmail = String(existingUser.email || "").toLowerCase();
       const currentPhone = String(existingUser.phone || "");
       if (email && currentEmail && currentEmail !== email) {
-        return json(409, { ok: false, message: "هذا الهاتف مرتبط بحساب آخر. سجل الدخول ببيانات الحساب المرتبط به." });
+        return json(409, { ok: false, message: "هذا الهاتف مرتبط بحساب آخر. سجل الدخول ببيانات الحساب المرتبط به." }, origin);
       }
       if (currentPhone && currentPhone !== phone) {
-        return json(409, { ok: false, message: "هذا البريد مرتبط بحساب له رقم هاتف مختلف. تواصل مع الإدارة لتحديث البيانات." });
+        return json(409, { ok: false, message: "هذا البريد مرتبط بحساب له رقم هاتف مختلف. تواصل مع الإدارة لتحديث البيانات." }, origin);
       }
 
       const attributes: Record<string, unknown> = {
@@ -138,7 +138,7 @@ Deno.serve(async (req: Request) => {
       }
       const { error: updateError } = await admin.auth.admin.updateUserById(existingUser.id, attributes as any);
       if (updateError) throw updateError;
-      return json(200, { ok: true, existing: true });
+      return json(200, { ok: true, existing: true }, origin);
     }
 
     const attributes: Record<string, unknown> = {
@@ -157,14 +157,14 @@ Deno.serve(async (req: Request) => {
       const message = String(createError.message || "").toLowerCase();
       if (message.includes("already") || message.includes("registered") || message.includes("exists") ||
           createError.code === "user_already_exists" || createError.code === "email_exists" || createError.code === "phone_exists") {
-        return json(409, { ok: false, message: "يوجد حساب مسجل بهذه البيانات. استخدم كلمة المرور الصحيحة أو تواصل مع الدعم." });
+        return json(409, { ok: false, message: "يوجد حساب مسجل بهذه البيانات. استخدم كلمة المرور الصحيحة أو تواصل مع الدعم." }, origin);
       }
       throw createError;
     }
     if (!created?.user) throw new Error("تعذر إنشاء حساب المؤسسة.");
-    return json(200, { ok: true, existing: false });
+    return json(200, { ok: true, existing: false }, origin);
   } catch (error) {
     console.error("institution-register-auth:", error?.message || error);
-    return json(500, { ok: false, message: "تعذر تجهيز حساب المؤسسة حاليًا. حاول مرة أخرى بعد قليل." });
+    return json(500, { ok: false, message: "تعذر تجهيز حساب المؤسسة حاليًا. حاول مرة أخرى بعد قليل." }, origin);
   }
 });
