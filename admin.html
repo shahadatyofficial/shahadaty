@@ -746,6 +746,71 @@ async function confirmSubscriptionPayment(id){
   if(error){toast(error.message,'err');return;}
   toast('تم تسجيل السداد وتفعيل الاشتراك','ok');loadPkgs();
 }
+
+/* ── LIVE SUPPORT CHAT ─────────────────────────────────────── */
+let selectedSupportChat=null,supportChatCache=[],supportChatPoller=null,supportChatUnreadBaseline=null;
+function supportChatTime(v){try{return new Date(v).toLocaleString('ar-EG',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}catch(_){return '';}}
+async function loadSupportChats(silent=false){
+  const filter=document.getElementById('supportChatFilter')?.value||'open';
+  const{data,error}=await sb.rpc('admin_support_chat_list',{p_status:filter});
+  if(error){if(!silent)toast(error.message,'err');return;}
+  supportChatCache=data||[];
+  const unread=supportChatCache.reduce((sum,c)=>sum+Number(c.unread_admin_count||0),0);
+  if(supportChatUnreadBaseline!==null&&unread>supportChatUnreadBaseline&&silent)toast('وصلت رسالة جديدة إلى محادثات الدعم','ok');
+  supportChatUnreadBaseline=unread;
+  const list=document.getElementById('supportChatList');
+  if(!list)return;
+  if(!supportChatCache.length){list.innerHTML='<div class="support-chat-empty">لا توجد محادثات في هذا التصنيف.</div>';return;}
+  list.innerHTML=supportChatCache.map(c=>'<button type="button" class="support-chat-item '+(selectedSupportChat===c.id?'active':'')+'" onclick="openSupportChat(\''+c.id+'\')"><span class="support-chat-item-title"><span>'+adminEsc(c.visitor_name||'زائر بدون اسم')+'</span>'+(Number(c.unread_admin_count)>0?'<span class="support-chat-unread">'+Number(c.unread_admin_count)+'</span>':'')+'</span><span class="support-chat-item-preview">'+adminEsc(c.last_message_preview||'لا توجد رسائل')+'</span><span style="display:block;font-size:9px;color:#94a3b8;margin-top:4px">'+supportChatTime(c.last_message_at)+'</span></button>').join('');
+  if(selectedSupportChat&&supportChatCache.some(c=>c.id===selectedSupportChat))await loadSupportChatMessages(true);
+}
+async function openSupportChat(id){
+  selectedSupportChat=id;
+  const c=supportChatCache.find(x=>x.id===id);
+  document.getElementById('supportChatTitle').textContent=c?.visitor_name||'محادثة زائر';
+  document.getElementById('supportChatEmail').textContent=c?.visitor_email||'';
+  document.getElementById('supportChatStatusBtn').style.display='inline-flex';
+  document.getElementById('supportChatStatusBtn').textContent=c?.status==='closed'?'إعادة فتح المحادثة':'إغلاق المحادثة';
+  document.getElementById('supportChatReplyForm').style.display=c?.status==='closed'?'none':'flex';
+  await loadSupportChatMessages(false);
+  await loadSupportChats(true);
+}
+async function loadSupportChatMessages(silent=true){
+  if(!selectedSupportChat)return;
+  const{data,error}=await sb.rpc('admin_support_chat_messages',{p_conversation_id:selectedSupportChat});
+  if(error){if(!silent)toast(error.message,'err');return;}
+  const box=document.getElementById('supportChatMessages');
+  const rows=data||[];
+  box.innerHTML=rows.length?rows.map(m=>'<div class="support-chat-bubble '+(m.sender_role==='admin'?'admin':'visitor')+'">'+adminEsc(m.body)+'<small>'+supportChatTime(m.created_at)+'</small></div>').join(''):'<div class="support-chat-empty">لا توجد رسائل بعد.</div>';
+  box.scrollTop=box.scrollHeight;
+  const c=supportChatCache.find(x=>x.id===selectedSupportChat);
+  if(c)c.unread_admin_count=0;
+}
+async function replySupportChat(event){
+  event.preventDefault();if(!selectedSupportChat)return;
+  const input=document.getElementById('supportChatReply'),btn=document.getElementById('supportChatReplyBtn'),message=input.value.trim();
+  if(!message)return;btn.disabled=true;
+  const{error}=await sb.rpc('admin_support_chat_reply',{p_conversation_id:selectedSupportChat,p_message:message});
+  btn.disabled=false;
+  if(error){toast(error.message,'err');return;}
+  input.value='';await loadSupportChatMessages(false);await loadSupportChats(true);
+}
+async function toggleSupportChatStatus(){
+  if(!selectedSupportChat)return;
+  const c=supportChatCache.find(x=>x.id===selectedSupportChat),next=c?.status==='closed'?'open':'closed';
+  const{error}=await sb.rpc('admin_support_chat_set_status',{p_conversation_id:selectedSupportChat,p_status:next});
+  if(error){toast(error.message,'err');return;}
+  toast(next==='closed'?'تم إغلاق المحادثة':'تمت إعادة فتح المحادثة','ok');
+  await loadSupportChats(true);
+  document.getElementById('supportChatStatusBtn').textContent=next==='closed'?'إعادة فتح المحادثة':'إغلاق المحادثة';
+  document.getElementById('supportChatReplyForm').style.display=next==='closed'?'none':'flex';
+}
+function startSupportChatMonitor(){
+  if(supportChatPoller)clearInterval(supportChatPoller);
+  loadSupportChats(false);
+  supportChatPoller=setInterval(()=>loadSupportChats(true),5000);
+}
+
 // ── REPORTS ───────────────────────────────────────────────────
 async function loadReports(){
   const{data,error}=await sb.rpc('admin_platform_stats');
