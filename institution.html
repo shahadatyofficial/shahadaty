@@ -731,6 +731,20 @@ async function loadInst(){
   if(institutionId)query=query.eq('id',institutionId);else query=query.eq('auth_user_id',user.id);
   const{data,error}=await query.maybeSingle();
   if(error||!data){document.getElementById('loginErr').textContent='لا يوجد حساب مؤسسة نشط مرتبط بهذا المستخدم. تواصل مع مسؤول المؤسسة.';document.getElementById('loginErr').style.display='block';await sb.auth.signOut();return;}
+  if(data.status!=='approved'){
+    const statusTitle=data.status==='rejected'?'تم رفض طلب المؤسسة':data.status==='suspended'?'المؤسسة موقوفة':'طلب المؤسسة قيد المراجعة';
+    const statusMessage=data.status==='rejected'
+      ?'يرجى التواصل مع إدارة شهادتي العلمية لمعرفة أسباب الرفض والخطوات التالية.'
+      :data.status==='suspended'
+        ?'تم إيقاف حساب المؤسسة مؤقتًا. يرجى التواصل مع إدارة المنصة.'
+        :'تم استلام طلب الاعتماد بنجاح. تراجع الإدارة بيانات المؤسسة، وبمجرد الموافقة ستتمكن من استخدام لوحة التحكم وإصدار الشهادات.';
+    const box=document.querySelector('#loginScreen .login-box');
+    box.innerHTML='<div style="font-size:46px;margin-bottom:14px">🕒</div><h2 style="font-size:21px;font-weight:900;margin-bottom:10px" id="approvalTitle"></h2><p id="approvalName" style="font-weight:800;margin-bottom:10px"></p><p id="approvalMessage" style="font-size:14px;line-height:2;color:var(--muted);margin-bottom:22px"></p><button class="btn-login" onclick="doLogout()">تسجيل الخروج</button><div class="login-back"><a href="index.html">العودة للرئيسية</a></div>';
+    box.querySelector('#approvalTitle').textContent=statusTitle;
+    box.querySelector('#approvalName').textContent=data.name||'';
+    box.querySelector('#approvalMessage').textContent=statusMessage;
+    return;
+  }
   const{data:subscription, error:subscriptionError}=await sb.from('subscriptions').select('id,status,payment_status,amount,currency,billing_cycle,starts_at,ends_at,quota_limit,quota_used').eq('institution_id',data.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
   if(subscriptionError){toast('تعذر تحميل حالة الاشتراك: '+subscriptionError.message,'err');}
   inst={...data,membershipRole:membership?.role||'owner',currentSubscription:subscription||null};

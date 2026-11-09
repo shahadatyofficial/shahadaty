@@ -616,62 +616,28 @@ async function submitFinal(){
   const selectedPackage=PACKAGES.find(p=>p.id===formData.package_id);
   if(!selectedPackage){registrationSubmitting=false;return showSubmitError('الباقة المختارة غير متاحة حالياً. أعد تحميل الصفحة وحاول مرة أخرى.');}
   if(!selectedPackage.dbId){registrationSubmitting=false;return showSubmitError('تعذر تحميل الباقات من قاعدة البيانات. لم يتم إنشاء الحساب. أعد تحميل الصفحة وحاول مرة أخرى.');}
-  document.getElementById('mainContent').innerHTML=`<div style="text-align:center;padding:60px"><div class="spinner"></div><div style="font-size:15px;font-weight:700;color:var(--muted);margin-top:16px">جاري إنشاء الحساب وإرسال طلب التسجيل...</div></div>`;
+  document.getElementById('mainContent').innerHTML='<div style="text-align:center;padding:60px"><div class="spinner"></div><div style="font-size:15px;font-weight:700;color:var(--muted);margin-top:16px">جاري إنشاء الحساب وإرسال طلب الاعتماد للإدارة...</div></div>';
   try{
-    const authPayload=formData.email
+    const {data:authSetup,error:authSetupError}=await sb.functions.invoke('institution-register-auth',{
+      body:{
+        email:formData.email||null,
+        phone:formData.auth_phone,
+        password:formData.password
+      }
+    });
+    if(authSetupError)throw authSetupError;
+    if(!authSetup?.ok)throw new Error(authSetup?.message||'تعذر تجهيز حساب المؤسسة.');
+    const credentials=formData.email
       ? {email:formData.email,password:formData.password}
       : {phone:formData.auth_phone,password:formData.password};
-    const {data:authData,error:authErr}=await sb.auth.signUp(authPayload);
-    if(authErr) throw authErr;
-    if(!authData?.user) throw new Error('تعذر إنشاء حساب المستخدم.');
-    if(!authData.session){
-      registrationSubmitting=false;
-      const isPhoneSignup=!formData.email;
-      document.getElementById('mainContent').innerHTML=isPhoneSignup
-        ? `<div class="card"><div class="card-body" style="text-align:center;padding:40px">
-            <div style="font-size:48px">📱</div><h3 style="font-size:18px;font-weight:900;margin:12px 0">تأكيد رقم الهاتف</h3>
-            <p style="line-height:1.9;color:var(--muted)">أدخل رمز التحقق المرسل برسالة SMS إلى ${escapeHtml(formData.phone)} لإكمال إنشاء الحساب.</p>
-            <input id="phoneSignupOtp" class="form-inp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="رمز التحقق" style="max-width:220px;margin:16px auto;direction:ltr;text-align:center">
-            <button class="btn-next" onclick="confirmPhoneRegistration()" style="margin:0 auto">تأكيد الهاتف وإكمال التسجيل</button>
-          </div></div>`
-        : `<div class="card"><div class="card-body" style="text-align:center;padding:40px">
-            <div style="font-size:48px">✉️</div><h3 style="font-size:18px;font-weight:900;margin:12px 0">أكد بريدك الإلكتروني</h3>
-            <p style="line-height:1.9;color:var(--muted)">تم إنشاء حساب الدخول. افتح رسالة التأكيد المرسلة إلى ${escapeHtml(formData.email)}، ثم ارجع واضغط الزر أدناه لإكمال تسجيل المؤسسة ورفع المستندات.</p>
-            <button class="btn-next" onclick="resumeRegistrationAfterConfirmation()" style="margin:18px auto 0">أكدت البريد — أكمل التسجيل</button>
-          </div></div>`;
-      return;
-    }
+    const {error:loginError}=await sb.auth.signInWithPassword(credentials);
+    if(loginError)throw new Error('تم تجهيز الحساب، لكن تعذر تسجيل الدخول تلقائيًا. استخدم نفس بيانات الدخول وحاول مرة أخرى.');
     await createInstitutionAndDocuments(selectedPackage);
   }catch(err){
     registrationSubmitting=false;
-    const message=!formData.email&&/phone|sms|provider|disabled/i.test(err.message||'')
-      ? 'تعذر إنشاء حساب برقم الهاتف لأن إعدادات تأكيد الهاتف أو مزود رسائل SMS غير مفعّلة في Supabase. يمكن التسجيل بالبريد الآن، أو تفعيل SMS أولاً.'
-      : (err.message||'تعذر إرسال طلب التسجيل. يرجى المحاولة مرة أخرى.');
+    const message=err.message||'تعذر إرسال طلب الاعتماد. يرجى المحاولة مرة أخرى.';
     showSubmitError(message);
   }
-}
-
-async function resumeRegistrationAfterConfirmation(){
-  const main=document.getElementById('mainContent');
-  main.innerHTML='<div style="text-align:center;padding:60px"><div class="spinner"></div><div style="margin-top:16px">جاري التحقق من البريد وإكمال الطلب...</div></div>';
-  try{
-    const {error}=await sb.auth.signInWithPassword({email:formData.email,password:formData.password});
-    if(error) throw new Error('لم يتم تأكيد البريد بعد أو تعذر تسجيل الدخول. افتح رسالة التأكيد ثم حاول مرة أخرى.');
-    const selectedPackage=PACKAGES.find(p=>p.id===formData.package_id);
-    if(!selectedPackage?.dbId) throw new Error('تعذر تحديد الباقة من قاعدة البيانات.');
-    await createInstitutionAndDocuments(selectedPackage);
-  }catch(err){showSubmitError(err.message||'تعذر إكمال التسجيل.');}
-}
-async function confirmPhoneRegistration(){
-  const token=document.getElementById('phoneSignupOtp')?.value.trim()||'';
-  if(!/^\\d{6}$/.test(token)){showSubmitError('أدخل رمز التحقق المكوّن من 6 أرقام.');return;}
-  try{
-    const {error}=await sb.auth.verifyOtp({phone:formData.auth_phone,token,type:'sms'});
-    if(error)throw error;
-    const selectedPackage=PACKAGES.find(p=>p.id===formData.package_id);
-    if(!selectedPackage?.dbId)throw new Error('تعذر تحديد الباقة من قاعدة البيانات.');
-    await createInstitutionAndDocuments(selectedPackage);
-  }catch(err){showSubmitError(err.message||'رمز التحقق غير صحيح أو انتهت صلاحيته.');}
 }
 
 let pendingInstitutionId=null;
@@ -758,7 +724,7 @@ function renderSuccess({emailConfirmationRequired=false,uploadedDocs=0,requestNu
       <div class="status-steps">
         <div class="status-step"><div class="ss-dot active"></div><div><div class="ss-label">✅ تم استلام الطلب</div><div class="ss-desc">تم تسجيل بيانات المؤسسة والبيانات القانونية.</div></div></div>
         <div class="status-step"><div class="ss-dot pending"></div><div><div class="ss-label">🔍 قيد المراجعة</div><div class="ss-desc">سيقوم فريق الإدارة بمراجعة البيانات والمستندات.</div></div></div>
-        <div class="status-step"><div class="ss-dot pending"></div><div><div class="ss-label">✉️ التواصل</div><div class="ss-desc">سيتم التواصل مع البريد المسجل عند تحديث حالة الطلب.</div></div></div>
+        <div class="status-step"><div class="ss-dot pending"></div><div><div class="ss-label">✉️ التواصل</div><div class="ss-desc">سيتم التواصل معك عند تحديث حالة الطلب.</div></div></div>
         <div class="status-step"><div class="ss-dot pending"></div><div><div class="ss-label">🚀 تفعيل المؤسسة</div><div class="ss-desc">بعد الاعتماد تصبح بوابة المؤسسة جاهزة للاستخدام.</div></div></div>
       </div>
       <a href="index.html" class="btn-next" style="text-decoration:none;margin:0 auto">العودة للرئيسية</a>
