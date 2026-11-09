@@ -1,0 +1,35 @@
+/* Shahadaty live support chat */
+#sh-chat-root{position:fixed;left:22px;bottom:22px;z-index:12000;direction:rtl;font-family:'Cairo',sans-serif}
+#sh-chat-launch{width:62px;height:62px;border:0;border-radius:50%;background:linear-gradient(145deg,#0c2d4e,#0369a1);color:#fff;box-shadow:0 10px 28px #0c2d4e40;display:grid;place-items:center;cursor:pointer;position:relative}
+#sh-chat-launch svg{width:27px;height:27px}
+#sh-chat-launch:after{content:'';position:absolute;inset:-5px;border:1px solid #0284c755;border-radius:50%;animation:shChatPulse 2.4s infinite}
+@keyframes shChatPulse{0%{transform:scale(.92);opacity:.8}100%{transform:scale(1.22);opacity:0}}
+#sh-chat-panel{position:absolute;left:0;bottom:78px;width:min(370px,calc(100vw - 28px));height:min(570px,calc(100dvh - 130px));background:#fff;border:1px solid #dbeafe;border-radius:20px;box-shadow:0 20px 65px #0c2d4e30;overflow:hidden;display:none;flex-direction:column}
+#sh-chat-panel.open{display:flex;animation:shChatIn .2s ease}
+@keyframes shChatIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.sh-chat-head{background:linear-gradient(135deg,#0c2d4e,#0369a1);color:#fff;padding:17px 18px;display:flex;align-items:center;gap:12px}
+.sh-chat-avatar{width:42px;height:42px;border-radius:50%;background:#ffffff20;display:grid;place-items:center;font-size:21px}
+.sh-chat-head-main{flex:1;min-width:0}
+.sh-chat-head-title{font-weight:900;font-size:15px}
+.sh-chat-head-sub{font-size:11px;color:#dbeafe;margin-top:2px}
+.sh-chat-close{border:0;background:#ffffff20;color:#fff;border-radius:9px;width:32px;height:32px;cursor:pointer;font-size:19px}
+.sh-chat-body{flex:1;min-height:0;background:#f6faff;padding:15px;overflow:auto}
+.sh-chat-welcome{background:#fff;border:1px solid #e0f0ff;border-radius:14px;padding:14px;margin-bottom:12px;color:#334155;font-size:12px;line-height:1.8}
+.sh-chat-form{display:grid;gap:9px}
+.sh-chat-input{width:100%;border:1px solid #dbeafe;border-radius:11px;padding:11px 12px;font:13px 'Cairo',sans-serif;outline:none;background:#fff;color:#0c2d4e}
+.sh-chat-input:focus{border-color:#0284c7;box-shadow:0 0 0 3px #0284c715}
+.sh-chat-send{border:0;border-radius:11px;background:linear-gradient(135deg,#0369a1,#0284c7);color:#fff;font:700 13px 'Cairo',sans-serif;padding:11px;cursor:pointer}
+.sh-chat-send:disabled{opacity:.55;cursor:wait}
+.sh-chat-messages{display:flex;flex-direction:column;gap:9px}
+.sh-chat-msg{max-width:86%;padding:10px 12px;border-radius:14px;font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+.sh-chat-msg.visitor{align-self:flex-start;background:#0369a1;color:#fff;border-bottom-left-radius:4px}
+.sh-chat-msg.admin{align-self:flex-end;background:#fff;color:#0c2d4e;border:1px solid #e0f0ff;border-bottom-right-radius:4px}
+.sh-chat-time{font-size:9px;opacity:.65;margin-top:4px;text-align:left}
+.sh-chat-compose{padding:11px;border-top:1px solid #e8f1fb;background:#fff;display:flex;gap:8px;align-items:center}
+.sh-chat-compose textarea{resize:none;min-height:42px;max-height:90px;flex:1;border:1px solid #dbeafe;border-radius:12px;padding:10px;font:12px 'Cairo',sans-serif;outline:none}
+.sh-chat-compose button{width:43px;height:43px;border:0;border-radius:12px;background:#0369a1;color:#fff;font-size:18px;cursor:pointer}
+.sh-chat-links{display:flex;gap:8px;padding:9px 12px;background:#fff;border-top:1px solid #f1f5f9}
+.sh-chat-links a{flex:1;text-align:center;text-decoration:none;border:1px solid #e0f0ff;border-radius:9px;padding:7px 4px;font-size:10px;font-weight:800;color:#0369a1}
+#sh-chat-toast{position:fixed;left:22px;bottom:96px;z-index:12001;max-width:min(320px,calc(100vw - 44px));background:#0c2d4e;color:#fff;border-radius:13px;padding:11px 14px;box-shadow:0 10px 30px #0c2d4e35;font:12px 'Cairo',sans-serif;display:none;cursor:pointer}
+#sh-chat-toast.show{display:block;animation:shChatIn .2s ease}
+@media(max-width:520px){#sh-chat-root{left:14px;bottom:14px}#sh-chat-launch{width:56px;height:56px}#sh-chat-panel{left:-6px;bottom:68px;width:calc(100vw - 28px);height:min(570px,calc(100dvh - 100px))}#sh-chat-toast{left:14px;bottom:82px}}
