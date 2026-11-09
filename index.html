@@ -1204,8 +1204,8 @@ window.addEventListener('load',()=>{
 <div id="sh-support-toast" hidden role="status" aria-live="polite" onclick="shOpenSupport()"><span class="sh-toast-dot"></span><span>فريق شهادتي جاهز لمساعدتك — ابدأ محادثة الآن</span></div>
 <button id="sh-support-launcher" type="button" aria-controls="sh-support-panel" aria-expanded="false" onclick="shToggleSupport()"><span class="sh-chat-dot"></span><span>محادثة مباشرة</span></button>
 <section id="sh-support-panel" aria-label="محادثة الدعم" aria-hidden="true">
-  <header class="sh-chat-head"><div class="sh-chat-avatar">ش</div><div><strong>دعم شهادتي العلمية</strong><small>متاحون لمساعدتك عبر واتساب والبريد</small></div><button class="sh-chat-close" type="button" aria-label="إغلاق" onclick="shCloseSupport()">×</button></header>
-  <div class="sh-chat-body"><div class="sh-chat-welcome">أهلاً بيك 👋<br>اكتب رسالتك، واضغط إرسال لفتح محادثة واتساب مباشرة مع فريق شهادتي.</div><div class="sh-chat-hint">سيتم فتح واتساب لإرسال رسالتك إلى رقم الدعم الرسمي.</div><div class="sh-chat-links"><a class="sh-chat-wa" href="https://wa.me/201233380085" target="_blank" rel="noopener noreferrer">واتساب مباشر</a><a class="sh-chat-mail" href="mailto:shahadatyofficial@gmail.com">البريد الإلكتروني</a></div></div>
+  <header class="sh-chat-head"><div class="sh-chat-avatar">ش</div><div><strong>دعم شهادتي العلمية</strong><small id="sh-support-status">جاري معرفة مواعيد الدعم...</small></div><button class="sh-chat-close" type="button" aria-label="إغلاق" onclick="shCloseSupport()">×</button></header>
+  <div class="sh-chat-body"><div class="sh-chat-welcome" id="sh-support-welcome">أهلاً بيك 👋</div><div class="sh-chat-hint">فريقنا متاح من الأحد إلى الخميس، من 9 صباحًا إلى 5 مساءً.</div><div class="sh-chat-links"><a class="sh-chat-wa" href="https://wa.me/201233380085" target="_blank" rel="noopener noreferrer">واتساب مباشر</a><a class="sh-chat-mail" href="mailto:shahadatyofficial@gmail.com">البريد الإلكتروني</a></div></div>
   <div class="sh-chat-thread" id="sh-chat-thread" aria-live="polite"><div class="sh-chat-empty">اكتب رسالتك وسيقوم فريق الدعم بالرد عليك هنا.</div></div>
   <div class="sh-chat-identity"><input id="sh-chat-name" maxlength="100" placeholder="اسمك" aria-label="اسمك"><input id="sh-chat-email" type="email" maxlength="160" placeholder="البريد الإلكتروني (اختياري)" aria-label="البريد الإلكتروني"></div>
   <form class="sh-chat-form" onsubmit="shSendSupport(event)"><input id="sh-chat-message" type="text" maxlength="2000" placeholder="اكتب رسالتك هنا..." aria-label="رسالتك" required><button id="sh-chat-send" type="submit">إرسال ↗</button></form>
@@ -1213,10 +1213,20 @@ window.addEventListener('load',()=>{
 <script>
 (function(){
  const panel=document.getElementById('sh-support-panel'),launcher=document.getElementById('sh-support-launcher'),toast=document.getElementById('sh-support-toast');
- window.shOpenSupport=async function(){panel.classList.add('sh-open');panel.setAttribute('aria-hidden','false');launcher.setAttribute('aria-expanded','true');if(toast)toast.hidden=true;const saved=await shLoadSupportSession();if(saved){window.shSupportSession=saved;document.getElementById('sh-chat-name').value=saved.name||'';document.getElementById('sh-chat-email').value=saved.email||'';await shPollSupport();}setTimeout(()=>document.getElementById('sh-chat-message')?.focus(),80);if(!shSupportPoll)shSupportPoll=setInterval(()=>{if(panel.classList.contains('sh-open'))shPollSupport();},5000);};
+ window.shOpenSupport=async function(){panel.classList.add('sh-open');panel.setAttribute('aria-hidden','false');launcher.setAttribute('aria-expanded','true');if(toast)toast.hidden=true;await shLoadPublicSupportSettings();const saved=await shLoadSupportSession();if(saved){window.shSupportSession=saved;document.getElementById('sh-chat-name').value=saved.name||'';document.getElementById('sh-chat-email').value=saved.email||'';await shPollSupport();}setTimeout(()=>document.getElementById('sh-chat-message')?.focus(),80);if(!shSupportPoll)shSupportPoll=setInterval(()=>{if(panel.classList.contains('sh-open'))shPollSupport();},5000);};
  window.shCloseSupport=function(){panel.classList.remove('sh-open');panel.setAttribute('aria-hidden','true');launcher.setAttribute('aria-expanded','false');};
  window.shToggleSupport=function(){panel.classList.contains('sh-open')?shCloseSupport():shOpenSupport();};
- window.shSupportSession=null;let shSupportPoll=null;let shSupportMessages=[];
+ window.shSupportSession=null;let shSupportPoll=null;let shSupportMessages=[];let shPublicSupportSettings=null;let shWaitingShownFor=null;
+ async function shLoadPublicSupportSettings(){
+  try{const{data,error}=await sb.from('support_settings').select('work_days,work_start,work_end,welcome_message,offline_message,waiting_message').eq('id',true).maybeSingle();if(error||!data)return;
+   shPublicSupportSettings=data;
+   const now=new Date(),parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Cairo',weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(now),p=Object.fromEntries(parts.map(x=>[x.type,x.value]));
+   const days={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6},mins=Number(p.hour)*60+Number(p.minute),start=Number(String(data.work_start).slice(0,2))*60+Number(String(data.work_start).slice(3,5)),end=Number(String(data.work_end).slice(0,2))*60+Number(String(data.work_end).slice(3,5)),open=[0,1,2,3,4].includes(days[p.weekday])&&mins>=start&&mins<end;
+   document.getElementById('sh-support-status').textContent=open?'فريق الدعم متاح الآن':'خارج أوقات العمل';
+   document.getElementById('sh-support-welcome').textContent=data.welcome_message||'أهلاً بيك 👋';
+   if(!open)document.getElementById('sh-support-welcome').textContent=(data.welcome_message||'أهلاً بيك 👋')+' '+(data.offline_message||'سنعاود التواصل معك خلال ساعات العمل.');
+  }catch(e){console.warn('Support settings unavailable',e);}
+ }
  function shEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
  function shRenderSupportMessages(rows){const box=document.getElementById('sh-chat-thread');if(!box)return;shSupportMessages=rows||[];box.innerHTML=shSupportMessages.length?shSupportMessages.map(m=>'<div class="sh-chat-bubble '+(m.sender==='admin'?'admin':'visitor')+'">'+shEsc(m.body)+'<span class="sh-chat-time">'+new Date(m.created_at).toLocaleString('ar-EG',{hour:'2-digit',minute:'2-digit'})+'</span></div>').join(''):'<div class="sh-chat-empty">رسالتك هتظهر هنا، وفريق الدعم هيرد عليك من داخل المنصة.</div>';box.scrollTop=box.scrollHeight;}
  async function shLoadSupportSession(){try{const raw=localStorage.getItem('shahadaty_support_session');if(!raw)return null;const v=JSON.parse(raw);if(v?.id&&v?.token)return v;}catch(e){}return null;}
@@ -1227,6 +1237,11 @@ window.addEventListener('load',()=>{
   if(!session){session={id:crypto.randomUUID(),token:crypto.randomUUID(),name:visitorName,email:(email.value||'').trim()};const{error}=await sb.from('support_conversations').insert({id:session.id,access_token:session.token,visitor_name:visitorName,visitor_email:session.email||null});if(error)throw error;localStorage.setItem('shahadaty_support_session',JSON.stringify(session));window.shSupportSession=session;}
   const{error}=await sb.from('support_messages').insert({conversation_id:session.id,sender:'visitor',access_token:session.token,body});if(error)throw error;
   input.value='';await shPollSupport();
+   if(shWaitingShownFor!==session.id){
+    shWaitingShownFor=session.id;
+    const hasAgentReply=shSupportMessages.some(m=>m.sender==='admin');
+    if(!hasAgentReply){const note=document.createElement('div');note.className='sh-chat-bubble admin';note.textContent=shPublicSupportSettings?.waiting_message||'رسالتك وصلت، وأنت الآن في قائمة انتظار الدعم الفني. سنتواصل معك في أقرب وقت ممكن.';document.getElementById('sh-chat-thread').appendChild(note);document.getElementById('sh-chat-thread').scrollTop=999999;}
+   }
  }catch(err){alert('تعذر إرسال الرسالة الآن. '+(err?.message||'حاول مرة أخرى.'));}finally{btn.disabled=false;btn.textContent='إرسال ↗';}
  };
  document.addEventListener('keydown',e=>{if(e.key==='Escape')shCloseSupport();});
