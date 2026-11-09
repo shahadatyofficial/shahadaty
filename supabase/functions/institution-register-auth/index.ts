@@ -43,7 +43,7 @@ async function findUserByIdentifier(admin: any, email: string | null, phone: str
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get("origin") || "";
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsFor(origin) });
-  if (req.method !== "POST") return json(405, { ok: false, message: "Method not allowed" , origin});
+  if (req.method !== "POST") return json(405, { ok: false, message: "Method not allowed" }, origin);
   if (origin && !allowedOrigins.has(origin)) {
     return json(403, { ok: false, message: "مصدر الطلب غير مسموح." }, origin);
   }
