@@ -520,9 +520,8 @@ async function loadReqs(){
   document.getElementById('reqsList').innerHTML=!rows.length?'<div style="text-align:center;padding:24px;color:var(--muted)">لا توجد طلبات</div>':rows.map(r=>`
   <div style="border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div><div style="font-size:15px;font-weight:800;color:var(--navy)">${adminEsc(r.name)}</div><div style="font-size:11px;color:var(--muted)">${adminEsc(r.contact_email)} · ${adminEsc(r.contact_phone)}</div></div><span class="badge ${r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr'}">${r.status==='approved'?'معتمد':r.status==='pending'?'معلق':r.status==='rejected'?'مرفوض':'موقوف'}</span></div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
-      ${[['النوع',r.institution_type],['المحافظة',r.governorate],['العنوان',r.address],['رقم الطلب',r.request_number],['الباقة',r.package_name_ar],['الشهادات المستخدمة',r.quota_used],['إجمالي الحصة',r.quota_total]].map(x=>`<div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${adminEsc(x[0])}</div><div style="font-size:12px;font-weight:700;color:var(--navy);word-break:break-word">${adminEsc(x[1])}</div></div>`).join('')}
-
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px">
+      \${[['النوع',r.institution_type],['المحافظة',r.governorate],['العنوان',r.address],['رقم الطلب',r.request_number],['الباقة',r.package_name_ar],['السجل التجاري',r.commercial_registration_number],['البطاقة الضريبية',r.tax_card_number],['اسم المالك',r.owner_name],['اسم المدير',r.manager_name],['الشهادات المستخدمة',r.quota_used],['إجمالي الحصة',r.quota_total]].map(x=>\`<div style="background:var(--bg);border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">\${adminEsc(x[0])}</div><div style="font-size:12px;font-weight:700;color:var(--navy);word-break:break-word">\${adminEsc(x[1]??'—')}</div></div>\`).join('')}
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn-s" onclick="loadRequestDocs('${r.id}')">📎 مستندات المؤسسة</button>
