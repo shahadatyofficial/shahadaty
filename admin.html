@@ -410,7 +410,7 @@ async function doLogin(){
   if(adminErr||isAdmin!==true){await sb.auth.signOut();err.textContent='هذا الحساب ليس حساب إدارة';err.style.display='block';return;}
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('adminEmail').textContent=email;
-  loadOverview();loadBadges();
+  loadOverview();loadBadges();startSupportRealtime();loadSupportInbox();
 }
 async function doLogout(){await sb.auth.signOut();location.reload();}
 
