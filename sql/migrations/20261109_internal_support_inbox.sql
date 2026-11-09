@@ -42,7 +42,7 @@ with check ((select public.is_platform_admin()));
 
 create or replace function public.is_valid_support_visitor(p_conversation_id uuid,p_access_token uuid)
 returns boolean language sql stable security definer set search_path=public
-as $ select exists(select 1 from public.support_conversations c where c.id=p_conversation_id and c.access_token=p_access_token and c.status='open') $;
+as $func$ select exists(select 1 from public.support_conversations c where c.id=p_conversation_id and c.access_token=p_access_token and c.status='open') $func$;
 revoke all on function public.is_valid_support_visitor(uuid,uuid) from public;
 grant execute on function public.is_valid_support_visitor(uuid,uuid) to anon,authenticated;
 drop policy if exists support_messages_visitor_insert on public.support_messages;
@@ -84,3 +84,16 @@ begin
     execute 'alter publication supabase_realtime add table public.support_messages';
   end if;
 end $$;
+
+create or replace function public.touch_support_conversation()
+returns trigger language plpgsql security definer set search_path=public
+as $touch$
+begin
+  update public.support_conversations set updated_at=new.created_at where id=new.conversation_id;
+  return new;
+end;
+$touch$;
+revoke all on function public.touch_support_conversation() from public;
+drop trigger if exists support_messages_touch_conversation on public.support_messages;
+create trigger support_messages_touch_conversation after insert on public.support_messages
+for each row execute function public.touch_support_conversation();
