@@ -127,6 +127,27 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 .modal-body{padding:24px;}
 .modal-foot{padding:16px 24px;border-top:1px solid #f0f7ff;display:flex;gap:10px;justify-content:flex-end;}
 .btn-cancel{background:var(--bg);color:var(--navy);font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;padding:9px 20px;border-radius:9px;border:1.5px solid var(--border);cursor:pointer;}
+
+.support-chat-layout{display:grid;grid-template-columns:330px minmax(0,1fr);gap:16px;min-height:580px}
+.support-chat-list,.support-chat-thread{background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;min-width:0}
+.support-chat-list-head,.support-chat-thread-head{padding:15px 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.support-chat-list-body{max-height:520px;overflow:auto}
+.support-chat-item{width:100%;display:block;text-align:right;padding:13px 15px;border:0;border-bottom:1px solid #f1f5f9;background:#fff;cursor:pointer;font-family:inherit}
+.support-chat-item:hover,.support-chat-item.active{background:#f0f9ff}
+.support-chat-item-title{font-size:13px;font-weight:800;color:var(--navy);display:flex;justify-content:space-between;gap:8px}
+.support-chat-item-preview{font-size:11px;color:var(--muted);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.support-chat-unread{background:#0369a1;color:#fff;border-radius:20px;min-width:20px;height:20px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;font-size:10px}
+.support-chat-thread-body{height:420px;overflow:auto;padding:17px;background:#f7fbff;display:flex;flex-direction:column;gap:10px}
+.support-chat-bubble{max-width:78%;padding:10px 13px;border-radius:13px;font-size:12px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}
+.support-chat-bubble.visitor{align-self:flex-start;background:#fff;border:1px solid #e0f0ff;border-bottom-left-radius:4px}
+.support-chat-bubble.admin{align-self:flex-end;background:#0369a1;color:#fff;border-bottom-right-radius:4px}
+.support-chat-bubble small{display:block;font-size:9px;opacity:.7;margin-top:4px}
+.support-chat-compose{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border)}
+.support-chat-compose textarea{flex:1;resize:vertical;min-height:44px;border:1px solid var(--border);border-radius:10px;padding:10px;font:12px 'Cairo',sans-serif}
+.support-chat-compose button{border:0;border-radius:10px;background:#0369a1;color:#fff;padding:0 20px;font:700 12px 'Cairo',sans-serif;cursor:pointer}
+.support-chat-empty{padding:30px 15px;text-align:center;color:var(--muted);font-size:12px}
+@media(max-width:900px){.support-chat-layout{grid-template-columns:1fr}.support-chat-list-body{max-height:260px}.support-chat-thread-body{height:360px}}
+
 </style>
 </head>
 <body>
@@ -172,6 +193,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="sb-item" onclick="sp('recruitment',this)"><span class="material-symbols-outlined">work</span>طلبات الترشيح<span class="sb-badge" id="recBadge">0</span></div>
     <div class="sb-item" onclick="sp('companies',this)"><span class="material-symbols-outlined">business_center</span>الشركات المشتركة</div>
     <div class="sb-sec">النظام</div>
+    <div class="sb-item" onclick="sp('chats',this)"><span class="material-symbols-outlined">forum</span>محادثات الدعم</div>
     <div class="sb-item" onclick="sp('packages',this)"><span class="material-symbols-outlined">layers</span>إدارة الباقات</div>
     <div class="sb-item" onclick="sp('reports',this)"><span class="material-symbols-outlined">bar_chart</span>التقارير</div>
     <div class="sb-item" onclick="sp('sys',this)"><span class="material-symbols-outlined">settings</span>إعدادات النظام</div>
@@ -320,6 +342,21 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       </div>
     </div>
 
+
+    <div class="page" id="page-chats">
+      <div class="support-chat-layout">
+        <section class="support-chat-list">
+          <div class="support-chat-list-head"><strong>المحادثات الواردة</strong><select class="inp" id="supportChatFilter" onchange="loadSupportChats(true)" style="width:115px"><option value="open">مفتوحة</option><option value="closed">مغلقة</option><option value="all">الكل</option></select></div>
+          <div class="support-chat-list-body" id="supportChatList"><div class="support-chat-empty">جاري تحميل المحادثات...</div></div>
+        </section>
+        <section class="support-chat-thread">
+          <div class="support-chat-thread-head"><div><strong id="supportChatTitle">اختر محادثة</strong><div id="supportChatEmail" style="font-size:10px;color:var(--muted);margin-top:3px"></div></div><button class="btn-p" id="supportChatStatusBtn" onclick="toggleSupportChatStatus()" style="display:none">إغلاق المحادثة</button></div>
+          <div class="support-chat-thread-body" id="supportChatMessages"><div class="support-chat-empty">اختر محادثة من القائمة لعرض الرسائل والرد عليها.</div></div>
+          <form class="support-chat-compose" id="supportChatReplyForm" onsubmit="replySupportChat(event)" style="display:none"><textarea id="supportChatReply" maxlength="2000" placeholder="اكتب ردك هنا..." required></textarea><button id="supportChatReplyBtn" type="submit">إرسال الرد</button></form>
+        </section>
+      </div>
+    </div>
+
     <!-- SYSTEM SETTINGS -->
     <div class="page" id="page-sys">
       <div class="card" style="max-width:500px">
@@ -364,8 +401,8 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 <script>
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
-const sb=supabase.createClient(SU,SK);
-const ptitles={overview:'نظرة عامة',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام'};
+const sb=window.sb=supabase.createClient(SU,SK);
+const ptitles={overview:'نظرة عامة',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام',chats:'محادثات الدعم'};
 let allInstitutions=[], allAdminCerts=[];
 function adminEsc(v){return String(v??'—').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}
 
@@ -383,7 +420,7 @@ async function doLogin(){
   if(adminErr||isAdmin!==true){await sb.auth.signOut();err.textContent='هذا الحساب ليس حساب إدارة';err.style.display='block';return;}
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('adminEmail').textContent=email;
-  loadOverview();loadBadges();
+  loadOverview();loadBadges();startSupportChatMonitor();
 }
 async function doLogout(){await sb.auth.signOut();location.reload();}
 
@@ -394,7 +431,7 @@ function sp(name,el){
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('pageTitle').textContent=ptitles[name]||name;
   if(el)el.classList.add('active');
-  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,reports:loadReports};
+  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,reports:loadReports,chats:loadSupportChats};
   if(loaders[name])loaders[name]();
 }
 
