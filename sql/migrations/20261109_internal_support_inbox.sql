@@ -12,6 +12,7 @@ create table if not exists public.support_messages (
   id uuid primary key default gen_random_uuid(),
   conversation_id uuid not null references public.support_conversations(id) on delete cascade,
   sender text not null check (sender in ('visitor','admin')),
+  access_token uuid,
   body text not null check (char_length(btrim(body)) between 1 and 2000),
   created_at timestamptz not null default now(),
   read_at timestamptz
@@ -39,9 +40,14 @@ create policy support_conversations_admin_update on public.support_conversations
 for update to authenticated using ((select public.is_platform_admin()))
 with check ((select public.is_platform_admin()));
 
+create or replace function public.is_valid_support_visitor(p_conversation_id uuid,p_access_token uuid)
+returns boolean language sql stable security definer set search_path=public
+as $ select exists(select 1 from public.support_conversations c where c.id=p_conversation_id and c.access_token=p_access_token and c.status='open') $;
+revoke all on function public.is_valid_support_visitor(uuid,uuid) from public;
+grant execute on function public.is_valid_support_visitor(uuid,uuid) to anon,authenticated;
 drop policy if exists support_messages_visitor_insert on public.support_messages;
 create policy support_messages_visitor_insert on public.support_messages
-for insert to anon with check (sender='visitor');
+for insert to anon with check (sender='visitor' and access_token is not null and public.is_valid_support_visitor(conversation_id,access_token));
 drop policy if exists support_messages_admin_select on public.support_messages;
 create policy support_messages_admin_select on public.support_messages
 for select to authenticated using ((select public.is_platform_admin()));
