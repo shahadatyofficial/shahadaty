@@ -426,9 +426,10 @@ function renderStep3(){
     <div class="card-body">
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label"><span>*</span> البريد الإلكتروني الرسمي</label>
-          <input class="form-inp" id="email" type="email" placeholder="example@institution.com" dir="ltr" value="${escapeHtml(formData.email)}">
-          <div class="form-err" id="err_email">الرجاء إدخال بريد إلكتروني صحيح</div>
+          <label class="form-label">البريد الإلكتروني الرسمي <span style="color:#64748b;font-size:11px;font-weight:600">(اختياري)</span></label>
+          <input class="form-inp" id="email" type="email" autocomplete="email" placeholder="example@institution.com — يمكن تركه فارغًا" dir="ltr" value="${escapeHtml(formData.email)}">
+          <div class="form-err" id="err_email">راجع البريد الإلكتروني أو اتركه فارغًا</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:5px">يمكنك تسجيل الدخول بالبريد الإلكتروني إذا أضفته، أو برقم الهاتف إذا تركته فارغًا.</div>
         </div>
         <div class="form-group">
           <label class="form-label"><span>*</span> رقم الهاتف</label>
@@ -462,16 +463,24 @@ function renderStep3(){
   </div>`;
 }
 
+function normalizeEgyptianPhone(value){
+  let phone=String(value||'').replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[\\s()-]/g,'');
+  if(phone.startsWith('00'))phone='+'+phone.slice(2);
+  if(phone.startsWith('01')&&phone.length===11)phone='+20'+phone.slice(1);
+  else if(phone.startsWith('20')&&phone.length===12)phone='+'+phone;
+  return phone;
+}
 function submitStep3(){
   let valid=true;
   const email=document.getElementById('email').value.trim();
   const phone=document.getElementById('phone').value.trim();
   const pass=document.getElementById('password').value;
   const pass2=document.getElementById('password_confirm').value;
-  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){document.getElementById('err_email').classList.add('show');document.getElementById('email').classList.add('err');valid=false;}
-  else{document.getElementById('err_email').classList.remove('show');document.getElementById('email').classList.remove('err');formData.email=email;}
-  if(!/^[+0-9٠-٩۰-۹\\s()-]{8,20}$/.test(phone)){document.getElementById('err_phone').classList.add('show');document.getElementById('phone').classList.add('err');valid=false;}
-  else{document.getElementById('err_phone').classList.remove('show');document.getElementById('phone').classList.remove('err');formData.phone=phone;}
+  if(email&&!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(email)){document.getElementById('err_email').classList.add('show');document.getElementById('email').classList.add('err');valid=false;}
+  else{document.getElementById('err_email').classList.remove('show');document.getElementById('email').classList.remove('err');formData.email=email.toLowerCase();}
+  const normalizedPhone=normalizeEgyptianPhone(phone);
+  if(!/^\\+20(?:10|11|12|15)\\d{8}$/.test(normalizedPhone)){document.getElementById('err_phone').classList.add('show');document.getElementById('phone').classList.add('err');valid=false;}
+  else{document.getElementById('err_phone').classList.remove('show');document.getElementById('phone').classList.remove('err');formData.phone=phone;formData.auth_phone=normalizedPhone;}
   if(pass.length<8){document.getElementById('err_password').classList.add('show');document.getElementById('password').classList.add('err');valid=false;}
   else{document.getElementById('err_password').classList.remove('show');document.getElementById('password').classList.remove('err');formData.password=pass;}
   if(!pass2||pass!==pass2){document.getElementById('err_password_confirm').classList.add('show');document.getElementById('password_confirm').classList.add('err');valid=false;}
@@ -603,32 +612,60 @@ async function submitFinal(){
   if(!selectedPackage.dbId){registrationSubmitting=false;return showSubmitError('تعذر تحميل الباقات من قاعدة البيانات. لم يتم إنشاء الحساب. أعد تحميل الصفحة وحاول مرة أخرى.');}
   document.getElementById('mainContent').innerHTML=`<div style="text-align:center;padding:60px"><div class="spinner"></div><div style="font-size:15px;font-weight:700;color:var(--muted);margin-top:16px">جاري إنشاء الحساب وإرسال طلب التسجيل...</div></div>`;
   try{
-    const {data:authData,error:authErr}=await sb.auth.signUp({email:formData.email.toLowerCase(),password:formData.password});
+    const authPayload=formData.email
+      ? {email:formData.email,password:formData.password}
+      : {phone:formData.auth_phone,password:formData.password};
+    const {data:authData,error:authErr}=await sb.auth.signUp(authPayload);
     if(authErr) throw authErr;
     if(!authData?.user) throw new Error('تعذر إنشاء حساب المستخدم.');
     if(!authData.session){
       registrationSubmitting=false;
-      document.getElementById('mainContent').innerHTML=`<div class="card"><div class="card-body" style="text-align:center;padding:40px">
-        <div style="font-size:48px">✉️</div><h3 style="font-size:18px;font-weight:900;margin:12px 0">أكد بريدك الإلكتروني</h3>
-        <p style="line-height:1.9;color:var(--muted)">تم إنشاء حساب الدخول. افتح رسالة التأكيد المرسلة إلى ${escapeHtml(formData.email)}، ثم ارجع واضغط الزر أدناه لإكمال تسجيل المؤسسة ورفع المستندات. لا تعِد تعبئة النموذج.</p>
-        <button class="btn-next" onclick="resumeRegistrationAfterConfirmation()" style="margin:18px auto 0">أكدت البريد — أكمل التسجيل</button>
-      </div></div>`;
+      const isPhoneSignup=!formData.email;
+      document.getElementById('mainContent').innerHTML=isPhoneSignup
+        ? `<div class="card"><div class="card-body" style="text-align:center;padding:40px">
+            <div style="font-size:48px">📱</div><h3 style="font-size:18px;font-weight:900;margin:12px 0">تأكيد رقم الهاتف</h3>
+            <p style="line-height:1.9;color:var(--muted)">أدخل رمز التحقق المرسل برسالة SMS إلى ${escapeHtml(formData.phone)} لإكمال إنشاء الحساب.</p>
+            <input id="phoneSignupOtp" class="form-inp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="رمز التحقق" style="max-width:220px;margin:16px auto;direction:ltr;text-align:center">
+            <button class="btn-next" onclick="confirmPhoneRegistration()" style="margin:0 auto">تأكيد الهاتف وإكمال التسجيل</button>
+          </div></div>`
+        : `<div class="card"><div class="card-body" style="text-align:center;padding:40px">
+            <div style="font-size:48px">✉️</div><h3 style="font-size:18px;font-weight:900;margin:12px 0">أكد بريدك الإلكتروني</h3>
+            <p style="line-height:1.9;color:var(--muted)">تم إنشاء حساب الدخول. افتح رسالة التأكيد المرسلة إلى ${escapeHtml(formData.email)}، ثم ارجع واضغط الزر أدناه لإكمال تسجيل المؤسسة ورفع المستندات.</p>
+            <button class="btn-next" onclick="resumeRegistrationAfterConfirmation()" style="margin:18px auto 0">أكدت البريد — أكمل التسجيل</button>
+          </div></div>`;
       return;
     }
     await createInstitutionAndDocuments(selectedPackage);
-  }catch(err){registrationSubmitting=false;showSubmitError(err.message||'تعذر إرسال طلب التسجيل. يرجى المحاولة مرة أخرى.');}
+  }catch(err){
+    registrationSubmitting=false;
+    const message=!formData.email&&/phone|sms|provider|disabled/i.test(err.message||'')
+      ? 'تعذر إنشاء حساب برقم الهاتف لأن إعدادات تأكيد الهاتف أو مزود رسائل SMS غير مفعّلة في Supabase. يمكن التسجيل بالبريد الآن، أو تفعيل SMS أولاً.'
+      : (err.message||'تعذر إرسال طلب التسجيل. يرجى المحاولة مرة أخرى.');
+    showSubmitError(message);
+  }
 }
 
 async function resumeRegistrationAfterConfirmation(){
   const main=document.getElementById('mainContent');
   main.innerHTML='<div style="text-align:center;padding:60px"><div class="spinner"></div><div style="margin-top:16px">جاري التحقق من البريد وإكمال الطلب...</div></div>';
   try{
-    const {error}=await sb.auth.signInWithPassword({email:formData.email.toLowerCase(),password:formData.password});
+    const {error}=await sb.auth.signInWithPassword({email:formData.email,password:formData.password});
     if(error) throw new Error('لم يتم تأكيد البريد بعد أو تعذر تسجيل الدخول. افتح رسالة التأكيد ثم حاول مرة أخرى.');
     const selectedPackage=PACKAGES.find(p=>p.id===formData.package_id);
     if(!selectedPackage?.dbId) throw new Error('تعذر تحديد الباقة من قاعدة البيانات.');
     await createInstitutionAndDocuments(selectedPackage);
   }catch(err){showSubmitError(err.message||'تعذر إكمال التسجيل.');}
+}
+async function confirmPhoneRegistration(){
+  const token=document.getElementById('phoneSignupOtp')?.value.trim()||'';
+  if(!/^\\d{6}$/.test(token)){showSubmitError('أدخل رمز التحقق المكوّن من 6 أرقام.');return;}
+  try{
+    const {error}=await sb.auth.verifyOtp({phone:formData.auth_phone,token,type:'sms'});
+    if(error)throw error;
+    const selectedPackage=PACKAGES.find(p=>p.id===formData.package_id);
+    if(!selectedPackage?.dbId)throw new Error('تعذر تحديد الباقة من قاعدة البيانات.');
+    await createInstitutionAndDocuments(selectedPackage);
+  }catch(err){showSubmitError(err.message||'رمز التحقق غير صحيح أو انتهت صلاحيته.');}
 }
 
 let pendingInstitutionId=null;
