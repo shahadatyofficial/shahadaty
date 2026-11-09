@@ -68,6 +68,9 @@ begin
     update public.support_conversations set last_message_preview=left(trim(p_message),180),
       last_message_at=now(),unread_admin_count=1,updated_at=now()
     where id=v_conversation.id returning * into v_conversation;
+  elsif v_conversation.status='closed' then
+    update public.support_conversations set status='open',updated_at=now()
+    where id=v_conversation.id returning * into v_conversation;
   end if;
 
   return jsonb_build_object('conversation_id',v_conversation.id,'status',v_conversation.status,'created',v_created);
