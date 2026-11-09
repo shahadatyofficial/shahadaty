@@ -1,10 +1,10 @@
 name: Validate inline JavaScript
 on:
   push:
-    branches: [main, development/platform-core]
+    branches: [main, development/platform-core, feature/live-support-chat]
   pull_request:
     types: [opened, synchronize, reopened, edited]
-    branches: [main, development/phase-0-audit]
+    branches: [main]
 jobs:
   inline-js:
     runs-on: ubuntu-latest
@@ -15,3 +15,5 @@ jobs:
           node-version: 22
       - name: Validate inline JavaScript in platform pages
         run: python3 scripts/check-inline-js.py
+      - name: Validate support chat JavaScript
+        run: node --check support-chat.js
