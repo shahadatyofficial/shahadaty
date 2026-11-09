@@ -25,14 +25,14 @@ async function sha256(value: string) {
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function findUserByIdentifier(admin: any, email: string | null, phone: string) {
+async function findUserByIdentifier(admin: any, identifier: { email?: string; phone?: string }) {
   for (let page = 1; page <= 50; page++) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
     if (error) throw error;
     const users = data?.users || [];
     const found = users.find((user: any) =>
-      (email && String(user.email || "").toLowerCase() === email) ||
-      (phone && user.phone === phone)
+      (identifier.email && String(user.email || "").toLowerCase() === identifier.email) ||
+      (identifier.phone && user.phone === identifier.phone)
     );
     if (found) return found;
     if (users.length < 1000) return null;
@@ -110,7 +110,7 @@ Deno.serve(async (req: Request) => {
       lastAuthError = error;
       const code = String(error?.code || "").toLowerCase();
       if (code === "email_not_confirmed" || code === "phone_not_confirmed") {
-        existingUser = await findUserByIdentifier(admin, email, phone);
+        existingUser = await findUserByIdentifier(admin, "email" in credential ? { email } : { phone });
         if (existingUser) {
           verifiedByPassword = true;
           break;
