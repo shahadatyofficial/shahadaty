@@ -598,6 +598,17 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 @media(max-width:520px){#sh-support-launcher{left:14px;bottom:14px;padding:12px 15px}#sh-support-panel{left:12px;bottom:76px;width:calc(100vw - 24px)}#sh-support-toast{left:12px;bottom:72px;max-width:calc(100vw - 24px)}}
 @media(prefers-reduced-motion:reduce){#sh-support-panel.sh-open,#sh-support-toast{animation:none}#sh-support-launcher{transition:none}}
 
+
+.sh-chat-thread{max-height:220px;overflow:auto;padding:12px 14px;background:#f4f7fb;display:flex;flex-direction:column;gap:8px}
+.sh-chat-empty{font:11px 'Cairo',sans-serif;color:#718198;text-align:center;padding:14px 4px}
+.sh-chat-bubble{max-width:88%;padding:9px 11px;border-radius:13px;font:12px/1.7 'Cairo',sans-serif;white-space:pre-wrap;overflow-wrap:anywhere}
+.sh-chat-bubble.visitor{align-self:flex-start;background:#e3effb;color:#183b5b;border-bottom-right-radius:4px}
+.sh-chat-bubble.admin{align-self:flex-end;background:#fff;color:#20344d;border:1px solid #e0e9f3;border-bottom-left-radius:4px}
+.sh-chat-time{display:block;font-size:9px;opacity:.65;margin-top:3px}
+.sh-chat-identity{display:flex;gap:7px;padding:10px 12px 0;background:#fff}
+.sh-chat-identity input{min-width:0;width:50%;border:1px solid #dce5ef;border-radius:9px;padding:8px;font:11px 'Cairo',sans-serif}
+#sh-chat-send:disabled{opacity:.55;cursor:wait}
+
 </style>
 </head>
 <body>
@@ -1195,15 +1206,29 @@ window.addEventListener('load',()=>{
 <section id="sh-support-panel" aria-label="محادثة الدعم" aria-hidden="true">
   <header class="sh-chat-head"><div class="sh-chat-avatar">ش</div><div><strong>دعم شهادتي العلمية</strong><small>متاحون لمساعدتك عبر واتساب والبريد</small></div><button class="sh-chat-close" type="button" aria-label="إغلاق" onclick="shCloseSupport()">×</button></header>
   <div class="sh-chat-body"><div class="sh-chat-welcome">أهلاً بيك 👋<br>اكتب رسالتك، واضغط إرسال لفتح محادثة واتساب مباشرة مع فريق شهادتي.</div><div class="sh-chat-hint">سيتم فتح واتساب لإرسال رسالتك إلى رقم الدعم الرسمي.</div><div class="sh-chat-links"><a class="sh-chat-wa" href="https://wa.me/201233380085" target="_blank" rel="noopener noreferrer">واتساب مباشر</a><a class="sh-chat-mail" href="mailto:shahadatyofficial@gmail.com">البريد الإلكتروني</a></div></div>
-  <form class="sh-chat-form" onsubmit="shSendSupport(event)"><input id="sh-chat-message" type="text" maxlength="1000" placeholder="اكتب رسالتك هنا..." aria-label="رسالتك" required><button id="sh-chat-send" type="submit">إرسال ↗</button></form>
+  <div class="sh-chat-thread" id="sh-chat-thread" aria-live="polite"><div class="sh-chat-empty">اكتب رسالتك وسيقوم فريق الدعم بالرد عليك هنا.</div></div>
+  <div class="sh-chat-identity"><input id="sh-chat-name" maxlength="100" placeholder="اسمك" aria-label="اسمك"><input id="sh-chat-email" type="email" maxlength="160" placeholder="البريد الإلكتروني (اختياري)" aria-label="البريد الإلكتروني"></div>
+  <form class="sh-chat-form" onsubmit="shSendSupport(event)"><input id="sh-chat-message" type="text" maxlength="2000" placeholder="اكتب رسالتك هنا..." aria-label="رسالتك" required><button id="sh-chat-send" type="submit">إرسال ↗</button></form>
 </section>
 <script>
 (function(){
  const panel=document.getElementById('sh-support-panel'),launcher=document.getElementById('sh-support-launcher'),toast=document.getElementById('sh-support-toast');
- window.shOpenSupport=function(){panel.classList.add('sh-open');panel.setAttribute('aria-hidden','false');launcher.setAttribute('aria-expanded','true');if(toast)toast.hidden=true;setTimeout(()=>document.getElementById('sh-chat-message')?.focus(),80);};
+ window.shOpenSupport=function(){panel.classList.add('sh-open');panel.setAttribute('aria-hidden','false');launcher.setAttribute('aria-expanded','true');if(toast)toast.hidden=true;setTimeout(()=>document.getElementById('sh-chat-message')?.focus(),80);shPollSupport();if(!shSupportPoll)shSupportPoll=setInterval(()=>{if(panel.classList.contains('sh-open'))shPollSupport();},5000);};
  window.shCloseSupport=function(){panel.classList.remove('sh-open');panel.setAttribute('aria-hidden','true');launcher.setAttribute('aria-expanded','false');};
  window.shToggleSupport=function(){panel.classList.contains('sh-open')?shCloseSupport():shOpenSupport();};
- window.shSendSupport=function(e){e.preventDefault();const input=document.getElementById('sh-chat-message');const message=(input.value||'').trim();if(!message)return;const text='مرحباً، أتواصل معكم من موقع شهادتي العلمية.\n'+message;window.open('https://wa.me/201233380085?text='+encodeURIComponent(text),'_blank','noopener,noreferrer');input.value='';};
+ window.shSupportSession=null;let shSupportPoll=null;let shSupportMessages=[];
+ function shEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+ function shRenderSupportMessages(rows){const box=document.getElementById('sh-chat-thread');if(!box)return;shSupportMessages=rows||[];box.innerHTML=shSupportMessages.length?shSupportMessages.map(m=>'<div class="sh-chat-bubble '+(m.sender==='admin'?'admin':'visitor')+'">'+shEsc(m.body)+'<span class="sh-chat-time">'+new Date(m.created_at).toLocaleString('ar-EG',{hour:'2-digit',minute:'2-digit'})+'</span></div>').join(''):'<div class="sh-chat-empty">رسالتك هتظهر هنا، وفريق الدعم هيرد عليك من داخل المنصة.</div>';box.scrollTop=box.scrollHeight;}
+ async function shLoadSupportSession(){try{const raw=localStorage.getItem('shahadaty_support_session');if(!raw)return null;const v=JSON.parse(raw);if(v?.id&&v?.token)return v;}catch(e){}return null;}
+ async function shPollSupport(){if(!window.shSupportSession)return;const{data,error}=await sb.rpc('get_visitor_support_messages',{p_conversation_id:window.shSupportSession.id,p_access_token:window.shSupportSession.token});if(!error)shRenderSupportMessages(data||[]);}
+ window.shSendSupport=async function(e){e.preventDefault();const input=document.getElementById('sh-chat-message'),name=document.getElementById('sh-chat-name'),email=document.getElementById('sh-chat-email'),btn=document.getElementById('sh-chat-send');const body=(input.value||'').trim(),visitorName=(name.value||'').trim();if(!body)return;if(!visitorName){name.focus();name.style.borderColor='#dc2626';return;}name.style.borderColor='';btn.disabled=true;btn.textContent='جارٍ الإرسال';
+ try{
+  let session=window.shSupportSession||await shLoadSupportSession();
+  if(!session){session={id:crypto.randomUUID(),token:crypto.randomUUID()};const{error}=await sb.from('support_conversations').insert({id:session.id,access_token:session.token,visitor_name:visitorName,visitor_email:(email.value||'').trim()||null});if(error)throw error;localStorage.setItem('shahadaty_support_session',JSON.stringify(session));window.shSupportSession=session;}
+  const{error}=await sb.from('support_messages').insert({conversation_id:session.id,sender:'visitor',access_token:session.token,body});if(error)throw error;
+  input.value='';await shPollSupport();
+ }catch(err){alert('تعذر إرسال الرسالة الآن. '+(err?.message||'حاول مرة أخرى.'));}finally{btn.disabled=false;btn.textContent='إرسال ↗';}
+ };
  document.addEventListener('keydown',e=>{if(e.key==='Escape')shCloseSupport();});
  setTimeout(()=>{if(!panel.classList.contains('sh-open')&&toast)toast.hidden=false;},6500);
 })();
