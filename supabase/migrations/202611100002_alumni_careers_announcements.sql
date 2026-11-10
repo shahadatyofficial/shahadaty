@@ -934,3 +934,33 @@ end;
 $$;
 revoke all on function public.search_alumni_for_company(text,text,text,text,integer,text) from public;
 grant execute on function public.search_alumni_for_company(text,text,text,text,integer,text) to authenticated;
+
+
+-- RLS-safe boolean check: companies cannot SELECT alumni rows before consent,
+-- so the INSERT policy must not query alumni_profiles directly under caller RLS.
+create or replace function public.is_public_alumni_profile(p_alumni_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select public.current_approved_company_id() is not null
+    and exists (
+      select 1 from public.alumni_profiles p
+      where p.id = p_alumni_id
+        and p.visibility_status = 'public'
+    );
+$$;
+revoke all on function public.is_public_alumni_profile(uuid) from public;
+grant execute on function public.is_public_alumni_profile(uuid) to authenticated;
+
+drop policy if exists "approved companies create access requests" on public.alumni_access_requests;
+create policy "approved companies create access requests"
+on public.alumni_access_requests for insert to authenticated
+with check (
+  status = 'pending'
+  and requested_by = auth.uid()
+  and company_id = public.current_approved_company_id()
+  and public.is_public_alumni_profile(alumni_id)
+);
