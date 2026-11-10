@@ -46,8 +46,8 @@ async function loadRequests(){
   let detail='';
   if(x.status==='approved'&&(!x.expires_at||new Date(x.expires_at)>new Date())){
    if(x.request_contact){
-    const{data:p}=await sb.from('alumni_profiles').select('full_name,phone,email,governorate,professional_summary').eq('id',x.alumni_id).maybeSingle();
-    if(p)detail+='<div class="muted"><b>'+esc(p.full_name)+'</b> · '+esc(p.phone||'')+' · '+esc(p.email||'')+' · '+esc(p.governorate||'')+'<p>'+esc(p.professional_summary||'')+'</p></div>';
+    const{data:contactRows, error:contactError}=await sb.rpc('company_get_approved_alumni_contact',{p_alumni_id:x.alumni_id});
+    const p=contactRows?.[0];if(!contactError&&p)detail+='<div class="muted"><b>'+esc(p.full_name)+'</b> · '+esc(p.phone||'')+' · '+esc(p.email||'')+' · '+esc(p.governorate||'')+'<p>'+esc(p.professional_summary||'')+'</p></div>';
    }
    const{data:docs}=await sb.from('alumni_documents').select('document_title,document_type,storage_path').eq('alumni_id',x.alumni_id);
    for(const d of docs||[]){
