@@ -11,6 +11,46 @@ from public.certificates c
 where q.certificate_id = c.id
   and (nullif(trim(q.institution_name),'') is null or nullif(trim(q.faculty_name),'') is null or nullif(trim(q.grade),'') is null);
 
+-- Import existing academic certificate records into the directory as hidden profiles.
+-- They remain private until an administrator explicitly enables public visibility.
+insert into public.alumni_profiles (profile_number, full_name, visibility_status)
+select 'LEGACY-CERT-' || c.cert_number, c.student_name, 'hidden'
+from public.certificates c
+where c.record_type = 'academic'
+  and c.status = 'active'
+  and nullif(trim(c.student_name),'') is not null
+  and not exists (
+    select 1 from public.alumni_profiles p
+    where p.profile_number = 'LEGACY-CERT-' || c.cert_number
+  );
+
+insert into public.alumni_qualifications (
+  alumni_id, certificate_id, qualification_name, institution_name,
+  faculty_name, graduation_year, grade
+)
+select
+  p.id,
+  c.id,
+  coalesce(
+    nullif(trim(concat_ws(' ', nullif(trim(c.academic_degree),''), nullif(trim(c.academic_faculty),''))),''),
+    nullif(trim(c.course),''),
+    nullif(trim(c.specialization),''),
+    'مؤهل علمي'
+  ),
+  nullif(trim(c.academic_university),''),
+  nullif(trim(c.academic_faculty),''),
+  c.graduation_year,
+  nullif(trim(c.grade),'')
+from public.certificates c
+join public.alumni_profiles p
+  on p.profile_number = 'LEGACY-CERT-' || c.cert_number
+where c.record_type = 'academic'
+  and c.status = 'active'
+  and not exists (
+    select 1 from public.alumni_qualifications q
+    where q.certificate_id = c.id
+  );
+
 drop function if exists public.search_public_alumni(text,text);
 
 create or replace function public.search_public_alumni(
