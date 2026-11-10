@@ -48,7 +48,7 @@ begin
    for share;
 
   if not found then
-    raise exception 'APPROVED_INSTITUTION_NOT_FOUND';
+    raise exception 'INSTITUTION_NOT_ACTIVE_ON_PLATFORM';
   end if;
 
   -- Atomic global counter prevents duplicate numbers when admins add certificates concurrently.
