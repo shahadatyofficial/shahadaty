@@ -1118,7 +1118,8 @@ async function decideAlumniAccess(id,reject){
 }
 
 
-\nasync function linkAlumniGraduate(id){const email=prompt('أدخل البريد الإلكتروني المسجل لحساب الخريج في المنصة:');if(!email)return;const{error}=await sb.rpc('admin_link_alumni_graduate',{p_alumni_id:id,p_email:email.trim()});if(error){toast(error.message,'err');return;}toast('تم ربط ملف الخريج بحسابه الحالي','ok');loadAlumniProfiles();}
+
+async function linkAlumniGraduate(id){const email=prompt('أدخل البريد الإلكتروني المسجل لحساب الخريج في المنصة:');if(!email)return;const{error}=await sb.rpc('admin_link_alumni_graduate',{p_alumni_id:id,p_email:email.trim()});if(error){toast(error.message,'err');return;}toast('تم ربط ملف الخريج بحسابه الحالي','ok');loadAlumniProfiles();}
 async function saveAlumniExperienceSkill(){
  const alumni_id=document.getElementById('al_extra_profile').value;
  const job_title=document.getElementById('al_job_title').value.trim();
