@@ -186,6 +186,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="sb-item" onclick="sp('requests',this)"><span class="material-symbols-outlined">approval</span>طلبات الاعتماد<span class="sb-badge" id="reqBadge">0</span></div>
     <div class="sb-sec">الشهادات</div>
     <div class="sb-item" onclick="sp('certs',this)"><span class="material-symbols-outlined">description</span>مراجعة الشهادات</div>
+    <div class="sb-item" onclick="sp('add-cert',this)"><span class="material-symbols-outlined">add_circle</span>إضافة شهادة</div>
     <div class="sb-item" onclick="sp('verify',this)"><span class="material-symbols-outlined">verified</span>تحقق يدوي</div>
     <div class="sb-sec">الشركات</div>
     <div class="sb-item" onclick="sp('recruitment',this)"><span class="material-symbols-outlined">work</span>طلبات الترشيح<span class="sb-badge" id="recBadge">0</span></div>
@@ -273,10 +274,40 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
           <span class="card-title">مراجعة الشهادات</span>
           <div class="card-tools">
             <input class="inp" id="certsSearch" placeholder="اسم أو رقم الشهادة..." style="width:220px" oninput="loadAdminCerts()">
+            <button class="btn-p" onclick="sp('add-cert',null)"><span class="material-symbols-outlined">add</span>إضافة شهادة</button>
             <button class="btn-s" onclick="exportAdminCerts()"><span class="material-symbols-outlined">download</span>تصدير</button>
           </div>
         </div>
         <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الطالب</th><th>رقم الشهادة</th><th>الدورة</th><th>المؤسسة</th><th>التاريخ</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="certsTable"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">أدخل كلمة بحث</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ADD CERTIFICATE -->
+    <div class="page" id="page-add-cert">
+      <div class="card" style="max-width:980px">
+        <div class="card-head"><span class="card-title">تسجيل شهادة جديدة بواسطة الإدارة</span><span class="badge bok">صلاحية الإدارة</span></div>
+        <form id="adminCertificateForm" onsubmit="submitAdminCertificate(event)">
+          <div class="card-body">
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:12px;line-height:1.9;color:#1e40af">
+              تسجل الإدارة بيانات الشهادة نيابةً عن الجهة صاحبة السجل. الجهة المحددة تظل مسؤولة عن صحة بيانات الشهادة، والمنصة تحفظها وتتيح الاستعلام عنها فقط.
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px">
+              <div><label class="form-lbl" for="adminCertInstitution">المؤسسة صاحبة الشهادة *</label><select class="inp" id="adminCertInstitution" required style="width:100%"><option value="">اختر المؤسسة المعتمدة</option></select></div>
+              <div><label class="form-lbl" for="adminCertStudent">اسم المتدرب بالكامل *</label><input class="inp" id="adminCertStudent" required maxlength="180" style="width:100%" placeholder="الاسم كما يظهر في الشهادة"></div>
+              <div><label class="form-lbl" for="adminCertStudentEn">اسم المتدرب بالإنجليزية</label><input class="inp" id="adminCertStudentEn" maxlength="180" dir="auto" style="width:100%" placeholder="Optional"></div>
+              <div><label class="form-lbl" for="adminCertCourse">اسم الدورة / البرنامج *</label><input class="inp" id="adminCertCourse" required maxlength="180" style="width:100%" placeholder="اسم الدورة التدريبية"></div>
+              <div><label class="form-lbl" for="adminCertSpecialization">التخصص</label><input class="inp" id="adminCertSpecialization" maxlength="180" style="width:100%"></div>
+              <div><label class="form-lbl" for="adminCertIssueDate">تاريخ إصدار الشهادة *</label><input class="inp" id="adminCertIssueDate" type="date" required style="width:100%"></div>
+              <div><label class="form-lbl" for="adminCertDuration">مدة الدورة</label><input class="inp" id="adminCertDuration" maxlength="80" style="width:100%" placeholder="مثال: 30 ساعة تدريبية"></div>
+              <div><label class="form-lbl" for="adminCertGrade">التقدير / النتيجة</label><input class="inp" id="adminCertGrade" maxlength="80" style="width:100%" placeholder="مثال: ممتاز / ناجح"></div>
+            </div>
+            <div id="adminCertFormMessage" role="status" style="display:none;margin-top:16px;padding:11px 14px;border-radius:9px;font-size:12px"></div>
+          </div>
+          <div class="card-head" style="justify-content:flex-start;gap:10px">
+            <button class="btn-p" id="adminCertSubmit" type="submit"><span class="material-symbols-outlined">save</span>حفظ الشهادة وتسجيلها</button>
+            <button class="btn-s" type="button" onclick="sp('certs',null)">العودة لمراجعة الشهادات</button>
+          </div>
+        </form>
       </div>
     </div>
 
@@ -407,7 +438,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
-const ptitles={overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام'};
+const ptitles={overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات','add-cert':'إضافة شهادة',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام'};
 let allInstitutions=[], allAdminCerts=[];
 function adminEsc(v){return String(v??'—').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}
 
@@ -436,7 +467,7 @@ function sp(name,el){
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('pageTitle').textContent=ptitles[name]||name;
   if(el)el.classList.add('active');
-  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
+  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
   if(loaders[name])loaders[name]();
 }
 
@@ -587,6 +618,55 @@ async function loadAdminCerts(){
 }
 async function revokeCert(id){if(!confirm('هل تريد إلغاء هذه الشهادة؟'))return;const{error}=await sb.rpc('admin_revoke_certificate',{p_certificate_id:id});if(error){toast(error.message,'err');return;}toast('تم إلغاء الشهادة','err');loadAdminCerts();}
 function exportAdminCerts(){const ws=XLSX.utils.json_to_sheet(allAdminCerts.map(c=>({'الطالب':c.student_name,'رقم الشهادة':c.cert_number,'الدورة':c.course,'التاريخ':c.issue_date,'الحالة':c.status})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الشهادات');XLSX.writeFile(wb,'تقرير_الشهادات.xlsx');}
+
+async function loadAdminCertificateForm(){
+  const select=document.getElementById('adminCertInstitution');
+  const message=document.getElementById('adminCertFormMessage');
+  select.innerHTML='<option value="">جاري تحميل المؤسسات...</option>';
+  const{data,error}=await sb.rpc('admin_list_institutions',{p_status:'approved'});
+  if(error){select.innerHTML='<option value="">تعذر تحميل المؤسسات</option>';showAdminCertMessage(error.message,'error');return;}
+  const rows=data||[];
+  select.innerHTML='<option value="">اختر المؤسسة المعتمدة</option>'+rows.map(i=>'<option value="'+adminEsc(i.id)+'">'+adminEsc(i.name)+'</option>').join('');
+  if(!document.getElementById('adminCertIssueDate').value){
+    const now=new Date();const localDate=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
+    document.getElementById('adminCertIssueDate').value=localDate;
+  }
+  if(!rows.length)showAdminCertMessage('لا توجد مؤسسات معتمدة متاحة لإسناد الشهادة إليها.','error');
+}
+function showAdminCertMessage(message,type='success'){
+  const el=document.getElementById('adminCertFormMessage');if(!el)return;
+  el.style.display='block';el.textContent=message;
+  el.style.background=type==='error'?'#fff5f5':'#ecfdf5';el.style.color=type==='error'?'#b91c1c':'#047857';
+}
+async function submitAdminCertificate(event){
+  event.preventDefault();
+  const form=document.getElementById('adminCertificateForm');
+  const btn=document.getElementById('adminCertSubmit');
+  if(!form.reportValidity())return;
+  const payload={
+    p_institution_id:document.getElementById('adminCertInstitution').value,
+    p_student_name:document.getElementById('adminCertStudent').value.trim(),
+    p_student_name_en:document.getElementById('adminCertStudentEn').value.trim()||null,
+    p_course:document.getElementById('adminCertCourse').value.trim(),
+    p_specialization:document.getElementById('adminCertSpecialization').value.trim()||null,
+    p_issue_date:document.getElementById('adminCertIssueDate').value,
+    p_duration:document.getElementById('adminCertDuration').value.trim()||null,
+    p_grade:document.getElementById('adminCertGrade').value.trim()||null
+  };
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span> جارٍ حفظ الشهادة...';
+  const{data,error}=await sb.rpc('admin_add_certificate',payload);
+  btn.disabled=false;btn.innerHTML='<span class="material-symbols-outlined">save</span>حفظ الشهادة وتسجيلها';
+  if(error){showAdminCertMessage(error.message||'تعذر تسجيل الشهادة.','error');return;}
+  const certNumber=data?.cert_number||'';
+  showAdminCertMessage('تم تسجيل الشهادة بنجاح. رقم الشهادة: '+certNumber,'success');
+  form.reset();
+  const now=new Date();document.getElementById('adminCertIssueDate').value=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  await loadAdminCerts();
+  const link=document.createElement('a');link.href='certificate.html?id='+encodeURIComponent(certNumber);link.target='_blank';link.rel='noopener';link.textContent='عرض الشهادة المسجلة';
+  link.style.cssText='display:inline-block;margin-top:8px;color:#0369a1;font-weight:800';
+  document.getElementById('adminCertFormMessage').appendChild(document.createElement('br'));
+  document.getElementById('adminCertFormMessage').appendChild(link);
+}
 
 // ── VERIFY ────────────────────────────────────────────────────
 async function adminVerify(){
