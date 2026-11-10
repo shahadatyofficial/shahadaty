@@ -601,3 +601,28 @@ with check (
   and requested_by = auth.uid()
   and company_id = public.current_approved_company_id()
 );
+
+
+create or replace function public.search_alumni_for_company(p_query text default null,p_qualification text default null)
+returns table (alumni_id uuid,full_name text,qualification_name text,graduation_year integer)
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if public.current_approved_company_id() is null then
+    raise exception 'Approved company account required';
+  end if;
+  return query
+  select p.id,p.full_name,q.qualification_name,q.graduation_year
+  from public.alumni_profiles p
+  join public.alumni_qualifications q on q.alumni_id=p.id
+  where p.visibility_status='public'
+    and (nullif(trim(p_query),'') is null or p.full_name ilike '%'||trim(p_query)||'%')
+    and (nullif(trim(p_qualification),'') is null or q.qualification_name ilike '%'||trim(p_qualification)||'%')
+  order by p.full_name,q.graduation_year desc nulls last
+  limit 100;
+end;
+$$;
+revoke all on function public.search_alumni_for_company(text,text) from public;
+grant execute on function public.search_alumni_for_company(text,text) to authenticated;
