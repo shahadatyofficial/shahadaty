@@ -1111,8 +1111,8 @@ async function loadAlumniAccessRequests(){
  body.innerHTML=(data||[]).map(x=>'<tr><td>'+adminEsc(x.companies?.company_name)+'</td><td>'+adminEsc(x.alumni_profiles?.full_name)+'</td><td>'+[x.request_contact?'تواصل':'',x.request_cv?'CV':'',x.request_documents?'شهادات':''].filter(Boolean).join('، ')+'</td><td>'+adminEsc(x.status)+'</td><td>'+(x.status==='pending'?'<button class="btn-p" onclick="decideAlumniAccess(\''+x.id+'\',false)">موافقة إدارية مشروطة</button> <button class="btn-s" onclick="decideAlumniAccess(\''+x.id+'\',true)">رفض</button>':'—')+'</td></tr>').join('')||'<tr><td colspan="5">لا توجد طلبات</td></tr>';
 }
 async function decideAlumniAccess(id,reject){
- const{error}=await sb.from('alumni_access_requests').update({status:reject?'rejected':'approved',admin_decided_by:(await sb.auth.getUser()).data.user?.id,admin_decided_at:new Date().toISOString()}).eq('id',id).eq('status','pending');
- if(error){toast(error.message,'err');return;}toast(reject?'تم رفض الطلب':'تمت الموافقة الإدارية. لا تُتاح المستندات إلا بعد موافقة الخريج أيضًا.','ok');loadAlumniAccessRequests();
+ const{error}=await sb.from('alumni_access_requests').update({status:reject?'rejected':'admin_approved',admin_decided_by:(await sb.auth.getUser()).data.user?.id,admin_decided_at:new Date().toISOString()}).eq('id',id).eq('status','pending');
+ if(error){toast(error.message,'err');return;}toast(reject?'تم رفض الطلب':'تمت الموافقة المبدئية. يلزم موافقة الخريج أيضًا قبل إتاحة أي بيانات.','ok');loadAlumniAccessRequests();
 }
 
 
