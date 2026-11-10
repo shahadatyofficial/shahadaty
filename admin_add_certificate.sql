@@ -60,7 +60,7 @@ begin
     updated_at = now()
   returning last_number into v_number;
 
-  v_cert_number := 'SH-' || v_year || '-' || lpad(v_number::text, 6, '0');
+  v_cert_number := 'SH-' || v_year || '-' || case when v_number < 1000000 then lpad(v_number::text, 6, '0') else v_number::text end;
 
   insert into public.certificates (
     institution_id,
