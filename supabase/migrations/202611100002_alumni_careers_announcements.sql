@@ -678,3 +678,134 @@ end;
 $$;
 revoke all on function public.respond_alumni_access_request(uuid,boolean) from public;
 grant execute on function public.respond_alumni_access_request(uuid,boolean) to authenticated;
+
+
+-- Link an existing graduate login to the manually curated alumni profile.
+create or replace function public.admin_link_alumni_graduate(p_alumni_id uuid, p_email text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, auth, pg_temp
+as $$
+declare v_graduate_id uuid; v_user_id uuid;
+begin
+  if not public.is_platform_admin() then
+    raise exception 'Platform administrator access required';
+  end if;
+  select id into v_user_id from auth.users
+  where lower(email)=lower(trim(p_email)) limit 1;
+  if v_user_id is null then
+    raise exception 'No registered graduate account found for this email';
+  end if;
+  select id into v_graduate_id from public.graduate_profiles
+  where auth_user_id=v_user_id limit 1;
+  if v_graduate_id is null then
+    raise exception 'This account has no graduate profile yet';
+  end if;
+  update public.alumni_profiles
+  set legacy_graduate_profile_id=v_graduate_id, updated_at=now(), updated_by=auth.uid()
+  where id=p_alumni_id;
+  if not found then raise exception 'Alumni profile not found'; end if;
+  return true;
+end;
+$$;
+revoke all on function public.admin_link_alumni_graduate(uuid,text) from public;
+grant execute on function public.admin_link_alumni_graduate(uuid,text) to authenticated;
+
+-- A company sees private contact fields only after both approvals and only if contact was requested.
+drop policy if exists "approved consenting companies view alumni contact" on public.alumni_profiles;
+create policy "approved consenting companies view alumni contact"
+on public.alumni_profiles for select to authenticated
+using (
+  exists (
+    select 1 from public.alumni_access_requests r
+    where r.alumni_id=alumni_profiles.id
+      and r.company_id=public.current_approved_company_id()
+      and r.status='approved'
+      and r.alumni_consent_at is not null
+      and (r.expires_at is null or r.expires_at>now())
+      and r.request_contact=true
+  )
+);
+
+-- A company sees only the requested file categories after the graduate has consented.
+drop policy if exists "approved consenting companies view requested alumni documents" on public.alumni_documents;
+create policy "approved consenting companies view requested alumni documents"
+on public.alumni_documents for select to authenticated
+using (
+  exists (
+    select 1 from public.alumni_access_requests r
+    where r.alumni_id=alumni_documents.alumni_id
+      and r.company_id=public.current_approved_company_id()
+      and r.status='approved'
+      and r.alumni_consent_at is not null
+      and (r.expires_at is null or r.expires_at>now())
+      and (
+        (alumni_documents.document_type='cv' and r.request_cv=true)
+        or (alumni_documents.document_type<>'cv' and r.request_documents=true)
+      )
+  )
+);
+
+-- Storage signed URLs can be created only for the exact approved document object.
+create or replace function public.company_can_access_alumni_document(p_storage_path text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select exists (
+    select 1
+    from public.alumni_documents d
+    join public.alumni_access_requests r on r.alumni_id=d.alumni_id
+    where d.storage_path=p_storage_path
+      and r.company_id=public.current_approved_company_id()
+      and r.status='approved'
+      and r.alumni_consent_at is not null
+      and (r.expires_at is null or r.expires_at>now())
+      and (
+        (d.document_type='cv' and r.request_cv=true)
+        or (d.document_type<>'cv' and r.request_documents=true)
+      )
+  );
+$$;
+revoke all on function public.company_can_access_alumni_document(text) from public;
+grant execute on function public.company_can_access_alumni_document(text) to authenticated;
+
+drop policy if exists "approved consenting companies read alumni private files" on storage.objects;
+create policy "approved consenting companies read alumni private files"
+on storage.objects for select to authenticated
+using (
+  bucket_id='alumni-private'
+  and public.company_can_access_alumni_document(name)
+);
+
+-- Resolve the company display name without granting direct read access to company records.
+create or replace function public.current_approved_company_name()
+returns text
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select c.company_name from public.companies c
+  where c.auth_user_id=auth.uid() and c.status='approved'
+  limit 1;
+$$;
+revoke all on function public.current_approved_company_name() from public;
+grant execute on function public.current_approved_company_name() to authenticated;
+
+-- Company users can review applications submitted to their own approved job announcements.
+drop policy if exists "approved companies view applications to own jobs" on public.job_applications;
+create policy "approved companies view applications to own jobs"
+on public.job_applications for select to authenticated
+using (
+  exists (
+    select 1 from public.job_announcements j
+    where j.id=job_applications.job_id
+      and public.is_approved_company(j.company_id)
+  )
+);
+
+revoke all on function public.notify_alumni_about_training() from public, anon, authenticated;
