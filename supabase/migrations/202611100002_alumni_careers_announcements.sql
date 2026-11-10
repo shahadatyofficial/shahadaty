@@ -405,11 +405,21 @@ language plpgsql
 security definer
 set search_path = public, pg_temp
 as $$
+declare
+  v_should_notify boolean := false;
 begin
-  if new.status = 'published'
-     and (tg_op = 'INSERT' or old.status is distinct from new.status
-          or old.target_qualifications is distinct from new.target_qualifications
-          or old.target_all_alumni is distinct from new.target_all_alumni) then
+  if tg_op = 'INSERT' then
+    v_should_notify := new.status = 'published';
+  elsif tg_op = 'UPDATE' then
+    v_should_notify := new.status = 'published'
+      and (
+        old.status is distinct from new.status
+        or old.target_qualifications is distinct from new.target_qualifications
+        or old.target_all_alumni is distinct from new.target_all_alumni
+      );
+  end if;
+
+  if v_should_notify then
     insert into public.alumni_notifications
       (alumni_id, notification_type, title, body, target_qualification, related_training_id)
     select distinct p.id, 'training', new.title, new.teaser, q.qualification_name, new.id
