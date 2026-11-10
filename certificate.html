@@ -36,12 +36,12 @@ async function load(){
     <div class="seal">✓</div><div class="eyebrow">${recordTitle}</div><div class="title">${academic?'مؤهل علمي':'شهادة تدريبية'}</div><div class="subtitle">منصة شهادتي تتيح عرض البيانات المسجلة فقط، ولا تصدّق على صحة المؤهل أو تعتمده؛ وصحة البيانات على مسؤولية صاحبها</div>
     <div class="student">${esc(c.student_name)}</div><div class="course">${esc(academic?(c.academic_degree||c.course):c.course)}</div>
     <div class="grid">
-      <div class="box"><div class="lbl">${academic?'الجامعة':'جهة التسجيل'}</div><div class="val">${esc(academic?c.academic_university:c.institution_name)}</div></div>
-      <div class="box"><div class="lbl">${academic?'الكلية':'نوع الجهة'}</div><div class="val">${esc(academic?c.academic_faculty:c.institution_type)}</div></div>
+      <div class="box"><div class="lbl">${academic?'الجامعة':'جهة التسجيل'}</div><div class="val">${esc(academic?c.university:c.institution_name)}</div></div>
+      <div class="box"><div class="lbl">${academic?'الكلية':'نوع الجهة'}</div><div class="val">${esc(academic?c.college:c.institution_type)}</div></div>
       <div class="box"><div class="lbl">${academic?'الدرجة العلمية':'التخصص'}</div><div class="val">${esc(academic?(c.academic_degree||c.course):c.specialization)}</div></div>
       <div class="box"><div class="lbl">${academic?'سنة التخرج':'تاريخ الإصدار'}</div><div class="val">${esc(academic?c.graduation_year:date)}</div></div>
       <div class="box"><div class="lbl">التقدير</div><div class="val">${esc(c.grade||'غير محدد')}</div></div>
-      <div class="box"><div class="lbl">${academic?'جهة تسجيل البيانات':'مدة البرنامج'}</div><div class="val">${esc(academic?(c.source_type==='admin'?'إدارة منصة شهادتي':c.institution_name):c.duration)}</div></div>
+      <div class="box"><div class="lbl">${academic?'جهة تسجيل البيانات':'مدة البرنامج'}</div><div class="val">${esc(academic?(c.record_source==='admin'?'إدارة منصة شهادتي':c.institution_name):c.duration)}</div></div>
     </div>
     <div class="verify"><div id="qrcode" class="qr"></div><div><div class="number">${esc(c.cert_number)}</div><div class="valid">${active?'✓ شهادة سارية ومسجلة':'⚠️ الشهادة موجودة ولكنها غير سارية'}</div><div class="foot">للتحقق من هذه الشهادة استخدم رقمها في منصة شهادتي.</div></div></div>
   </div></section>`;
