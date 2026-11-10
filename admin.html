@@ -419,7 +419,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="page" id="page-companies">
       <div class="card">
         <div class="card-head"><span class="card-title">الشركات المشتركة</span><button class="btn-p" onclick="loadCompanies()"><span class="material-symbols-outlined">refresh</span>تحديث</button></div>
-        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الشركة</th><th>المسؤول</th><th>الحالة</th><th>رصيد البحث</th><th>إجراءات</th></tr></thead><tbody id="compTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الشركة</th><th>المسؤول</th><th>الحالة</th><th>رصيد البحث</th><th>حساب بوابة التوظيف</th><th>إجراءات</th></tr></thead><tbody id="compTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
       </div>
     </div>
 
@@ -880,7 +880,7 @@ async function loadCompanies(){
     </div></td>
   </tr>`).join('');
 }
-async function setCompSt(id,status){const{error}=await sb.rpc('admin_update_company',{p_company_id:id,p_status:status,p_search_credits:null});if(error){toast(error.message,'err');return;}toast('تم التحديث','ok');loadCompanies();}
+async function linkCompanyAccount(id){const email=prompt('أدخل البريد الإلكتروني لحساب الشركة المسجل في المنصة:');if(!email)return;const{error}=await sb.rpc('admin_link_company_user',{p_company_id:id,p_email:email.trim()});if(error){toast(error.message,'err');return;}toast('تم ربط حساب الشركة','ok');loadCompanies();}\nasync function setCompSt(id,status){const{error}=await sb.rpc('admin_update_company',{p_company_id:id,p_status:status,p_search_credits:null});if(error){toast(error.message,'err');return;}toast('تم التحديث','ok');loadCompanies();}
 async function addCreds(id,current){const a=prompt('كم عملية بحث تضيف؟','10');if(!a||isNaN(a)||parseInt(a)<0)return;const{error}=await sb.rpc('admin_update_company',{p_company_id:id,p_status:null,p_search_credits:current+parseInt(a)});if(error){toast(error.message,'err');return;}toast(`تم إضافة ${a} عملية`,'ok');loadCompanies();}
 
 // ── PACKAGES ──────────────────────────────────────────────────
