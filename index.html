@@ -675,6 +675,29 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
     </button>
   </div>
 </nav>
+<section id="career-hub" style="background:#f7f9fc;padding:14px 24px;border-bottom:1px solid #e2e8f0">
+ <div style="max-width:1200px;margin:auto;display:grid;gap:12px">
+  <div style="display:flex;align-items:center;gap:12px;overflow:hidden;background:#0c2d4e;color:#fff;border-radius:12px;padding:11px 14px">
+   <strong style="white-space:nowrap;color:#f5d58a">فرص وإعلانات شهادتي</strong>
+   <div style="overflow:hidden;flex:1"><div id="careerTicker" style="display:flex;gap:34px;white-space:nowrap;width:max-content;animation:careerTickerMove 32s linear infinite"><span>تابع فرص العمل والدورات التدريبية المعلنة عبر شهادتي العلمية</span></div></div>
+  </div>
+  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px">
+   <h2 style="font-size:18px;margin-bottom:5px;color:#0c2d4e">البحث العام عن الخريجين</h2>
+   <p style="font-size:12px;color:#64748b;margin-bottom:10px">يعرض البحث الاسم والمؤهل وسنة التخرج فقط.</p>
+   <form onsubmit="searchPublicAlumni(event)" style="display:flex;gap:8px;flex-wrap:wrap">
+    <input id="publicAlumniName" aria-label="اسم الخريج" placeholder="اسم الخريج" style="flex:1;min-width:160px;padding:10px;border:1px solid #dbe3ec;border-radius:9px;font-family:inherit">
+    <input id="publicAlumniQualification" aria-label="المؤهل أو التخصص" placeholder="المؤهل أو التخصص" style="flex:1;min-width:160px;padding:10px;border:1px solid #dbe3ec;border-radius:9px;font-family:inherit">
+    <button type="submit" style="background:#0369a1;color:#fff;border:0;border-radius:9px;padding:10px 20px;font-family:inherit;font-weight:700">بحث</button>
+   </form>
+   <div id="publicAlumniResults" aria-live="polite" style="margin-top:12px"></div>
+  </div>
+ </div>
+</section>
+<style>
+@keyframes careerTickerMove{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
+@media(prefers-reduced-motion:reduce){#careerTicker{animation:none!important;white-space:normal!important;flex-wrap:wrap}}
+#careerTicker:hover{animation-play-state:paused}
+</style>
 
 <!-- HERO -->
 <section class="hero">
@@ -1005,6 +1028,26 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 const sb=supabase.createClient(SU,SK);
 async function loadPublicStats(){const{data}=await sb.rpc('public_platform_stats');const r=Array.isArray(data)?data[0]:data;if(!r)return;document.getElementById('publicInstCount').textContent='+'+Number(r.institutions_count||0).toLocaleString('ar-EG');document.getElementById('publicCertCount').textContent='+'+Number(r.certificates_count||0).toLocaleString('ar-EG');document.getElementById('publicVerifyCount').textContent='+'+Number(r.verifications_count||0).toLocaleString('ar-EG');}
 loadPublicStats();
+loadCareerTicker();
+
+function publicEsc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+async function loadCareerTicker(){
+ const el=document.getElementById('careerTicker');if(!el)return;
+ const [{data:jobs},{data:courses}]=await Promise.all([sb.rpc('get_public_job_ticker'),sb.rpc('get_public_training_ticker')]);
+ const items=[...(jobs||[]).map(x=>'فرصة وظيفية #'+x.announcement_number+' — '+x.company_display_name+': '+x.title),...(courses||[]).map(x=>'إعلان دورة #'+x.announcement_number+' — '+x.title)];
+ if(items.length)el.innerHTML=items.map(x=>'<span>✦ '+publicEsc(x)+'</span>').join('');
+}
+async function searchPublicAlumni(event){
+ event.preventDefault();const el=document.getElementById('publicAlumniResults');
+ el.innerHTML='<p style="color:#64748b">جاري البحث...</p>';
+ const q=document.getElementById('publicAlumniName').value.trim()||null;
+ const qualification=document.getElementById('publicAlumniQualification').value.trim()||null;
+ const{data,error}=await sb.rpc('search_public_alumni',{p_query:q,p_qualification:qualification});
+ if(error){el.textContent='البحث غير متاح حاليًا.';return;}
+ if(!data?.length){el.textContent='لا توجد نتائج مطابقة.';return;}
+ el.innerHTML='<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;text-align:right"><thead><tr><th style="padding:9px;border-bottom:1px solid #e2e8f0">الاسم</th><th style="padding:9px;border-bottom:1px solid #e2e8f0">المؤهل</th><th style="padding:9px;border-bottom:1px solid #e2e8f0">سنة التخرج</th></tr></thead><tbody>'+data.map(x=>'<tr><td style="padding:9px;border-bottom:1px solid #f1f5f9">'+publicEsc(x.full_name)+'</td><td style="padding:9px;border-bottom:1px solid #f1f5f9">'+publicEsc(x.qualification_name)+'</td><td style="padding:9px;border-bottom:1px solid #f1f5f9">'+publicEsc(x.graduation_year||'—')+'</td></tr>').join('')+'</tbody></table></div>';
+}
+
 let camStream=null;
 
 async function doSearch(){
