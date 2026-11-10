@@ -182,7 +182,8 @@ async function doSearch(){
   const ds=document.getElementById('defaultState');
   ds.style.display='none';
   ra.innerHTML=`<div class="loading"><div class="spin"></div><p>جاري التحقق من الشهادة...</p></div>`;
-  const{data,error}=await sb.rpc('verify_certificate',{p_cert_number:q});
+  const{data:rows,error}=await sb.rpc('verify_certificate_details',{p_cert_number:q});
+  const data=Array.isArray(rows)?rows[0]:rows;
   if(error||!data){
     ra.innerHTML=`<div class="result-err result-wrap">
       <span class="material-symbols-outlined">cancel</span>
@@ -200,24 +201,25 @@ async function doSearch(){
     <div class="result-ok-head">
       <div class="result-ok-icon"><span class="material-symbols-outlined">verified</span></div>
       <div>
-        <div class="result-ok-title">${data.status==='active'?'✓ شهادة موثقة وصالحة':'⚠️ شهادة موجودة ولكنها غير سارية'}</div>
-        <div class="result-ok-num">${data.cert_number}</div>
+        <div class="result-ok-title">${data.status==='active'?(data.record_type==='academic'?'✓ مؤهل مسجل وساري':'✓ شهادة موثقة وصالحة'):'⚠️ السجل موجود ولكنه غير سارٍ'}</div>
+        <div class="result-ok-num">${esc(data.cert_number)}</div>
       </div>
     </div>
     <div class="result-ok-body">
       <div class="info-grid">
-        <div class="info-box"><div class="info-lbl">اسم الطالب</div><div class="info-val">${data.student_name}</div></div>
-        <div class="info-box"><div class="info-lbl">الدورة / البرنامج</div><div class="info-val">${data.course}</div></div>
-        <div class="info-box"><div class="info-lbl">التقدير</div><div class="info-val">${data.grade||'ناجح'}</div></div>
-        <div class="info-box"><div class="info-lbl">تاريخ الإصدار</div><div class="info-val">${date}</div></div>
-        <div class="info-box"><div class="info-lbl">المؤسسة المصدِرة</div><div class="info-val">${data.institution_name||'—'}</div></div>
-        <div class="info-box"><div class="info-lbl">رقم الشهادة</div><div class="info-val" style="font-family:monospace;font-size:12px">${data.cert_number}</div></div>
+        <div class="info-box"><div class="info-lbl">اسم الطالب</div><div class="info-val">${esc(data.student_name)}</div></div>
+        <div class="info-box"><div class="info-lbl">${data.record_type==='academic'?'المؤهل العلمي':'الدورة / البرنامج'}</div><div class="info-val">${esc(data.record_type==='academic'?(data.academic_degree||data.course):data.course)}</div></div>
+        ${data.record_type==='academic'?'<div class="info-box"><div class="info-lbl">الجامعة</div><div class="info-val">'+esc(data.academic_university)+'</div></div><div class="info-box"><div class="info-lbl">الكلية</div><div class="info-val">'+esc(data.academic_faculty)+'</div></div><div class="info-box"><div class="info-lbl">سنة التخرج</div><div class="info-val">'+esc(data.graduation_year)+'</div></div>':''}
+        <div class="info-box"><div class="info-lbl">التقدير</div><div class="info-val">${esc(data.grade||'غير محدد')}</div></div>
+        <div class="info-box"><div class="info-lbl">${data.record_type==='academic'?'جهة تسجيل البيانات':'تاريخ الإصدار'}</div><div class="info-val">${data.record_type==='academic'?esc(data.source_type==='admin'?'إدارة منصة شهادتي':data.institution_name):esc(date)}</div></div>
+        ${data.record_type!=='academic'?'<div class="info-box"><div class="info-lbl">المؤسسة المصدِرة</div><div class="info-val">'+esc(data.institution_name)+'</div></div>':''}
+        <div class="info-box"><div class="info-lbl">رقم الشهادة</div><div class="info-val" style="font-family:monospace;font-size:12px">${esc(data.cert_number)}</div></div>
       </div>
       <div class="result-actions">
-        <a href="certificate.html?id=${data.cert_number}" class="btn-view" target="_blank">
+        <a href="certificate.html?id=${encodeURIComponent(data.cert_number)}" class="btn-view" target="_blank">
           <span class="material-symbols-outlined" style="font-size:18px">open_in_new</span> عرض الشهادة الرقمية
         </a>
-        <button class="btn-share" onclick="share('${data.cert_number}')">
+        <button class="btn-share" onclick="share('${String(data.cert_number).replace(/'/g, "\\'")}')">
           <span class="material-symbols-outlined">share</span> مشاركة
         </button>
         <button class="btn-share" onclick="reset()">
