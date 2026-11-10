@@ -375,3 +375,24 @@ with check (
 
 -- Do not allow public reads of profile, phone, CV or document storage paths.
 -- Private Storage bucket and signed-URL issuance are added in a separate reviewed migration.
+
+
+-- Private bucket for alumni CVs and supporting certificates.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'alumni-private',
+  'alumni-private',
+  false,
+  10485760,
+  array['application/pdf','image/jpeg','image/png']
+)
+on conflict (id) do update
+set public = false,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "platform admins manage alumni private files" on storage.objects;
+create policy "platform admins manage alumni private files"
+on storage.objects for all to authenticated
+using (bucket_id = 'alumni-private' and public.is_platform_admin())
+with check (bucket_id = 'alumni-private' and public.is_platform_admin());
