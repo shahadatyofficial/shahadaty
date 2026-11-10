@@ -244,3 +244,13 @@ revoke all on function public.get_public_training_ticker() from public;
 grant execute on function public.search_public_alumni(text,text) to anon, authenticated;
 grant execute on function public.get_public_job_ticker() to anon, authenticated;
 grant execute on function public.get_public_training_ticker() to anon, authenticated;
+
+
+-- Explicit Data API privileges; RLS above restricts table operations to platform admins.
+grant select, insert, update, delete on public.alumni_profiles to authenticated;
+grant select, insert, update, delete on public.alumni_qualifications to authenticated;
+grant select, insert, update, delete on public.alumni_experiences to authenticated;
+grant select, insert, update, delete on public.alumni_skills to authenticated;
+grant select, insert, update, delete on public.alumni_documents to authenticated;
+grant select, insert, update, delete on public.job_announcements to authenticated;
+grant select, insert, update, delete on public.training_announcements to authenticated;
