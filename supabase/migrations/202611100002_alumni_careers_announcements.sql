@@ -523,3 +523,15 @@ drop policy if exists "registered graduates view own applications" on public.job
 create policy "registered graduates view own applications"
 on public.job_applications for select to authenticated
 using (alumni_id = public.current_alumni_profile_id());
+
+
+drop policy if exists "graduates read own notifications" on public.alumni_notifications;
+create policy "graduates read own notifications"
+on public.alumni_notifications for select to authenticated
+using (alumni_id = public.current_alumni_profile_id());
+
+drop policy if exists "graduates mark own notifications read" on public.alumni_notifications;
+create policy "graduates mark own notifications read"
+on public.alumni_notifications for update to authenticated
+using (alumni_id = public.current_alumni_profile_id())
+with check (alumni_id = public.current_alumni_profile_id());
