@@ -396,3 +396,40 @@ create policy "platform admins manage alumni private files"
 on storage.objects for all to authenticated
 using (bucket_id = 'alumni-private' and public.is_platform_admin())
 with check (bucket_id = 'alumni-private' and public.is_platform_admin());
+
+
+-- Targeted in-platform notifications when an administrator publishes a training announcement.
+create or replace function public.notify_alumni_about_training()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+  if new.status = 'published'
+     and (tg_op = 'INSERT' or old.status is distinct from new.status
+          or old.target_qualifications is distinct from new.target_qualifications
+          or old.target_all_alumni is distinct from new.target_all_alumni) then
+    insert into public.alumni_notifications
+      (alumni_id, notification_type, title, body, target_qualification, related_training_id)
+    select distinct p.id, 'training', new.title, new.teaser, q.qualification_name, new.id
+    from public.alumni_profiles p
+    left join public.alumni_qualifications q on q.alumni_id = p.id
+    where p.visibility_status <> 'paused'
+      and (
+        new.target_all_alumni
+        or (cardinality(new.target_qualifications) > 0
+            and q.qualification_name = any(new.target_qualifications))
+      );
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_notify_alumni_about_training on public.training_announcements;
+create trigger trg_notify_alumni_about_training
+after insert or update of status, target_qualifications, target_all_alumni
+on public.training_announcements
+for each row execute function public.notify_alumni_about_training();
+
+grant usage, select on all sequences in schema public to authenticated;
