@@ -234,6 +234,16 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
           <button class="btn-p" onclick="saveAlumniProfile()">حفظ ملف الخريج</button>
         </div>
       </div>
+      <div class="card"><div class="card-head"><span class="card-title">إضافة خبرة ومهارة للخريج</span></div><div class="card-body">
+        <label>الخريج<select class="form-inp" id="al_extra_profile"></select></label>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+          <label>المسمى الوظيفي<input class="form-inp" id="al_job_title"></label>
+          <label>جهة العمل<input class="form-inp" id="al_employer"></label>
+          <label>المهارة<input class="form-inp" id="al_skill_name"></label>
+          <label>مستوى المهارة<input class="form-inp" id="al_skill_level" placeholder="مبتدئ / متوسط / متقدم"></label>
+        </div>
+        <button class="btn-p" onclick="saveAlumniExperienceSkill()">حفظ الخبرة والمهارة</button>
+      </div></div>
       <div class="card"><div class="card-head"><span class="card-title">إرفاق شهادة أو CV للخريج</span></div><div class="card-body">
         <label>الخريج<select class="form-inp" id="al_document_profile"></select></label>
         <label>اسم المستند<input class="form-inp" id="al_document_title" placeholder="مثال: ليسانس حقوق أو السيرة الذاتية"></label>
@@ -1044,7 +1054,7 @@ async function loadAlumniProfiles(){
  const body=document.getElementById('alumniRows');if(!body)return;
  const{data,error}=await sb.from('alumni_profiles').select('id,full_name,governorate,visibility_status,alumni_qualifications(qualification_name,graduation_year)').order('created_at',{ascending:false}).limit(300);
  if(error){body.innerHTML='<tr><td colspan="5">'+adminEsc(error.message)+'</td></tr>';return;}
- body.innerHTML=(data||[]).map(p=>{const q=p.alumni_qualifications?.[0]||{};return '<tr><td>'+adminEsc(p.full_name)+'</td><td>'+adminEsc(q.qualification_name)+'</td><td>'+adminEsc(q.graduation_year)+'</td><td>'+adminEsc(p.governorate)+'</td><td>'+(p.visibility_status==='public'?'ظاهر':'مخفي')+'</td></tr>';}).join('')||'<tr><td colspan="5">لا توجد ملفات بعد</td></tr>';
+ body.innerHTML=(data||[]).map(p=>{const q=p.alumni_qualifications?.[0]||{};return '<tr><td>'+adminEsc(p.full_name)+' <button class="btn-s" onclick="printAlumniCv(\''+p.id+'\')">CV / طباعة</button></td><td>'+adminEsc(q.qualification_name)+'</td><td>'+adminEsc(q.graduation_year)+'</td><td>'+adminEsc(p.governorate)+'</td><td>'+(p.visibility_status==='public'?'ظاهر':'مخفي')+'</td></tr>';}).join('')||'<tr><td colspan="5">لا توجد ملفات بعد</td></tr>';
 }
 async function saveJobAnnouncement(){
  const company_display_name=document.getElementById('job_company').value.trim(),title=document.getElementById('job_title').value.trim(),description=document.getElementById('job_description').value.trim();
@@ -1070,9 +1080,9 @@ async function loadTrainingAnnouncements(){
 
 
 async function loadAlumniProfileOptions(){
- const sel=document.getElementById('al_document_profile');if(!sel)return;
+ const sel=document.getElementById('al_document_profile');const extra=document.getElementById('al_extra_profile');if(!sel&&!extra)return;
  const{data,error}=await sb.from('alumni_profiles').select('id,full_name').order('full_name').limit(1000);
- sel.innerHTML=error?'<option value="">تعذر التحميل</option>':'<option value="">اختر الخريج</option>'+(data||[]).map(x=>'<option value="'+x.id+'">'+adminEsc(x.full_name)+'</option>').join('');
+ const options=error?'<option value="">تعذر التحميل</option>':'<option value="">اختر الخريج</option>'+(data||[]).map(x=>'<option value="'+x.id+'">'+adminEsc(x.full_name)+'</option>').join('');if(sel)sel.innerHTML=options;if(extra)extra.innerHTML=options;
 }
 async function uploadAlumniDocument(){
  const alumni_id=document.getElementById('al_document_profile').value;
@@ -1101,6 +1111,31 @@ async function loadAlumniAccessRequests(){
 async function decideAlumniAccess(id,reject){
  const{error}=await sb.from('alumni_access_requests').update({status:reject?'rejected':'approved',admin_decided_by:(await sb.auth.getUser()).data.user?.id,admin_decided_at:new Date().toISOString()}).eq('id',id).eq('status','pending');
  if(error){toast(error.message,'err');return;}toast(reject?'تم رفض الطلب':'تمت الموافقة الإدارية. لا تُتاح المستندات إلا بعد موافقة الخريج أيضًا.','ok');loadAlumniAccessRequests();
+}
+
+
+async function saveAlumniExperienceSkill(){
+ const alumni_id=document.getElementById('al_extra_profile').value;
+ const job_title=document.getElementById('al_job_title').value.trim();
+ const employer_name=document.getElementById('al_employer').value.trim();
+ const skill_name=document.getElementById('al_skill_name').value.trim();
+ const proficiency=document.getElementById('al_skill_level').value.trim();
+ if(!alumni_id||(!job_title&&!skill_name)){toast('اختر الخريج وأدخل خبرة أو مهارة على الأقل','err');return;}
+ if(job_title){const{error}=await sb.from('alumni_experiences').insert({alumni_id,job_title,employer_name:employer_name||null});if(error){toast(error.message,'err');return;}}
+ if(skill_name){const{error}=await sb.from('alumni_skills').insert({alumni_id,skill_name,proficiency:proficiency||null});if(error){toast(error.message,'err');return;}}
+ ['al_job_title','al_employer','al_skill_name','al_skill_level'].forEach(id=>document.getElementById(id).value='');
+ toast('تم حفظ بيانات الملف المهني','ok');
+}
+async function printAlumniCv(id){
+ const{data:p,error}=await sb.from('alumni_profiles').select('*,alumni_qualifications(*),alumni_experiences(*),alumni_skills(*)').eq('id',id).single();
+ if(error||!p){toast(error?.message||'تعذر تحميل الملف','err');return;}
+ const esc=adminEsc;
+ const w=window.open('about:blank','_blank');if(!w){toast('اسمح بفتح النوافذ المنبثقة لطباعة CV','err');return;}
+ const qualifications=(p.alumni_qualifications||[]).map(x=>'<li>'+esc(x.qualification_name)+' — '+esc(x.graduation_year||'')+'</li>').join('');
+ const experiences=(p.alumni_experiences||[]).map(x=>'<li><b>'+esc(x.job_title)+'</b> — '+esc(x.employer_name||'')+'</li>').join('');
+ const skills=(p.alumni_skills||[]).map(x=>'<li>'+esc(x.skill_name)+' '+esc(x.proficiency||'')+'</li>').join('');
+ w.document.write('<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><title>السيرة الذاتية</title><style>body{font-family:Arial,sans-serif;max-width:850px;margin:35px auto;padding:25px;color:#172b45;line-height:1.8}h1{color:#12395d;border-bottom:2px solid #c9a45c;padding-bottom:10px}h2{color:#12395d;font-size:18px;margin-top:24px}li{margin:4px 0}.contact{color:#52657b}@media print{button{display:none}}</style><h1>'+esc(p.full_name)+'</h1><p class="contact">'+esc(p.governorate||'')+' | '+esc(p.phone||'')+' | '+esc(p.email||'')+'</p><h2>نبذة مهنية</h2><p>'+esc(p.professional_summary||'')+'</p><h2>المؤهلات العلمية</h2><ul>'+qualifications+'</ul><h2>الخبرات</h2><ul>'+experiences+'</ul><h2>المهارات</h2><ul>'+skills+'</ul><button onclick="window.print()">طباعة / حفظ PDF</button></html>');
+ w.document.close();
 }
 
 // ── REPORTS ───────────────────────────────────────────────────
