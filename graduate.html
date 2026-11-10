@@ -21,7 +21,8 @@ async function loadAlumniNotifications(){
  el.innerHTML=(data||[]).map(n=>'<div class="cert"><b>'+esc(n.title)+'</b><p>'+esc(n.body||'')+'</p><small>'+new Date(n.created_at).toLocaleString('ar-EG')+'</small>'+(n.read_at?'':' <button onclick="markAlumniNotificationRead(\''+n.id+'\')">تمت القراءة</button>')+'</div>').join('')||'لا توجد إشعارات.';
 }
 async function markAlumniNotificationRead(id){const{error}=await sb.from('alumni_notifications').update({read_at:new Date().toISOString()}).eq('id',id);if(error){msg('saveMsg',error.message);return;}loadAlumniNotifications();}
-\nasync function loadAccessRequests(){
+
+async function loadAccessRequests(){
  const{data:{user}}=await sb.auth.getUser();if(!user)return;
  const{data:alumniId,error:linkErr}=await sb.rpc('current_alumni_profile_id');
  if(linkErr||!alumniId){document.getElementById('accessRequestsCard').classList.remove('hidden');document.getElementById('accessRequests').textContent='ملفك لم يتم ربطه بعد بسجل الخريجين. تواصل مع إدارة المنصة لإتمام الربط.';return;}
@@ -39,4 +40,5 @@ async function answerAccessRequest(id,approve){
  msg('saveMsg',data?'تم تسجيل قرارك بنجاح.':'لم يعد الطلب متاحًا لاتخاذ إجراء.');
  await loadAccessRequests();
 }
-\nsb.auth.onAuthStateChange(()=>setTimeout(load,0));load().then(()=>Promise.all([loadAccessRequests(),loadApprovedJobs(),loadAlumniNotifications()]));</script></body></html>
+
+sb.auth.onAuthStateChange(()=>setTimeout(load,0));load().then(()=>Promise.all([loadAccessRequests(),loadApprovedJobs(),loadAlumniNotifications()]));</script></body></html>
