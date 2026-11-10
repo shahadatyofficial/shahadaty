@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>بوابة الشركات | شهادتي العلمية</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f7fb;color:#102f4d;font-family:Cairo,Arial,sans-serif}.wrap{max-width:1050px;margin:32px auto;padding:16px}.panel{background:#fff;border:1px solid #e1eaf2;border-radius:16px;padding:22px;margin:16px 0;box-shadow:0 5px 22px #1234}.brand{font-weight:900;font-size:24px}.muted{color:#68798a;font-size:13px}.field{padding:12px;border:1px solid #d7e1ea;border-radius:9px;width:100%;font:inherit;margin:6px 0 12px}.btn{border:0;border-radius:9px;background:#075985;color:white;padding:11px 18px;font:700 14px Cairo;cursor:pointer}.btn.alt{background:#e7eef5;color:#153b5b}.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1;min-width:180px}.result{border-bottom:1px solid #e7edf3;padding:14px 0;display:flex;align-items:center;justify-content:space-between;gap:12px}.hide{display:none}.status{padding:4px 10px;border-radius:20px;background:#edf3f8;font-size:12px}@media(max-width:600px){.wrap{margin:8px auto}.result{align-items:flex-start;flex-direction:column}}
+</style></head>
+<body><main class="wrap">
+<header class="panel"><div class="brand">شهادتي العلمية | بوابة الشركات</div><p class="muted">ابحث عن الكفاءات المسجلة واطلب الاطلاع على الملف المهني بموافقة الخريج.</p></header>
+<section class="panel" id="loginPanel"><h2>دخول الشركات المعتمدة</h2><input class="field" id="email" type="email" placeholder="البريد الإلكتروني"><input class="field" id="password" type="password" placeholder="كلمة المرور"><button class="btn" id="loginBtn">تسجيل الدخول</button><p class="muted" id="loginMsg"></p></section>
+<section class="panel hide" id="appPanel"><div class="row" style="align-items:center"><div><h2 id="companyTitle">بوابة التوظيف</h2><p class="muted">البيانات الظاهرة في نتائج البحث: الاسم والمؤهل وسنة التخرج فقط.</p></div><button class="btn alt" id="logoutBtn" style="flex:0 0 auto">تسجيل الخروج</button></div>
+<h3>البحث عن خريج</h3><form id="searchForm" class="row"><input class="field" id="nameQuery" placeholder="اسم الخريج"><input class="field" id="qualQuery" placeholder="المؤهل أو التخصص"><button class="btn" type="submit">بحث</button></form><div id="results" class="muted">اكتب المؤهل أو التخصص لبدء البحث.</div>
+</section>
+<section class="panel hide" id="requestsPanel"><h3>طلبات الاطلاع</h3><div id="requests" class="muted">لا توجد طلبات محملة.</div></section>
+</main>
+<script>
+const SU='https://snteiiavvaaumgaegazn.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
+const sb=supabase.createClient(SU,SK);let companyId=null;
+const $=id=>document.getElementById(id);
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+async function init(){
+ const{data:{user}}=await sb.auth.getUser();
+ if(!user){$('loginPanel').classList.remove('hide');$('appPanel').classList.add('hide');$('requestsPanel').classList.add('hide');return;}
+ const{data,error}=await sb.rpc('current_approved_company_id');
+ if(error||!data){$('loginMsg').textContent='الحساب غير مربوط بشركة معتمدة بعد. يرجى التواصل مع إدارة شهادتي.';await sb.auth.signOut();$('loginPanel').classList.remove('hide');return;}
+ companyId=data;$('loginPanel').classList.add('hide');$('appPanel').classList.remove('hide');$('requestsPanel').classList.remove('hide');loadRequests();
+}
+$('loginBtn').onclick=async()=>{const{error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});$('loginMsg').textContent=error?error.message:'تم تسجيل الدخول';if(!error)await init();};
+$('logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload();};
+$('searchForm').onsubmit=async e=>{e.preventDefault();$('results').textContent='جاري البحث...';const{data,error}=await sb.rpc('search_alumni_for_company',{p_query:$('nameQuery').value.trim()||null,p_qualification:$('qualQuery').value.trim()||null});if(error){$('results').textContent='تعذر تنفيذ البحث: '+error.message;return;}if(!data?.length){$('results').textContent='لا توجد نتائج مطابقة.';return;}
+ $('results').innerHTML=data.map(x=>'<div class="result"><div><b>'+esc(x.full_name)+'</b><div class="muted">'+esc(x.qualification_name)+' · سنة التخرج: '+esc(x.graduation_year||'غير محددة')+'</div></div><button class="btn" onclick="requestAccess(\''+x.alumni_id+'\')">طلب الاطلاع على الملف</button></div>').join('');
+};
+window.requestAccess=async alumniId=>{const wantContact=confirm('هل تريد طلب بيانات التواصل؟ اضغط موافق لطلب بيانات التواصل، أو إلغاء لطلب السيرة الذاتية والشهادات فقط.');const{error}=await sb.from('alumni_access_requests').insert({alumni_id:alumniId,company_id:companyId,requested_by:(await sb.auth.getUser()).data.user.id,request_contact:wantContact,request_cv:true,request_documents:true,status:'pending'});if(error){alert('تعذر إرسال الطلب: '+error.message);return;}alert('تم إرسال الطلب. لن تظهر بيانات التواصل أو الملفات إلا بعد موافقة الإدارة والخريج.');loadRequests();};
+async function loadRequests(){const{data,error}=await sb.from('alumni_access_requests').select('id,status,request_contact,request_cv,request_documents,created_at,alumni_profiles(full_name)').eq('company_id',companyId).order('created_at',{ascending:false}).limit(50);if(error){$('requests').textContent='تعذر تحميل الطلبات.';return;}$('requests').innerHTML=(data||[]).map(x=>'<div class="result"><div><b>'+esc(x.alumni_profiles?.full_name)+'</b><div class="muted">'+(x.request_contact?'بيانات تواصل · ':'')+(x.request_cv?'CV · ':'')+(x.request_documents?'شهادات':'')+'</div></div><span class="status">'+esc(x.status)+'</span></div>').join('')||'لا توجد طلبات.';}
+sb.auth.onAuthStateChange(()=>{});
+init();
+</script></body></html>
