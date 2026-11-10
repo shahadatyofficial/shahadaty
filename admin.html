@@ -227,6 +227,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
             <label>رقم الهاتف<input class="form-inp" id="al_phone" dir="ltr"></label>
             <label>البريد الإلكتروني<input class="form-inp" id="al_email" dir="ltr"></label>
             <label>المحافظة<input class="form-inp" id="al_governorate"></label>
+            <label style="grid-column:1/-1">نبذة مهنية<textarea class="form-inp" id="al_summary" rows="3"></textarea></label>
             <label>المؤهل العلمي<input class="form-inp" id="al_qualification" required></label>
             <label>سنة التخرج<input class="form-inp" id="al_year" type="number" min="1950" max="2100"></label>
           </div>
@@ -1036,6 +1037,7 @@ async function saveAlumniProfile(){
   full_name,phone:document.getElementById('al_phone').value.trim()||null,
   email:document.getElementById('al_email').value.trim()||null,
   governorate:document.getElementById('al_governorate').value.trim()||null,
+  professional_summary:document.getElementById('al_summary').value.trim()||null,
   visibility_status:document.getElementById('al_public').checked?'public':'hidden'
  }).select('id').single();
  if(error){toast(error.message,'err');return;}
@@ -1044,7 +1046,7 @@ async function saveAlumniProfile(){
   graduation_year:yearRaw?Number(yearRaw):null
  });
  if(qError){toast('تم إنشاء الملف لكن تعذر حفظ المؤهل: '+qError.message,'err');return;}
- ['al_full_name','al_phone','al_email','al_governorate','al_qualification','al_year'].forEach(id=>document.getElementById(id).value='');
+ ['al_full_name','al_phone','al_email','al_governorate','al_summary','al_qualification','al_year'].forEach(id=>document.getElementById(id).value='');
  document.getElementById('al_public').checked=false;
  toast('تم إنشاء ملف الخريج','ok');loadAlumniProfiles();
 }
