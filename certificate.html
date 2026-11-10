@@ -34,7 +34,7 @@ async function load(){
   const recordTitle=academic?'سجل مؤهل علمي':'شهادة تدريبية';
   document.getElementById('app').innerHTML=`<section class="certificate"><div class="inner">
     <div style="margin-bottom:18px"><img src="logo.png" alt="شعار منصة شهادتي العلمية" style="width:82px;height:82px;object-fit:contain;border-radius:50%" onerror="this.style.display=\'none\'"></div><div class="seal">✓</div><div class="eyebrow">${recordTitle}</div><div class="title">${academic?'مؤهل علمي':'شهادة تدريبية'}</div><div class="subtitle">منصة شهادتي تتيح عرض البيانات المسجلة فقط، ولا تصدّق على صحة المؤهل أو تعتمده؛ وصحة البيانات على مسؤولية صاحبها</div>
-    <div class="student">${esc(c.student_name)}</div><div class="course">${esc(academic?(c.academic_degree||c.course):c.course)}</div>
+    <div class="student">${esc(c.student_name)}</div>${c.student_name_en?`<div style="font-size:17px;font-weight:700;color:#64748b;direction:ltr;margin:-5px 0 14px">${esc(c.student_name_en)}</div>`:""}<div class="course">${esc(academic?(c.academic_degree||c.course):c.course)}</div>
     <div class="grid">
       <div class="box"><div class="lbl">${academic?'الجامعة':'جهة التسجيل'}</div><div class="val">${esc(academic?c.academic_university:c.institution_name)}</div></div>
       <div class="box"><div class="lbl">${academic?'الكلية':'نوع الجهة'}</div><div class="val">${esc(academic?c.academic_faculty:c.institution_type)}</div></div>
