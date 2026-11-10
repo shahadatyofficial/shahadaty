@@ -182,7 +182,7 @@ async function doSearch(){
   const ds=document.getElementById('defaultState');
   ds.style.display='none';
   ra.innerHTML=`<div class="loading"><div class="spin"></div><p>جاري التحقق من الشهادة...</p></div>`;
-  const{data:rows,error}=await sb.rpc('verify_certificate_details',{p_cert_number:q});
+  const{data:rows,error}=await sb.rpc('verify_certificate',{p_cert_number:q});
   const data=Array.isArray(rows)?rows[0]:rows;
   if(error||!data){
     ra.innerHTML=`<div class="result-err result-wrap">
