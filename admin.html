@@ -881,7 +881,8 @@ async function loadCompanies(){
     </div></td>
   </tr>`).join('');
 }
-async function linkCompanyAccount(id){const email=prompt('أدخل البريد الإلكتروني لحساب الشركة المسجل في المنصة:');if(!email)return;const{error}=await sb.rpc('admin_link_company_user',{p_company_id:id,p_email:email.trim()});if(error){toast(error.message,'err');return;}toast('تم ربط حساب الشركة','ok');loadCompanies();}\nasync function setCompSt(id,status){const{error}=await sb.rpc('admin_update_company',{p_company_id:id,p_status:status,p_search_credits:null});if(error){toast(error.message,'err');return;}toast('تم التحديث','ok');loadCompanies();}
+async function linkCompanyAccount(id){const email=prompt('أدخل البريد الإلكتروني لحساب الشركة المسجل في المنصة:');if(!email)return;const{error}=await sb.rpc('admin_link_company_user',{p_company_id:id,p_email:email.trim()});if(error){toast(error.message,'err');return;}toast('تم ربط حساب الشركة','ok');loadCompanies();}
+async function setCompSt(id,status){const{error}=await sb.rpc('admin_update_company',{p_company_id:id,p_status:status,p_search_credits:null});if(error){toast(error.message,'err');return;}toast('تم التحديث','ok');loadCompanies();}
 async function addCreds(id,current){const a=prompt('كم عملية بحث تضيف؟','10');if(!a||isNaN(a)||parseInt(a)<0)return;const{error}=await sb.rpc('admin_update_company',{p_company_id:id,p_status:null,p_search_credits:current+parseInt(a)});if(error){toast(error.message,'err');return;}toast(`تم إضافة ${a} عملية`,'ok');loadCompanies();}
 
 // ── PACKAGES ──────────────────────────────────────────────────
@@ -1117,7 +1118,8 @@ async function decideAlumniAccess(id,reject){
 }
 
 
-\nasync function linkAlumniGraduate(id){const email=prompt('أدخل البريد الإلكتروني المسجل لحساب الخريج في المنصة:');if(!email)return;const{error}=await sb.rpc('admin_link_alumni_graduate',{p_alumni_id:id,p_email:email.trim()});if(error){toast(error.message,'err');return;}toast('تم ربط ملف الخريج بحسابه الحالي','ok');loadAlumniProfiles();}\nasync function saveAlumniExperienceSkill(){
+\nasync function linkAlumniGraduate(id){const email=prompt('أدخل البريد الإلكتروني المسجل لحساب الخريج في المنصة:');if(!email)return;const{error}=await sb.rpc('admin_link_alumni_graduate',{p_alumni_id:id,p_email:email.trim()});if(error){toast(error.message,'err');return;}toast('تم ربط ملف الخريج بحسابه الحالي','ok');loadAlumniProfiles();}
+async function saveAlumniExperienceSkill(){
  const alumni_id=document.getElementById('al_extra_profile').value;
  const job_title=document.getElementById('al_job_title').value.trim();
  const employer_name=document.getElementById('al_employer').value.trim();
