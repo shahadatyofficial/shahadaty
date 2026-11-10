@@ -4,8 +4,8 @@ alter table public.alumni_qualifications
 
 -- Backfill academic details already stored on linked certificate records.
 update public.alumni_qualifications q
-set institution_name = coalesce(nullif(trim(q.institution_name),''), nullif(trim(c.university),'')),
-    faculty_name = coalesce(nullif(trim(q.faculty_name),''), nullif(trim(c.faculty),'')),
+set institution_name = coalesce(nullif(trim(q.institution_name),''), nullif(trim(c.academic_university),'')),
+    faculty_name = coalesce(nullif(trim(q.faculty_name),''), nullif(trim(c.academic_faculty),'')),
     grade = coalesce(nullif(trim(q.grade),''), nullif(trim(c.grade),''))
 from public.certificates c
 where q.certificate_id = c.id
@@ -37,7 +37,7 @@ as $$
     select
       regexp_replace(
         regexp_replace(
-          translate(lower(trim(coalesce(p_qualification,''))), 'أإآٱىةـ', 'ااايه'),
+          translate(lower(trim(coalesce(p_qualification,''))), 'أإآٱىةـ', 'اااايه'),
           '^(ليسانس|بكالوريوس|بكالريوس|بكلوريوس|بكالوريوس|بكالوريس|دبلوم|ماجستير|دكتوراه)[[:space:]]+',
           ''
         ),
