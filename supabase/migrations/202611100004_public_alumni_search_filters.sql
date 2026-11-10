@@ -9,7 +9,7 @@ set institution_name = coalesce(nullif(trim(q.institution_name),''), nullif(trim
     grade = coalesce(nullif(trim(q.grade),''), nullif(trim(c.grade),''))
 from public.certificates c
 where q.certificate_id = c.id
-  and (q.institution_name is null or q.faculty_name is null or q.grade is null);
+  and (nullif(trim(q.institution_name),'') is null or nullif(trim(q.faculty_name),'') is null or nullif(trim(q.grade),'') is null);
 
 drop function if exists public.search_public_alumni(text,text);
 
