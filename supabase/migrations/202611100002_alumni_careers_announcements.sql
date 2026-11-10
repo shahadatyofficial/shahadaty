@@ -809,3 +809,30 @@ using (
 );
 
 revoke all on function public.notify_alumni_about_training() from public, anon, authenticated;
+
+
+-- Safe graduate-facing request inbox: company names are returned without exposing the companies table.
+create or replace function public.graduate_list_my_access_requests()
+returns table (
+  request_id uuid,
+  company_name text,
+  status text,
+  request_contact boolean,
+  request_cv boolean,
+  request_documents boolean,
+  created_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select r.id,c.company_name,r.status,r.request_contact,r.request_cv,r.request_documents,r.created_at
+  from public.alumni_access_requests r
+  join public.companies c on c.id=r.company_id
+  where r.alumni_id=public.current_alumni_profile_id()
+  order by r.created_at desc
+  limit 50;
+$$;
+revoke all on function public.graduate_list_my_access_requests() from public;
+grant execute on function public.graduate_list_my_access_requests() to authenticated;
