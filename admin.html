@@ -229,7 +229,10 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
             <label>المحافظة<input class="form-inp" id="al_governorate"></label>
             <label style="grid-column:1/-1">نبذة مهنية<textarea class="form-inp" id="al_summary" rows="3"></textarea></label>
             <label>المؤهل العلمي<input class="form-inp" id="al_qualification" required></label>
+            <label>الجامعة<input class="form-inp" id="al_university" placeholder="اسم الجامعة"></label>
+            <label>الكلية<input class="form-inp" id="al_college" placeholder="اسم الكلية"></label>
             <label>سنة التخرج<input class="form-inp" id="al_year" type="number" min="1950" max="2100"></label>
+            <label>التقدير<input class="form-inp" id="al_grade" placeholder="امتياز / جيد جداً / جيد / مقبول"></label>
           </div>
           <label style="display:flex;align-items:center;gap:8px;margin:8px 0 14px"><input type="checkbox" id="al_public"> إظهار الاسم والمؤهل وسنة التخرج في البحث العام</label>
           <button class="btn-p" onclick="saveAlumniProfile()">حفظ ملف الخريج</button>
@@ -1048,7 +1051,7 @@ async function saveAlumniProfile(){
   graduation_year:yearRaw?Number(yearRaw):null
  });
  if(qError){toast('تم إنشاء الملف لكن تعذر حفظ المؤهل: '+qError.message,'err');return;}
- ['al_full_name','al_phone','al_email','al_governorate','al_summary','al_qualification','al_year'].forEach(id=>document.getElementById(id).value='');
+ ['al_full_name','al_phone','al_email','al_governorate','al_summary','al_qualification','al_university','al_college','al_year','al_grade'].forEach(id=>document.getElementById(id).value='');
  document.getElementById('al_public').checked=false;
  toast('تم إنشاء ملف الخريج','ok');loadAlumniProfiles();
 }
