@@ -836,3 +836,10 @@ as $$
 $$;
 revoke all on function public.graduate_list_my_access_requests() from public;
 grant execute on function public.graduate_list_my_access_requests() to authenticated;
+
+-- Keep one active access request per company/alumnus while retaining rejected history.
+alter table public.alumni_access_requests
+  drop constraint if exists alumni_access_requests_alumni_id_company_id_status_key;
+create unique index if not exists alumni_access_requests_one_active_per_company_idx
+  on public.alumni_access_requests(alumni_id,company_id)
+  where status in ('pending','admin_approved','approved');
