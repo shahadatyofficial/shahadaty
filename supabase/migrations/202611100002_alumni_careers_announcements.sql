@@ -535,3 +535,69 @@ create policy "graduates mark own notifications read"
 on public.alumni_notifications for update to authenticated
 using (alumni_id = public.current_alumni_profile_id())
 with check (alumni_id = public.current_alumni_profile_id());
+
+
+-- Resolve the authenticated company's own ID without exposing the companies table.
+create or replace function public.current_approved_company_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select c.id from public.companies c
+  where c.auth_user_id = auth.uid() and c.status = 'approved'
+  limit 1;
+$$;
+revoke all on function public.current_approved_company_id() from public;
+grant execute on function public.current_approved_company_id() to authenticated;
+
+-- A graduate can explicitly approve or reject a company's request using their existing graduate login.
+create or replace function public.respond_alumni_access_request(p_request_id uuid, p_approve boolean)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_alumni_id uuid;
+begin
+  select a.id into v_alumni_id
+  from public.alumni_profiles a
+  join public.graduate_profiles g on g.id = a.legacy_graduate_profile_id
+  where g.auth_user_id = auth.uid()
+  limit 1;
+
+  if v_alumni_id is null then
+    raise exception 'No linked alumni profile for this account';
+  end if;
+
+  update public.alumni_access_requests
+  set status = case when p_approve then 'approved' else 'rejected' end,
+      alumni_consent_at = case when p_approve then now() else null end,
+      expires_at = case when p_approve then now() + interval '30 days' else null end
+  where id = p_request_id
+    and alumni_id = v_alumni_id
+    and status = 'pending';
+
+  return found;
+end;
+$$;
+revoke all on function public.respond_alumni_access_request(uuid,boolean) from public;
+grant execute on function public.respond_alumni_access_request(uuid,boolean) to authenticated;
+
+-- Graduates can see and respond only to requests concerning their linked profile.
+drop policy if exists "graduates view own access requests" on public.alumni_access_requests;
+create policy "graduates view own access requests"
+on public.alumni_access_requests for select to authenticated
+using (alumni_id = public.current_alumni_profile_id());
+
+-- Approved companies can create requests only for themselves.
+drop policy if exists "approved companies create access requests" on public.alumni_access_requests;
+create policy "approved companies create access requests"
+on public.alumni_access_requests for insert to authenticated
+with check (
+  status = 'pending'
+  and requested_by = auth.uid()
+  and company_id = public.current_approved_company_id()
+);
