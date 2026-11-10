@@ -218,7 +218,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       <div class="stats-row">
         <div class="stat-card">
           <div class="sc-top"><div class="sc-icon" style="background:#eff6ff"><span class="material-symbols-outlined" style="color:#0369a1">business</span></div><div class="sc-trend"><span class="material-symbols-outlined">trending_up</span>+12%</div></div>
-          <span class="sc-val stat-num" id="ov_inst">—</span><span class="sc-lbl">مؤسسة معتمدة</span>
+          <span class="sc-val stat-num" id="ov_inst">—</span><span class="sc-lbl">مؤسسة مفعّل حسابها</span>
         </div>
         <div class="stat-card">
           <div class="sc-top"><div class="sc-icon" style="background:#f0fdf4"><span class="material-symbols-outlined" style="color:#059669">description</span></div><div class="sc-trend"><span class="material-symbols-outlined">trending_up</span>+28%</div></div>
@@ -292,7 +292,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
               تسجل الإدارة بيانات الشهادة نيابةً عن الجهة صاحبة السجل. الجهة المحددة تظل مسؤولة عن صحة بيانات الشهادة، والمنصة تحفظها وتتيح الاستعلام عنها فقط.
             </div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px">
-              <div><label class="form-lbl" for="adminCertInstitution">المؤسسة صاحبة الشهادة *</label><select class="inp" id="adminCertInstitution" required style="width:100%"><option value="">اختر المؤسسة المعتمدة</option></select></div>
+              <div><label class="form-lbl" for="adminCertInstitution">المؤسسة صاحبة الشهادة *</label><select class="inp" id="adminCertInstitution" required style="width:100%"><option value="">اختر المؤسسة المفعّل حسابها</option></select></div>
               <div><label class="form-lbl" for="adminCertStudent">اسم المتدرب بالكامل *</label><input class="inp" id="adminCertStudent" required maxlength="180" style="width:100%" placeholder="الاسم كما يظهر في الشهادة"></div>
               <div><label class="form-lbl" for="adminCertStudentEn">اسم المتدرب بالإنجليزية</label><input class="inp" id="adminCertStudentEn" maxlength="180" dir="auto" style="width:100%" placeholder="Optional"></div>
               <div><label class="form-lbl" for="adminCertCourse">اسم الدورة / البرنامج *</label><input class="inp" id="adminCertCourse" required maxlength="180" style="width:100%" placeholder="اسم الدورة التدريبية"></div>
@@ -378,7 +378,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 </div>
 <div class="page" id="page-reports">
       <div class="stats-row">
-        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#eff6ff"><span class="material-symbols-outlined" style="color:#0369a1">trending_up</span></div></div><span class="sc-val stat-num" id="rep_today">—</span><span class="sc-lbl">المؤسسات المعتمدة</span></div>
+        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#eff6ff"><span class="material-symbols-outlined" style="color:#0369a1">trending_up</span></div></div><span class="sc-val stat-num" id="rep_today">—</span><span class="sc-lbl">المؤسسات المفعّل حسابها</span></div>
         <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#f0fdf4"><span class="material-symbols-outlined" style="color:#059669">calendar_month</span></div></div><span class="sc-val stat-num" id="rep_month">—</span><span class="sc-lbl">المؤسسات بانتظار الاعتماد</span></div>
         <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#fef9ee"><span class="material-symbols-outlined" style="color:#b08d48">monetization_on</span></div></div><span class="sc-val stat-num" id="rep_rev">—</span><span class="sc-lbl">إجمالي الشهادات</span></div>
         <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:#fdf4ff"><span class="material-symbols-outlined" style="color:#7c3aed">verified</span></div></div><span class="sc-val stat-num" id="rep_verify">—</span><span class="sc-lbl">الشهادات السارية</span></div>
@@ -626,12 +626,12 @@ async function loadAdminCertificateForm(){
   const{data,error}=await sb.rpc('admin_list_institutions',{p_status:'approved'});
   if(error){select.innerHTML='<option value="">تعذر تحميل المؤسسات</option>';showAdminCertMessage(error.message,'error');return;}
   const rows=data||[];
-  select.innerHTML='<option value="">اختر المؤسسة المعتمدة</option>'+rows.map(i=>'<option value="'+adminEsc(i.id)+'">'+adminEsc(i.name)+'</option>').join('');
+  select.innerHTML='<option value="">اختر المؤسسة المفعّل حسابها</option>'+rows.map(i=>'<option value="'+adminEsc(i.id)+'">'+adminEsc(i.name)+'</option>').join('');
   if(!document.getElementById('adminCertIssueDate').value){
     const now=new Date();const localDate=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
     document.getElementById('adminCertIssueDate').value=localDate;
   }
-  if(!rows.length)showAdminCertMessage('لا توجد مؤسسات معتمدة متاحة لإسناد الشهادة إليها.','error');
+  if(!rows.length)showAdminCertMessage('لا توجد مؤسسات مفعّل حسابها متاحة لإسناد الشهادة إليها.','error');
 }
 function showAdminCertMessage(message,type='success'){
   const el=document.getElementById('adminCertFormMessage');if(!el)return;
@@ -677,7 +677,7 @@ async function adminVerify(){
   if(error){res.innerHTML='<div style="background:#fff5f5;color:#dc2626;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600">❌ '+error.message+'</div>';return;}
   if(!row){res.innerHTML='<div style="background:#fff5f5;color:#dc2626;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600">❌ لم يتم العثور على الشهادة</div>';return;}
   res.innerHTML=`<div style="background:var(--bg);border:2px solid var(--blue);border-radius:12px;padding:18px">
-    <div style="font-size:15px;font-weight:800;color:var(--blue);margin-bottom:12px">✓ شهادة موثقة — ${row.status==='active'?'نشطة':'ملغاة'}</div>
+    <div style="font-size:15px;font-weight:800;color:var(--blue);margin-bottom:12px">✓ شهادة مسجلة — ${row.status==='active'?'نشطة':'ملغاة'}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[['الطالب',row.student_name],['الدورة',row.course],['التاريخ',new Date(row.issue_date).toLocaleDateString('ar-EG')],['المؤسسة',row.institution_name||row.institution?.name||'—']].map(([l,v])=>`<div style="background:#fff;border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${l}</div><div style="font-size:13px;font-weight:700;color:var(--navy)">${v||'—'}</div></div>`).join('')}</div>
   </div>`;
 }
