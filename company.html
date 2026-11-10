@@ -27,7 +27,7 @@ async function init(){
  if(!user){$('loginPanel').classList.remove('hide');$('appPanel').classList.add('hide');$('requestsPanel').classList.add('hide');return;}
  const{data,error}=await sb.rpc('current_approved_company_id');
  if(error||!data){$('loginMsg').textContent='الحساب غير مربوط بشركة معتمدة بعد. يرجى التواصل مع إدارة شهادتي.';await sb.auth.signOut();$('loginPanel').classList.remove('hide');return;}
- companyId=data;$('loginPanel').classList.add('hide');$('appPanel').classList.remove('hide');$('requestsPanel').classList.remove('hide');loadRequests();
+ companyId=data;$('loginPanel').classList.add('hide');$('appPanel').classList.remove('hide');$('requestsPanel').classList.remove('hide');loadRequests();loadCompanyJobs();
 }
 $('loginBtn').onclick=async()=>{const{error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});$('loginMsg').textContent=error?error.message:'تم تسجيل الدخول';if(!error)await init();};
 $('logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload();};
@@ -35,7 +35,44 @@ $('searchForm').onsubmit=async e=>{e.preventDefault();$('results').textContent='
  $('results').innerHTML=data.map(x=>'<div class="result"><div><b>'+esc(x.full_name)+'</b><div class="muted">'+esc(x.qualification_name)+' · سنة التخرج: '+esc(x.graduation_year||'غير محددة')+'</div></div><button class="btn" onclick="requestAccess(\''+x.alumni_id+'\')">طلب الاطلاع على الملف</button></div>').join('');
 };
 window.requestAccess=async alumniId=>{const wantContact=confirm('هل تريد طلب بيانات التواصل؟ اضغط موافق لطلب بيانات التواصل، أو إلغاء لطلب السيرة الذاتية والشهادات فقط.');const{error}=await sb.from('alumni_access_requests').insert({alumni_id:alumniId,company_id:companyId,requested_by:(await sb.auth.getUser()).data.user.id,request_contact:wantContact,request_cv:true,request_documents:true,status:'pending'});if(error){alert('تعذر إرسال الطلب: '+error.message);return;}alert('تم إرسال الطلب. لن تظهر بيانات التواصل أو الملفات إلا بعد موافقة الإدارة والخريج.');loadRequests();};
-async function loadRequests(){const{data,error}=await sb.from('alumni_access_requests').select('id,status,request_contact,request_cv,request_documents,created_at').eq('company_id',companyId).order('created_at',{ascending:false}).limit(50);if(error){$('requests').textContent='تعذر تحميل الطلبات.';return;}$('requests').innerHTML=(data||[]).map(x=>'<div class="result"><div><b>طلب رقم '+esc(x.id.slice(0,8))+'</b><div class="muted">'+(x.request_contact?'بيانات تواصل · ':'')+(x.request_cv?'CV · ':'')+(x.request_documents?'شهادات':'')+'</div></div><span class="status">'+esc(x.status)+'</span></div>').join('')||'لا توجد طلبات.';}
+async function loadRequests(){
+ const{data,error}=await sb.from('alumni_access_requests').select('id,alumni_id,status,request_contact,request_cv,request_documents,created_at,expires_at').eq('company_id',companyId).order('created_at',{ascending:false}).limit(50);
+ if(error){$('requests').textContent='تعذر تحميل الطلبات: '+esc(error.message);return;}
+ const rows=data||[];if(!rows.length){$('requests').textContent='لا توجد طلبات.';return;}
+ const out=[];
+ for(const x of rows){
+  let detail='';
+  if(x.status==='approved'&&(!x.expires_at||new Date(x.expires_at)>new Date())){
+   if(x.request_contact){
+    const{data:p}=await sb.from('alumni_profiles').select('full_name,phone,email,governorate,professional_summary').eq('id',x.alumni_id).maybeSingle();
+    if(p)detail+='<div class="muted"><b>'+esc(p.full_name)+'</b> · '+esc(p.phone||'')+' · '+esc(p.email||'')+' · '+esc(p.governorate||'')+'<p>'+esc(p.professional_summary||'')+'</p></div>';
+   }
+   const{data:docs}=await sb.from('alumni_documents').select('document_title,document_type,storage_path').eq('alumni_id',x.alumni_id);
+   for(const d of docs||[]){
+    const{data:signed,error:signedError}=await sb.storage.from('alumni-private').createSignedUrl(d.storage_path,300);
+    if(!signedError&&signed?.signedUrl)detail+='<p><a target="_blank" rel="noopener" href="'+esc(signed.signedUrl)+'">'+esc(d.document_title)+' ('+esc(d.document_type)+')</a></p>';
+   }
+   if(!detail)detail='<p class="muted">تمت الموافقة، ولا توجد بيانات أو مستندات ضمن نطاق الطلب.</p>';
+  }
+  out.push('<div class="result"><div><b>طلب رقم '+esc(x.id.slice(0,8))+'</b><div class="muted">'+(x.request_contact?'بيانات تواصل · ':'')+(x.request_cv?'CV · ':'')+(x.request_documents?'شهادات':'')+'</div>'+detail+'</div><span class="status">'+esc(x.status)+'</span></div>');
+ }
+ $('requests').innerHTML=out.join('');
+}
+async function loadCompanyJobs(){
+ const{data,error}=await sb.from('job_announcements').select('id,title,status,created_at,expires_at').eq('company_id',companyId).order('created_at',{ascending:false}).limit(50);
+ $('myJobs').innerHTML=error?esc(error.message):(data||[]).map(j=>'<div class="result"><b>'+esc(j.title)+'</b><span class="status">'+esc(j.status)+'</span></div>').join('')||'لا توجد إعلانات بعد.';
+ const{data:apps, error:appError}=await sb.from('job_applications').select('id,status,created_at,job_announcements(title)').order('created_at',{ascending:false}).limit(100);
+ $('myApplications').innerHTML=appError?esc(appError.message):(apps||[]).map(a=>'<div class="result"><div><b>'+esc(a.job_announcements?.title||'وظيفة')+'</b><div class="muted">طلب توظيف · '+new Date(a.created_at).toLocaleDateString('ar-EG')+'</div></div><span class="status">'+esc(a.status)+'</span></div>').join('')||'لا توجد طلبات توظيف حتى الآن.';
+}
+$('publishJobBtn').onclick=async()=>{
+ const title=$('jobTitle').value.trim(),description=$('jobDescription').value.trim();
+ if(!title||!description){$('jobMsg').textContent='أدخل المسمى والتفاصيل.';return;}
+ const{data:companyName,error:nameError}=await sb.rpc('current_approved_company_name');
+ if(nameError||!companyName){$('jobMsg').textContent='تعذر التحقق من الشركة المعتمدة.';return;}
+ const{error}=await sb.from('job_announcements').insert({company_id:companyId,company_display_name:companyName,title,teaser:$('jobTeaser').value.trim()||null,description,qualification_required:$('jobQualification').value.trim()||null,governorate:$('jobGovernorate').value.trim()||null,experience_years:$('jobExperience').value?Number($('jobExperience').value):null,expires_at:$('jobExpiry').value||null,status:'pending'});
+ $('jobMsg').textContent=error?'تعذر إرسال الإعلان: '+error.message:'تم إرسال الإعلان للإدارة للمراجعة.';
+ if(!error){['jobTitle','jobTeaser','jobDescription','jobQualification','jobGovernorate','jobExperience','jobExpiry'].forEach(id=>$(id).value='');loadCompanyJobs();}
+};
 sb.auth.onAuthStateChange(()=>{});
 init();
 </script></body></html>
