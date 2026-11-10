@@ -964,3 +964,36 @@ with check (
   and company_id = public.current_approved_company_id()
   and public.is_public_alumni_profile(alumni_id)
 );
+
+
+-- Return only explicitly requested contact fields; never expose the whole alumni row
+-- (which also contains internal storage paths) through a company SELECT policy.
+drop policy if exists "approved consenting companies view alumni contact" on public.alumni_profiles;
+create or replace function public.company_get_approved_alumni_contact(p_alumni_id uuid)
+returns table (
+  full_name text,
+  phone text,
+  email text,
+  governorate text,
+  professional_summary text
+)
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select p.full_name, p.phone, p.email, p.governorate, p.professional_summary
+  from public.alumni_profiles p
+  where p.id = p_alumni_id
+    and exists (
+      select 1 from public.alumni_access_requests r
+      where r.alumni_id = p.id
+        and r.company_id = public.current_approved_company_id()
+        and r.status = 'approved'
+        and r.alumni_consent_at is not null
+        and (r.expires_at is null or r.expires_at > now())
+        and r.request_contact = true
+    );
+$$;
+revoke all on function public.company_get_approved_alumni_contact(uuid) from public;
+grant execute on function public.company_get_approved_alumni_contact(uuid) to authenticated;
