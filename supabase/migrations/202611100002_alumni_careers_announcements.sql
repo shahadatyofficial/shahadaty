@@ -646,3 +646,35 @@ end;
 $$;
 revoke all on function public.admin_link_company_user(uuid,text) from public;
 grant execute on function public.admin_link_company_user(uuid,text) to authenticated;
+
+
+alter table public.alumni_access_requests
+  drop constraint if exists alumni_access_requests_status_check;
+alter table public.alumni_access_requests
+  add constraint alumni_access_requests_status_check
+  check (status in ('pending','admin_approved','approved','rejected','revoked','expired'));
+
+create or replace function public.respond_alumni_access_request(p_request_id uuid, p_approve boolean)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare v_alumni_id uuid;
+begin
+  select a.id into v_alumni_id
+  from public.alumni_profiles a
+  join public.graduate_profiles g on g.id=a.legacy_graduate_profile_id
+  where g.auth_user_id=auth.uid()
+  limit 1;
+  if v_alumni_id is null then raise exception 'No linked alumni profile for this account'; end if;
+  update public.alumni_access_requests
+  set status=case when p_approve then 'approved' else 'rejected' end,
+      alumni_consent_at=case when p_approve then now() else null end,
+      expires_at=case when p_approve then now()+interval '30 days' else null end
+  where id=p_request_id and alumni_id=v_alumni_id and status='admin_approved';
+  return found;
+end;
+$$;
+revoke all on function public.respond_alumni_access_request(uuid,boolean) from public;
+grant execute on function public.respond_alumni_access_request(uuid,boolean) to authenticated;
