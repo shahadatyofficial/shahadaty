@@ -6,7 +6,7 @@ async function loadApprovedJobs(){
  if(linkErr||!alumniId){document.getElementById('jobsList').textContent='اربط ملفك بسجل الخريجين من خلال الإدارة لتتمكن من التقديم.';return;}
  const{data,error}=await sb.from('job_announcements').select('id,title,company_display_name,teaser,description,governorate,qualification_required,experience_years,expires_at').eq('status','approved').order('published_at',{ascending:false}).limit(100);
  const el=document.getElementById('jobsList');if(error){el.textContent='تعذر تحميل الوظائف: '+error.message;return;}
- el.innerHTML=(data||[]).map(j=>'<div class="cert"><b>'+esc(j.title)+'</b><p>'+esc(j.company_display_name)+' · '+esc(j.governorate||'كل المحافظات')+'</p><p>'+esc(j.teaser||j.description)+'</p><p>المؤهل: '+esc(j.qualification_required||'غير محدد')+' · الخبرة: '+esc(j.experience_years??'غير محددة')+'</p><button onclick="applyForJob(\\''+j.id+'\\')">التقديم على الوظيفة</button></div>').join('')||'لا توجد وظائف منشورة حاليًا.';
+ el.innerHTML=(data||[]).map(j=>'<div class="cert"><b>'+esc(j.title)+'</b><p>'+esc(j.company_display_name)+' · '+esc(j.governorate||'كل المحافظات')+'</p><p>'+esc(j.teaser||j.description)+'</p><p>المؤهل: '+esc(j.qualification_required||'غير محدد')+' · الخبرة: '+esc(j.experience_years??'غير محددة')+'</p><button onclick="applyForJob(\''+j.id+'\')">التقديم على الوظيفة</button></div>').join('')||'لا توجد وظائف منشورة حاليًا.';
 }
 async function applyForJob(jobId){
  const{data:alumniId,error:linkErr}=await sb.rpc('current_alumni_profile_id');if(linkErr||!alumniId)return msg('saveMsg','يجب ربط ملفك بسجل الخريجين أولاً.');
@@ -18,7 +18,7 @@ async function loadAlumniNotifications(){
  const card=document.getElementById('notificationsCard');card.classList.remove('hidden');
  const{data,error}=await sb.from('alumni_notifications').select('id,notification_type,title,body,created_at,read_at').order('created_at',{ascending:false}).limit(50);
  const el=document.getElementById('notificationsList');if(error){el.textContent='تعذر تحميل الإشعارات: '+error.message;return;}
- el.innerHTML=(data||[]).map(n=>'<div class="cert"><b>'+esc(n.title)+'</b><p>'+esc(n.body||'')+'</p><small>'+new Date(n.created_at).toLocaleString('ar-EG')+'</small>'+(n.read_at?'':' <button onclick="markAlumniNotificationRead(\\''+n.id+'\\')">تمت القراءة</button>')+'</div>').join('')||'لا توجد إشعارات.';
+ el.innerHTML=(data||[]).map(n=>'<div class="cert"><b>'+esc(n.title)+'</b><p>'+esc(n.body||'')+'</p><small>'+new Date(n.created_at).toLocaleString('ar-EG')+'</small>'+(n.read_at?'':' <button onclick="markAlumniNotificationRead(\''+n.id+'\')">تمت القراءة</button>')+'</div>').join('')||'لا توجد إشعارات.';
 }
 async function markAlumniNotificationRead(id){const{error}=await sb.from('alumni_notifications').update({read_at:new Date().toISOString()}).eq('id',id);if(error){msg('saveMsg',error.message);return;}loadAlumniNotifications();}
 \nasync function loadAccessRequests(){
