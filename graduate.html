@@ -4,10 +4,10 @@ async function loadAccessRequests(){
  const{data:alumniId,error:linkErr}=await sb.rpc('current_alumni_profile_id');
  if(linkErr||!alumniId){document.getElementById('accessRequestsCard').classList.remove('hidden');document.getElementById('accessRequests').textContent='ملفك لم يتم ربطه بعد بسجل الخريجين. تواصل مع إدارة المنصة لإتمام الربط.';return;}
  document.getElementById('accessRequestsCard').classList.remove('hidden');
- const{data,error}=await sb.from('alumni_access_requests').select('id,status,request_contact,request_cv,request_documents,created_at,companies(company_name)').eq('alumni_id',alumniId).order('created_at',{ascending:false}).limit(50);
+ const{data,error}=await sb.rpc('graduate_list_my_access_requests');
  const el=document.getElementById('accessRequests');if(error){el.textContent='تعذر تحميل الطلبات: '+error.message;return;}
  if(!data?.length){el.textContent='لا توجد طلبات اطلاع حتى الآن.';return;}
- el.innerHTML=data.map(r=>'<div class="cert"><b>'+esc(r.companies?.company_name||'شركة')+'</b><p>المطلوب: '+(r.request_contact?'بيانات التواصل · ':'')+(r.request_cv?'السيرة الذاتية · ':'')+(r.request_documents?'الشهادات والمستندات':'')+'</p><p>الحالة: <b>'+esc(r.status)+'</b></p>'+(r.status==='admin_approved'?'<button onclick="answerAccessRequest(\\''+r.id+'\\',true)">أوافق على مشاركة البيانات المطلوبة</button> <button style="background:#64748b" onclick="answerAccessRequest(\\''+r.id+'\\',false)">أرفض الطلب</button>':'')+'</div>').join('');
+ el.innerHTML=data.map(r=>'<div class="cert"><b>'+esc(r.company_name||'شركة')+'</b><p>المطلوب: '+(r.request_contact?'بيانات التواصل · ':'')+(r.request_cv?'السيرة الذاتية · ':'')+(r.request_documents?'الشهادات والمستندات':'')+'</p><p>الحالة: <b>'+esc(r.status)+'</b></p>'+(r.status==='admin_approved'?'<button onclick="answerAccessRequest(\\''+r.id+'\\',true)">أوافق على مشاركة البيانات المطلوبة</button> <button style="background:#64748b" onclick="answerAccessRequest(\\''+r.id+'\\',false)">أرفض الطلب</button>':'')+'</div>').join('');
 }
 async function answerAccessRequest(id,approve){
  const message=approve?'بموافقتك ستتاح للشركة البيانات التي طلبتها لمدة محددة بعد اعتماد الإدارة. هل توافق؟':'هل تريد رفض طلب الاطلاع؟';
