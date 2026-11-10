@@ -181,6 +181,10 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
   <nav class="sb-nav">
     <div class="sb-sec">الرئيسية</div>
     <div class="sb-item active" onclick="sp('overview',this)"><span class="material-symbols-outlined">dashboard</span>نظرة عامة</div>
+    <div class="sb-sec">الخريجون والتوظيف</div>
+    <div class="sb-item" onclick="sp('alumni',this)"><span class="material-symbols-outlined">school</span>إدارة الخريجين</div>
+    <div class="sb-item" onclick="sp('job-ads',this)"><span class="material-symbols-outlined">campaign</span>إعلانات الوظائف</div>
+    <div class="sb-item" onclick="sp('training-ads',this)"><span class="material-symbols-outlined">notifications_active</span>إعلانات الدورات</div>
     <div class="sb-sec">المؤسسات</div>
     <div class="sb-item" onclick="sp('institutions',this)"><span class="material-symbols-outlined">business</span>إدارة المؤسسات</div>
     <div class="sb-item" onclick="sp('requests',this)"><span class="material-symbols-outlined">approval</span>طلبات الاعتماد<span class="sb-badge" id="reqBadge">0</span></div>
@@ -214,6 +218,52 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
   </header>
   <div class="content">
 
+    <!-- ALUMNI -->
+    <div class="page" id="page-alumni">
+      <div class="card"><div class="card-head"><span class="card-title">إضافة ملف خريج</span></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+            <label>اسم الخريج<input class="form-inp" id="al_full_name" required></label>
+            <label>رقم الهاتف<input class="form-inp" id="al_phone" dir="ltr"></label>
+            <label>البريد الإلكتروني<input class="form-inp" id="al_email" dir="ltr"></label>
+            <label>المحافظة<input class="form-inp" id="al_governorate"></label>
+            <label>المؤهل العلمي<input class="form-inp" id="al_qualification" required></label>
+            <label>سنة التخرج<input class="form-inp" id="al_year" type="number" min="1950" max="2100"></label>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;margin:8px 0 14px"><input type="checkbox" id="al_public"> إظهار الاسم والمؤهل وسنة التخرج في البحث العام</label>
+          <button class="btn-p" onclick="saveAlumniProfile()">حفظ ملف الخريج</button>
+        </div>
+      </div>
+      <div class="card"><div class="card-head"><span class="card-title">ملفات الخريجين</span><button class="btn-p" onclick="loadAlumniProfiles()">تحديث</button></div>
+        <div class="card-body" style="overflow:auto"><table class="tbl"><thead><tr><th>الاسم</th><th>المؤهل</th><th>سنة التخرج</th><th>المحافظة</th><th>الظهور العام</th></tr></thead><tbody id="alumniRows"><tr><td colspan="5">جاري التحميل...</td></tr></tbody></table></div>
+      </div>
+    </div>
+    <!-- JOB ADS -->
+    <div class="page" id="page-job-ads">
+      <div class="card"><div class="card-head"><span class="card-title">إضافة إعلان وظيفة</span></div><div class="card-body">
+        <label>اسم الشركة<input class="form-inp" id="job_company"></label>
+        <label>المسمى الوظيفي<input class="form-inp" id="job_title"></label>
+        <label>نبذة تظهر في الشريط المتحرك<input class="form-inp" id="job_teaser"></label>
+        <label>تفاصيل الوظيفة<textarea class="form-inp" id="job_description" rows="4"></textarea></label>
+        <label>المحافظة<input class="form-inp" id="job_governorate"></label>
+        <label>المؤهل المطلوب<input class="form-inp" id="job_qualification"></label>
+        <label>آخر موعد للتقديم<input class="form-inp" id="job_expiry" type="date"></label>
+        <button class="btn-p" onclick="saveJobAnnouncement()">حفظ الإعلان للمراجعة</button>
+      </div></div>
+      <div class="card"><div class="card-head"><span class="card-title">إعلانات الوظائف</span></div><div class="card-body" id="jobRows">جاري التحميل...</div></div>
+    </div>
+    <!-- TRAINING ADS -->
+    <div class="page" id="page-training-ads">
+      <div class="card"><div class="card-head"><span class="card-title">إعلان دورة تدريبية</span></div><div class="card-body">
+        <label>عنوان الإعلان<input class="form-inp" id="training_title"></label>
+        <label>نبذة الشريط المتحرك<input class="form-inp" id="training_teaser"></label>
+        <label>التفاصيل<textarea class="form-inp" id="training_description" rows="4"></textarea></label>
+        <label>الفئات المستهدفة (افصل بينها بفاصلة)<input class="form-inp" id="training_targets" placeholder="حقوق، تجارة، تربية رياضية"></label>
+        <label>رابط التسجيل<input class="form-inp" id="training_url" dir="ltr"></label>
+        <button class="btn-p" onclick="saveTrainingAnnouncement()">حفظ الإعلان كمسودة</button>
+      </div></div>
+      <div class="card"><div class="card-head"><span class="card-title">إعلانات الدورات</span></div><div class="card-body" id="trainingRows">جاري التحميل...</div></div>
+    </div>
     <!-- OVERVIEW -->
     <div class="page active" id="page-overview">
       <div class="stats-row">
@@ -462,7 +512,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
-const ptitles={overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات','add-cert':'إضافة شهادة',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام','academic-refs':'قوائم المؤهلات العلمية'};
+const ptitles={alumni:'إدارة الخريجين','job-ads':'إعلانات الوظائف','training-ads':'إعلانات الدورات',overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات','add-cert':'إضافة شهادة',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام','academic-refs':'قوائم المؤهلات العلمية'};
 let allInstitutions=[], allAdminCerts=[];
 function adminEsc(v){return String(v??'—').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}
 
@@ -491,7 +541,7 @@ function sp(name,el){
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('pageTitle').textContent=ptitles[name]||name;
   if(el)el.classList.add('active');
-  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
+  const loaders={alumni:loadAlumniProfiles,'job-ads':loadJobAnnouncements,'training-ads':loadTrainingAnnouncements,institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
   if(loaders[name])loaders[name]();
 }
 
@@ -955,6 +1005,57 @@ async function toggleSupportStatus(){
 function startSupportRealtime(){
  if(supportRealtimeChannel)return;
  supportRealtimeChannel=sb.channel('admin-support-inbox').on('postgres_changes',{event:'INSERT',schema:'public',table:'support_messages',filter:'sender=eq.visitor'},payload=>{loadSupportInbox();if(activeSupportConversation===payload.new.conversation_id)openSupportConversation(activeSupportConversation);else toast('وصلت رسالة دعم جديدة','ok');}).subscribe();
+}
+
+
+// ── ALUMNI & ANNOUNCEMENTS ─────────────────────────────────────
+async function saveAlumniProfile(){
+ const full_name=document.getElementById('al_full_name').value.trim();
+ const qualification_name=document.getElementById('al_qualification').value.trim();
+ const yearRaw=document.getElementById('al_year').value;
+ if(!full_name||!qualification_name){toast('أدخل اسم الخريج والمؤهل','err');return;}
+ const{data:profile,error}=await sb.from('alumni_profiles').insert({
+  full_name,phone:document.getElementById('al_phone').value.trim()||null,
+  email:document.getElementById('al_email').value.trim()||null,
+  governorate:document.getElementById('al_governorate').value.trim()||null,
+  visibility_status:document.getElementById('al_public').checked?'public':'hidden'
+ }).select('id').single();
+ if(error){toast(error.message,'err');return;}
+ const{error:qError}=await sb.from('alumni_qualifications').insert({
+  alumni_id:profile.id,qualification_name,
+  graduation_year:yearRaw?Number(yearRaw):null
+ });
+ if(qError){toast('تم إنشاء الملف لكن تعذر حفظ المؤهل: '+qError.message,'err');return;}
+ ['al_full_name','al_phone','al_email','al_governorate','al_qualification','al_year'].forEach(id=>document.getElementById(id).value='');
+ document.getElementById('al_public').checked=false;
+ toast('تم إنشاء ملف الخريج','ok');loadAlumniProfiles();
+}
+async function loadAlumniProfiles(){
+ const body=document.getElementById('alumniRows');if(!body)return;
+ const{data,error}=await sb.from('alumni_profiles').select('id,full_name,governorate,visibility_status,alumni_qualifications(qualification_name,graduation_year)').order('created_at',{ascending:false}).limit(300);
+ if(error){body.innerHTML='<tr><td colspan="5">'+adminEsc(error.message)+'</td></tr>';return;}
+ body.innerHTML=(data||[]).map(p=>{const q=p.alumni_qualifications?.[0]||{};return '<tr><td>'+adminEsc(p.full_name)+'</td><td>'+adminEsc(q.qualification_name)+'</td><td>'+adminEsc(q.graduation_year)+'</td><td>'+adminEsc(p.governorate)+'</td><td>'+(p.visibility_status==='public'?'ظاهر':'مخفي')+'</td></tr>';}).join('')||'<tr><td colspan="5">لا توجد ملفات بعد</td></tr>';
+}
+async function saveJobAnnouncement(){
+ const company_display_name=document.getElementById('job_company').value.trim(),title=document.getElementById('job_title').value.trim(),description=document.getElementById('job_description').value.trim();
+ if(!company_display_name||!title||!description){toast('أدخل الشركة والمسمى والتفاصيل','err');return;}
+ const{error}=await sb.from('job_announcements').insert({company_display_name,title,description,teaser:document.getElementById('job_teaser').value.trim()||null,governorate:document.getElementById('job_governorate').value.trim()||null,qualification_required:document.getElementById('job_qualification').value.trim()||null,expires_at:document.getElementById('job_expiry').value||null,status:'pending'});
+ if(error){toast(error.message,'err');return;}toast('تم حفظ الإعلان وإرساله للمراجعة','ok');loadJobAnnouncements();
+}
+async function loadJobAnnouncements(){
+ const el=document.getElementById('jobRows');if(!el)return;const{data,error}=await sb.from('job_announcements').select('announcement_number,company_display_name,title,status,expires_at').order('created_at',{ascending:false}).limit(100);
+ el.innerHTML=error?adminEsc(error.message):(data||[]).map(x=>'<div style="padding:10px;border-bottom:1px solid #e5edf5"><b>#'+x.announcement_number+' '+adminEsc(x.title)+'</b> — '+adminEsc(x.company_display_name)+' <span class="badge">'+adminEsc(x.status)+'</span></div>').join('')||'لا توجد إعلانات';
+}
+async function saveTrainingAnnouncement(){
+ const title=document.getElementById('training_title').value.trim(),description=document.getElementById('training_description').value.trim();
+ if(!title||!description){toast('أدخل عنوان الإعلان والتفاصيل','err');return;}
+ const targets=document.getElementById('training_targets').value.split(/[،,]/).map(x=>x.trim()).filter(Boolean);
+ const{error}=await sb.from('training_announcements').insert({title,description,teaser:document.getElementById('training_teaser').value.trim()||null,target_qualifications:targets,registration_url:document.getElementById('training_url').value.trim()||null,status:'draft'});
+ if(error){toast(error.message,'err');return;}toast('تم حفظ الإعلان كمسودة','ok');loadTrainingAnnouncements();
+}
+async function loadTrainingAnnouncements(){
+ const el=document.getElementById('trainingRows');if(!el)return;const{data,error}=await sb.from('training_announcements').select('announcement_number,title,status,target_qualifications').order('created_at',{ascending:false}).limit(100);
+ el.innerHTML=error?adminEsc(error.message):(data||[]).map(x=>'<div style="padding:10px;border-bottom:1px solid #e5edf5"><b>#'+x.announcement_number+' '+adminEsc(x.title)+'</b> — '+adminEsc((x.target_qualifications||[]).join('، ')||'كل الفئات')+' <span class="badge">'+adminEsc(x.status)+'</span></div>').join('')||'لا توجد إعلانات';
 }
 
 // ── REPORTS ───────────────────────────────────────────────────
