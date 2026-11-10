@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>الشهادة الرقمية | شهادتي</title>
+<title>السجل الرقمي | شهادتي العلمية</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
@@ -15,7 +15,7 @@
 </style>
 </head>
 <body>
-<header class="top"><div class="brand">شهادتي<small>CERTIFICATE VERIFICATION</small></div><div class="actions"><button onclick="window.print()">طباعة</button><a href="verify.html">التحقق من شهادة أخرى</a></div></header>
+<header class="top"><div class="brand">شهادتي العلمية<small>DIGITAL RECORD & VERIFICATION</small></div><div class="actions"><button onclick="window.print()">طباعة</button><a href="verify.html">التحقق من شهادة أخرى</a></div></header>
 <main class="wrap" id="app"><div class="loading"><div class="spin"></div><div>جاري تحميل الشهادة...</div></div></main>
 <script>
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
@@ -25,7 +25,7 @@ const id=new URLSearchParams(location.search).get('id');
 function esc(v){return String(v??'—').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 async function load(){
   if(!id)return showError('لم يتم تحديد رقم الشهادة.');
-  const {data,error}=await sb.rpc('verify_certificate_details',{p_cert_number:id});
+  const {data,error}=await sb.rpc('verify_certificate',{p_cert_number:id});
   if(error||!data?.length)return showError('لم يتم العثور على الشهادة أو أنها غير متاحة للتحقق.');
   const c=Array.isArray(data)?data[0]:data;
   const date=new Date(c.issue_date).toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});
@@ -33,7 +33,7 @@ async function load(){
   const academic=c.record_type==='academic';
   const recordTitle=academic?'سجل مؤهل علمي':'شهادة تدريبية';
   document.getElementById('app').innerHTML=`<section class="certificate"><div class="inner">
-    <div class="seal">✓</div><div class="eyebrow">${recordTitle}</div><div class="title">${academic?'مؤهل علمي':'شهادة تدريبية'}</div><div class="subtitle">منصة شهادتي تتيح عرض البيانات المسجلة فقط، ولا تصدّق على صحة المؤهل أو تعتمده؛ وصحة البيانات على مسؤولية صاحبها</div>
+    <div style="margin-bottom:18px"><img src="logo.png" alt="شعار منصة شهادتي العلمية" style="width:82px;height:82px;object-fit:contain;border-radius:50%" onerror="this.style.display=\'none\'"></div><div class="seal">✓</div><div class="eyebrow">${recordTitle}</div><div class="title">${academic?'مؤهل علمي':'شهادة تدريبية'}</div><div class="subtitle">منصة شهادتي تتيح عرض البيانات المسجلة فقط، ولا تصدّق على صحة المؤهل أو تعتمده؛ وصحة البيانات على مسؤولية صاحبها</div>
     <div class="student">${esc(c.student_name)}</div><div class="course">${esc(academic?(c.academic_degree||c.course):c.course)}</div>
     <div class="grid">
       <div class="box"><div class="lbl">${academic?'الجامعة':'جهة التسجيل'}</div><div class="val">${esc(academic?c.academic_university:c.institution_name)}</div></div>
