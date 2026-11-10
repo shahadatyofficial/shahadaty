@@ -1056,7 +1056,7 @@ async function loadAlumniProfiles(){
  const body=document.getElementById('alumniRows');if(!body)return;
  const{data,error}=await sb.from('alumni_profiles').select('id,full_name,governorate,visibility_status,alumni_qualifications(qualification_name,graduation_year)').order('created_at',{ascending:false}).limit(300);
  if(error){body.innerHTML='<tr><td colspan="5">'+adminEsc(error.message)+'</td></tr>';return;}
- body.innerHTML=(data||[]).map(p=>{const q=p.alumni_qualifications?.[0]||{};return '<tr><td>'+adminEsc(p.full_name)+' <button class="btn-s" onclick="printAlumniCv(\''+p.id+'\')">CV / طباعة</button> <button class="btn-s" onclick="linkAlumniGraduate(\\''+p.id+'\\')">ربط حساب الخريج</button></td><td>'+adminEsc(q.qualification_name)+'</td><td>'+adminEsc(q.graduation_year)+'</td><td>'+adminEsc(p.governorate)+'</td><td>'+(p.visibility_status==='public'?'ظاهر':'مخفي')+'</td></tr>';}).join('')||'<tr><td colspan="5">لا توجد ملفات بعد</td></tr>';
+ body.innerHTML=(data||[]).map(p=>{const q=p.alumni_qualifications?.[0]||{};return '<tr><td>'+adminEsc(p.full_name)+' <button class="btn-s" onclick="printAlumniCv(\''+p.id+'\')">CV / طباعة</button> <button class="btn-s" onclick="linkAlumniGraduate(\''+p.id+'\')">ربط حساب الخريج</button></td><td>'+adminEsc(q.qualification_name)+'</td><td>'+adminEsc(q.graduation_year)+'</td><td>'+adminEsc(p.governorate)+'</td><td>'+(p.visibility_status==='public'?'ظاهر':'مخفي')+'</td></tr>';}).join('')||'<tr><td colspan="5">لا توجد ملفات بعد</td></tr>';
 }
 async function saveJobAnnouncement(){
  const company_display_name=document.getElementById('job_company').value.trim(),title=document.getElementById('job_title').value.trim(),description=document.getElementById('job_description').value.trim();
