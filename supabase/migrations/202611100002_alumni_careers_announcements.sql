@@ -14,6 +14,7 @@ create table if not exists public.alumni_profiles (
   visibility_status text not null default 'hidden'
     check (visibility_status in ('hidden','public','paused')),
   contact_sharing_requires_approval boolean not null default true,
+  legacy_graduate_profile_id uuid unique references public.graduate_profiles(id) on delete set null,
   created_by uuid references auth.users(id) on delete set null,
   updated_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
@@ -254,3 +255,123 @@ grant select, insert, update, delete on public.alumni_skills to authenticated;
 grant select, insert, update, delete on public.alumni_documents to authenticated;
 grant select, insert, update, delete on public.job_announcements to authenticated;
 grant select, insert, update, delete on public.training_announcements to authenticated;
+
+
+-- Connect existing graduate accounts without duplicating their existing profile rows.
+alter table public.companies
+  add column if not exists auth_user_id uuid references auth.users(id) on delete set null;
+create unique index if not exists companies_auth_user_id_uidx
+  on public.companies(auth_user_id) where auth_user_id is not null;
+
+create table if not exists public.alumni_access_requests (
+  id uuid primary key default gen_random_uuid(),
+  alumni_id uuid not null references public.alumni_profiles(id) on delete cascade,
+  company_id uuid not null references public.companies(id) on delete cascade,
+  requested_by uuid references auth.users(id) on delete set null,
+  request_contact boolean not null default false,
+  request_cv boolean not null default true,
+  request_documents boolean not null default false,
+  status text not null default 'pending'
+    check (status in ('pending','approved','rejected','revoked','expired')),
+  admin_note text,
+  alumni_consent_at timestamptz,
+  admin_decided_by uuid references auth.users(id) on delete set null,
+  admin_decided_at timestamptz,
+  expires_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (alumni_id, company_id, status)
+);
+
+create table if not exists public.job_applications (
+  id uuid primary key default gen_random_uuid(),
+  job_id uuid not null references public.job_announcements(id) on delete cascade,
+  alumni_id uuid not null references public.alumni_profiles(id) on delete cascade,
+  status text not null default 'submitted'
+    check (status in ('submitted','reviewing','shortlisted','rejected','hired','withdrawn')),
+  cover_message text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (job_id, alumni_id)
+);
+
+create table if not exists public.alumni_notifications (
+  id uuid primary key default gen_random_uuid(),
+  alumni_id uuid not null references public.alumni_profiles(id) on delete cascade,
+  notification_type text not null check (notification_type in ('job','training','system')),
+  title text not null,
+  body text,
+  target_qualification text,
+  related_job_id uuid references public.job_announcements(id) on delete set null,
+  related_training_id uuid references public.training_announcements(id) on delete set null,
+  read_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists alumni_access_requests_company_idx
+  on public.alumni_access_requests(company_id, status, created_at desc);
+create index if not exists job_applications_job_idx
+  on public.job_applications(job_id, status, created_at desc);
+create index if not exists alumni_notifications_profile_idx
+  on public.alumni_notifications(alumni_id, created_at desc);
+
+alter table public.alumni_access_requests enable row level security;
+alter table public.job_applications enable row level security;
+alter table public.alumni_notifications enable row level security;
+
+grant select, insert, update, delete on public.alumni_access_requests to authenticated;
+grant select, insert, update, delete on public.job_applications to authenticated;
+grant select, insert, update, delete on public.alumni_notifications to authenticated;
+
+drop policy if exists "platform admins manage alumni access requests" on public.alumni_access_requests;
+create policy "platform admins manage alumni access requests"
+on public.alumni_access_requests for all to authenticated
+using (public.is_platform_admin())
+with check (public.is_platform_admin());
+
+drop policy if exists "platform admins manage job applications" on public.job_applications;
+create policy "platform admins manage job applications"
+on public.job_applications for all to authenticated
+using (public.is_platform_admin())
+with check (public.is_platform_admin());
+
+drop policy if exists "platform admins manage alumni notifications" on public.alumni_notifications;
+create policy "platform admins manage alumni notifications"
+on public.alumni_notifications for all to authenticated
+using (public.is_platform_admin())
+with check (public.is_platform_admin());
+
+-- Company access remains gated by an authenticated, approved company and a separately approved request.
+drop policy if exists "approved companies view own job ads" on public.job_announcements;
+create policy "approved companies view own job ads"
+on public.job_announcements for select to authenticated
+using (
+  exists (
+    select 1 from public.companies c
+    where c.id = job_announcements.company_id
+      and c.auth_user_id = auth.uid()
+      and c.status = 'approved'
+  )
+);
+
+drop policy if exists "approved companies manage own job ads" on public.job_announcements;
+create policy "approved companies manage own job ads"
+on public.job_announcements for all to authenticated
+using (
+  exists (
+    select 1 from public.companies c
+    where c.id = job_announcements.company_id
+      and c.auth_user_id = auth.uid()
+      and c.status = 'approved'
+  )
+)
+with check (
+  exists (
+    select 1 from public.companies c
+    where c.id = job_announcements.company_id
+      and c.auth_user_id = auth.uid()
+      and c.status = 'approved'
+  )
+);
+
+-- Do not allow public reads of profile, phone, CV or document storage paths.
+-- Private Storage bucket and signed-URL issuance are added in a separate reviewed migration.
