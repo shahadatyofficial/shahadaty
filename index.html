@@ -678,18 +678,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 <section id="career-hub" class="career-hub">
  <div class="career-hub-inner">
   <div class="career-ticker"><strong>فرص وإعلانات شهادتي</strong><div class="career-ticker-window"><div id="careerTicker"><span>تابع فرص العمل والدورات التدريبية المعلنة عبر شهادتي العلمية</span></div></div></div>
-  <section class="alumni-search-card" aria-labelledby="alumniSearchTitle">
-   <div class="alumni-search-heading"><span class="alumni-search-icon" aria-hidden="true">⌕</span><div><span class="alumni-eyebrow">دليل الكفاءات والخريجين</span><h2 id="alumniSearchTitle">ابحث عن خريج</h2><p>اكتشف الكفاءات المسجلة حسب المؤهل والبيانات الأكاديمية.</p></div></div>
-   <form id="publicAlumniForm" class="alumni-search-form" onsubmit="searchPublicAlumni(event)">
-    <label class="alumni-field alumni-field-primary"><span>المؤهل العلمي <b>* إلزامي</b></span><input id="publicAlumniQualification" aria-label="المؤهل العلمي" placeholder="مثال: حقوق، تجارة، هندسة، طب..." required maxlength="120" autocomplete="off"><small>اكتب اسم التخصص فقط أو المؤهل بصيغته الكاملة، مثل: حقوق أو ليسانس حقوق.</small></label>
-    <label class="alumni-field"><span>الجامعة <i>اختياري</i></span><input id="publicAlumniUniversity" placeholder="اسم الجامعة" maxlength="120" autocomplete="organization"></label>
-    <label class="alumni-field"><span>الكلية <i>اختياري</i></span><input id="publicAlumniCollege" placeholder="اسم الكلية" maxlength="120"></label>
-    <label class="alumni-field"><span>سنة التخرج <i>اختياري</i></span><input id="publicAlumniYear" type="number" min="1950" max="2100" inputmode="numeric" placeholder="مثال: 2024"></label>
-    <label class="alumni-field"><span>التقدير <i>اختياري</i></span><select id="publicAlumniGrade"><option value="">كل التقديرات</option><option>امتياز</option><option>امتياز مع مرتبة الشرف</option><option>جيد جداً</option><option>جيد</option><option>مقبول</option></select></label>
-    <div class="alumni-search-actions"><button id="publicAlumniSubmit" class="alumni-search-submit" type="submit"><span aria-hidden="true">⌕</span> بحث عن الخريجين</button><button class="alumni-search-reset" type="reset" onclick="resetPublicAlumniSearch()">مسح الفلاتر</button></div>
-   </form>
-   <div id="publicAlumniResults" class="alumni-results" aria-live="polite" aria-busy="false"></div>
-  </section>
+
  </div>
 </section>
 <style>
@@ -701,20 +690,20 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 .career-ticker-window{overflow:hidden;flex:1;min-width:0}
 #careerTicker{display:flex;gap:34px;white-space:nowrap;width:max-content;animation:careerTickerMove 32s linear infinite;font-size:13px}
 #careerTicker:hover{animation-play-state:paused}
-.alumni-search-card{position:relative;overflow:hidden;background:#fff;border:1px solid #e2eaf3;border-radius:22px;padding:clamp(18px,3vw,32px);box-shadow:0 16px 45px #102e4b0d}
+.alumni-search-placement{background:linear-gradient(180deg,#f7f9fc 0%,#fff 100%);padding:26px 24px 38px;border-bottom:1px solid #e8edf3}\n.alumni-search-placement-inner{max-width:1080px;margin:0 auto}\n.alumni-search-card{position:relative;overflow:hidden;background:linear-gradient(145deg,#fff 0%,#fbfcfe 100%);border:1px solid rgba(176,141,72,.34);border-radius:18px;padding:18px 22px;box-shadow:0 12px 34px rgba(12,45,78,.09)}
 .alumni-search-card:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#0b4774,#1687bd,#d2ad62)}
-.alumni-search-heading{display:flex;align-items:center;gap:15px;margin-bottom:24px}
-.alumni-search-icon{width:54px;height:54px;display:grid;place-items:center;flex:none;border-radius:17px;background:#edf6fc;color:#0874aa;font-size:35px;font-weight:400}
+.alumni-search-heading{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.alumni-search-icon{width:44px;height:44px;display:grid;place-items:center;flex:none;border-radius:14px;background:linear-gradient(145deg,#0c2d4e,#12618f);color:#f4d58a;font-size:29px;font-weight:400;box-shadow:0 6px 16px rgba(12,45,78,.18)}
 .alumni-eyebrow{display:block;color:#b08a43;font-size:11px;font-weight:800;letter-spacing:.4px;margin-bottom:4px}
-.alumni-search-heading h2{font-size:clamp(21px,2.5vw,27px);font-weight:900;color:#102f4d;margin:0 0 5px}
+.alumni-search-heading h2{font-size:clamp(19px,2vw,23px);font-weight:900;color:#102f4d;margin:0 0 3px}
 .alumni-search-heading p{font-size:13px;color:#718096;margin:0}
-.alumni-search-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}
+.alumni-search-form{display:grid;grid-template-columns:1.35fr repeat(4,minmax(0,1fr));gap:11px;align-items:end}
 .alumni-field{display:grid;gap:8px;min-width:0}
-.alumni-field-primary{grid-column:1/-1}
-.alumni-field>span{font-size:12px;font-weight:800;color:#263f58}
-.alumni-field b{color:#bd8d39;font-size:10px;margin-inline-start:5px}
+.alumni-field-primary{grid-column:auto}
+.alumni-field>span{font-size:11px;font-weight:800;color:#263f58}
+.alumni-field b{color:#dc2626;font-size:8px;margin-inline-start:5px;vertical-align:middle}
 .alumni-field i{font-style:normal;color:#91a0af;font-size:10px;font-weight:500;margin-inline-start:4px}
-.alumni-field input,.alumni-field select{width:100%;height:47px;border:1px solid #dce5ee;border-radius:11px;background:#fbfdff;padding:0 14px;color:#18344f;font:inherit;font-size:13px;outline:none;transition:border-color .2s,box-shadow .2s}
+.alumni-field input,.alumni-field select{width:100%;height:42px;border:1px solid #dce5ee;border-radius:11px;background:#fbfdff;padding:0 14px;color:#18344f;font:inherit;font-size:13px;outline:none;transition:border-color .2s,box-shadow .2s}
 .alumni-field-primary input{height:54px;background:#fff;border-color:#b9cddd;font-size:14px}
 .alumni-field input:focus,.alumni-field select:focus{border-color:#1680b6;box-shadow:0 0 0 3px #1680b61a;background:#fff}
 .alumni-field small{font-size:10px;color:#8997a6}
@@ -786,6 +775,23 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
     <div class="stat"><span class="sn">99.9<span>%</span></span><span class="sl">دقة التحقق</span></div>
     <div class="stat"><span class="sn"><span>&lt;</span>3ث</span><span class="sl">وقت التحقق</span></div>
   </div>
+</section>
+
+<section id="alumni-search" class="alumni-search-placement" aria-label="البحث عن خريج">
+ <div class="alumni-search-placement-inner">
+  <section class="alumni-search-card" aria-labelledby="alumniSearchTitle">
+   <div class="alumni-search-heading"><span class="alumni-search-icon" aria-hidden="true">⌕</span><div><span class="alumni-eyebrow">دليل الكفاءات والخريجين</span><h2 id="alumniSearchTitle">ابحث عن خريج</h2><p>اكتشف الكفاءات المسجلة حسب المؤهل والبيانات الأكاديمية.</p></div></div>
+   <form id="publicAlumniForm" class="alumni-search-form" onsubmit="searchPublicAlumni(event)">
+    <label class="alumni-field alumni-field-primary"><span>المؤهل العلمي <b class="alumni-required-dot" aria-label="حقل مطلوب" title="حقل مطلوب">●</b></span><input id="publicAlumniQualification" aria-label="المؤهل العلمي" placeholder="مثال: حقوق، تجارة، هندسة، طب..." required maxlength="120" autocomplete="off"><small>اكتب اسم التخصص فقط أو المؤهل بصيغته الكاملة، مثل: حقوق أو ليسانس حقوق.</small></label>
+    <label class="alumni-field"><span>الجامعة <i>اختياري</i></span><input id="publicAlumniUniversity" placeholder="اسم الجامعة" maxlength="120" autocomplete="organization"></label>
+    <label class="alumni-field"><span>الكلية <i>اختياري</i></span><input id="publicAlumniCollege" placeholder="اسم الكلية" maxlength="120"></label>
+    <label class="alumni-field"><span>سنة التخرج <i>اختياري</i></span><input id="publicAlumniYear" type="number" min="1950" max="2100" inputmode="numeric" placeholder="مثال: 2024"></label>
+    <label class="alumni-field"><span>التقدير <i>اختياري</i></span><select id="publicAlumniGrade"><option value="">كل التقديرات</option><option>امتياز</option><option>امتياز مع مرتبة الشرف</option><option>جيد جداً</option><option>جيد</option><option>مقبول</option></select></label>
+    <div class="alumni-search-actions"><button id="publicAlumniSubmit" class="alumni-search-submit" type="submit"><span aria-hidden="true">⌕</span> بحث عن الخريجين</button><button class="alumni-search-reset" type="reset" onclick="resetPublicAlumniSearch()">مسح الفلاتر</button></div>
+   </form>
+   <div id="publicAlumniResults" class="alumni-results" aria-live="polite" aria-busy="false"></div>
+  </section>
+ </div>
 </section>
 
 <!-- WHY -->
