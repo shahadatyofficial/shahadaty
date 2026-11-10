@@ -626,3 +626,23 @@ end;
 $$;
 revoke all on function public.search_alumni_for_company(text,text) from public;
 grant execute on function public.search_alumni_for_company(text,text) to authenticated;
+
+
+create or replace function public.admin_link_company_user(p_company_id uuid,p_email text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, auth, pg_temp
+as $$
+declare v_user_id uuid;
+begin
+  if not public.is_platform_admin() then raise exception 'Platform administrator access required'; end if;
+  select id into v_user_id from auth.users where lower(email)=lower(trim(p_email)) limit 1;
+  if v_user_id is null then raise exception 'No registered account found for this email'; end if;
+  update public.companies set auth_user_id=v_user_id where id=p_company_id;
+  if not found then raise exception 'Company not found'; end if;
+  return true;
+end;
+$$;
+revoke all on function public.admin_link_company_user(uuid,text) from public;
+grant execute on function public.admin_link_company_user(uuid,text) to authenticated;
