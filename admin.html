@@ -1068,6 +1068,17 @@ async function loadAlumniProfiles(){
 }
 async function setAlumniVisibility(id,currentStatus){
  const nextStatus=currentStatus==='public'?'hidden':'public';
+ if(nextStatus==='public'){
+  const{data:links,error:linksError}=await sb.from('alumni_qualifications').select('certificate_id').eq('alumni_id',id).not('certificate_id','is',null);
+  if(linksError){toast('تعذر التحقق من موافقة صاحب الشهادة','err');return;}
+  const certificateIds=[...new Set((links||[]).map(x=>x.certificate_id).filter(Boolean))];
+  if(certificateIds.length){
+   const{data:certificates,error:certError}=await sb.from('certificates').select('id,status,visible_to_companies,consent_given_at').in('id',certificateIds);
+   if(certError){toast('تعذر التحقق من موافقة صاحب الشهادة','err');return;}
+   const consentMissing=(certificates||[]).some(c=>c.status!=='active'||c.visible_to_companies!==true||!c.consent_given_at);
+   if(consentMissing){toast('لا يمكن إظهار هذا السجل قبل موافقة صاحبه على مشاركة بياناته مع جهات التوظيف.','err');return;}
+  }
+ }
  if(!confirm(nextStatus==='public'?'إظهار ملف الخريج في البحث العام؟':'إخفاء ملف الخريج من البحث العام؟'))return;
  const{data,error}=await sb.from('alumni_profiles').update({visibility_status:nextStatus}).eq('id',id).select('id').maybeSingle();
  if(error||!data){toast(error?.message||'تعذر تحديث حالة الظهور','err');return;}
