@@ -31,7 +31,7 @@ async function load(){
   const date=new Date(c.issue_date).toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});
   const active=c.status==='active';
   document.getElementById('app').innerHTML=`<section class="certificate"><div class="inner">
-    <div class="seal">✓</div><div class="eyebrow">شهادة رقمية موثقة</div><div class="title">شهادة إتمام</div><div class="subtitle">تشهد منصة شهادتي بصحة بيانات الشهادة المسجلة لديها</div>
+    <div class="seal">✓</div><div class="eyebrow">شهادة رقمية مسجلة</div><div class="title">شهادة إتمام</div><div class="subtitle">تتيح منصة شهادتي الاطلاع على بيانات الشهادة المسجلة لدى الجهة صاحبة السجل</div>
     <div class="student">${esc(c.student_name)}</div><div class="course">${esc(c.course)}</div>
     <div class="grid">
       <div class="box"><div class="lbl">المؤسسة المصدرة</div><div class="val">${esc(c.institution_name)}</div></div>
@@ -41,7 +41,7 @@ async function load(){
       <div class="box"><div class="lbl">التقدير</div><div class="val">${esc(c.grade||'ناجح')}</div></div>
       <div class="box"><div class="lbl">مدة البرنامج</div><div class="val">${esc(c.duration)}</div></div>
     </div>
-    <div class="verify"><div id="qrcode" class="qr"></div><div><div class="number">${esc(c.cert_number)}</div><div class="valid">${active?'✓ شهادة سارية وموثقة':'⚠️ الشهادة موجودة ولكنها غير سارية'}</div><div class="foot">للتحقق من هذه الشهادة استخدم رقمها في منصة شهادتي.</div></div></div>
+    <div class="verify"><div id="qrcode" class="qr"></div><div><div class="number">${esc(c.cert_number)}</div><div class="valid">${active?'✓ شهادة سارية ومسجلة':'⚠️ الشهادة موجودة ولكنها غير سارية'}</div><div class="foot">للتحقق من هذه الشهادة استخدم رقمها في منصة شهادتي.</div></div></div>
   </div></section>`;
   new QRCode(document.getElementById('qrcode'),{text:location.href,width:105,height:105,colorDark:'#0c2d4e',colorLight:'#ffffff'});
 }
