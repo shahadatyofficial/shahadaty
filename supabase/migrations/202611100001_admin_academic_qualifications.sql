@@ -201,3 +201,5 @@ begin
 end;
 $function$;
 grant execute on function public.verify_certificate(text) to anon, authenticated;
+
+notify pgrst, 'reload schema';
