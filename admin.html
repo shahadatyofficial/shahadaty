@@ -1067,8 +1067,16 @@ async function saveJobAnnouncement(){
  if(error){toast(error.message,'err');return;}toast('تم حفظ الإعلان وإرساله للمراجعة','ok');loadJobAnnouncements();
 }
 async function loadJobAnnouncements(){
- const el=document.getElementById('jobRows');if(!el)return;const{data,error}=await sb.from('job_announcements').select('announcement_number,company_display_name,title,status,expires_at').order('created_at',{ascending:false}).limit(100);
- el.innerHTML=error?adminEsc(error.message):(data||[]).map(x=>'<div style="padding:10px;border-bottom:1px solid #e5edf5"><b>#'+x.announcement_number+' '+adminEsc(x.title)+'</b> — '+adminEsc(x.company_display_name)+' <span class="badge">'+adminEsc(x.status)+'</span></div>').join('')||'لا توجد إعلانات';
+ const el=document.getElementById('jobRows');if(!el)return;const{data,error}=await sb.from('job_announcements').select('id,announcement_number,company_display_name,title,status,expires_at').order('created_at',{ascending:false}).limit(100);
+ if(error){el.textContent=error.message;return;}
+ el.innerHTML=(data||[]).map(x=>'<div style="padding:10px;border-bottom:1px solid #e5edf5"><b>#'+adminEsc(x.announcement_number)+' '+adminEsc(x.title)+'</b> — '+adminEsc(x.company_display_name)+' <span class="badge">'+adminEsc(x.status)+'</span> '+(x.status==='pending'?'<button class="btn-p" onclick="moderateJobAnnouncement(\''+x.id+'\',\'approved\')">نشر الإعلان</button> <button class="btn-d" onclick="moderateJobAnnouncement(\''+x.id+'\',\'rejected\')">رفض</button>':x.status==='approved'?'<button class="btn-s" onclick="moderateJobAnnouncement(\''+x.id+'\',\'paused\')">إيقاف مؤقت</button>':x.status==='paused'?'<button class="btn-p" onclick="moderateJobAnnouncement(\''+x.id+'\',\'approved\')">إعادة النشر</button>':'')+'</div>').join('')||'لا توجد إعلانات';
+}
+async function moderateJobAnnouncement(id,status){
+ const patch={status,updated_at:new Date().toISOString()};
+ if(status==='approved')patch.published_at=new Date().toISOString();
+ const{error}=await sb.from('job_announcements').update(patch).eq('id',id);
+ if(error){toast(error.message,'err');return;}
+ toast(status==='approved'?'تم نشر إعلان الوظيفة':'تم تحديث حالة الإعلان','ok');loadJobAnnouncements();
 }
 async function saveTrainingAnnouncement(){
  const title=document.getElementById('training_title').value.trim(),description=document.getElementById('training_description').value.trim();
@@ -1078,8 +1086,16 @@ async function saveTrainingAnnouncement(){
  if(error){toast(error.message,'err');return;}toast('تم حفظ الإعلان كمسودة','ok');loadTrainingAnnouncements();
 }
 async function loadTrainingAnnouncements(){
- const el=document.getElementById('trainingRows');if(!el)return;const{data,error}=await sb.from('training_announcements').select('announcement_number,title,status,target_qualifications').order('created_at',{ascending:false}).limit(100);
- el.innerHTML=error?adminEsc(error.message):(data||[]).map(x=>'<div style="padding:10px;border-bottom:1px solid #e5edf5"><b>#'+x.announcement_number+' '+adminEsc(x.title)+'</b> — '+adminEsc((x.target_qualifications||[]).join('، ')||'كل الفئات')+' <span class="badge">'+adminEsc(x.status)+'</span></div>').join('')||'لا توجد إعلانات';
+ const el=document.getElementById('trainingRows');if(!el)return;const{data,error}=await sb.from('training_announcements').select('id,announcement_number,title,status,target_qualifications').order('created_at',{ascending:false}).limit(100);
+ if(error){el.textContent=error.message;return;}
+ el.innerHTML=(data||[]).map(x=>'<div style="padding:10px;border-bottom:1px solid #e5edf5"><b>#'+adminEsc(x.announcement_number)+' '+adminEsc(x.title)+'</b> — '+adminEsc((x.target_qualifications||[]).join('، ')||'كل الفئات')+' <span class="badge">'+adminEsc(x.status)+'</span> '+(x.status==='draft'||x.status==='paused'?'<button class="btn-p" onclick="moderateTrainingAnnouncement(\''+x.id+'\',\'published\')">نشر وإشعار المستهدفين</button>':x.status==='published'?'<button class="btn-s" onclick="moderateTrainingAnnouncement(\''+x.id+'\',\'paused\')">إيقاف مؤقت</button>':'')+'</div>').join('')||'لا توجد إعلانات';
+}
+async function moderateTrainingAnnouncement(id,status){
+ const patch={status,updated_at:new Date().toISOString()};
+ if(status==='published')patch.published_at=new Date().toISOString();
+ const{error}=await sb.from('training_announcements').update(patch).eq('id',id);
+ if(error){toast(error.message,'err');return;}
+ toast(status==='published'?'تم نشر الدورة وإرسال الإشعارات المستهدفة':'تم إيقاف الإعلان مؤقتًا','ok');loadTrainingAnnouncements();
 }
 
 
