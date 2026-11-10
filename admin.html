@@ -695,6 +695,7 @@ async function submitAdminCertificate(event){
 }
 
 // ── ACADEMIC REFERENCE LIST MANAGEMENT ─────────────────────────
+const academicReferenceCache={universities:[],faculties:[],degrees:[]};
 const academicReferenceMeta={
  universities:{table:'academic_universities',label:'الجامعة',target:'academicUniversitiesTable'},
  faculties:{table:'academic_faculties',label:'الكلية',target:'academicFacultiesTable'},
@@ -721,8 +722,8 @@ async function addAcademicReference(list){
   if(list==='degrees')await loadAdminCertificateForm();
  }
 }
-async function renameAcademicReference(list,id,current){
- const meta=academicReferenceMeta[list],name=prompt('تعديل '+meta.label+':',current);if(name===null)return;
+async function renameAcademicReference(list,id){
+ const meta=academicReferenceMeta[list],current=(academicReferenceCache[list]||[]).find(x=>x.id===id)?.name||'',name=prompt('تعديل '+meta.label+':',current);if(name===null)return;
  if(!name.trim()){toast('الاسم مطلوب','err');return;}
  if(await saveAcademicReference(list,'rename',id,name.trim(),null)){
   if(list==='degrees')await loadAdminCertificateForm();
