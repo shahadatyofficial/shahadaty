@@ -208,6 +208,7 @@ async function doSearch(){
     <div class="result-ok-body">
       <div class="info-grid">
         <div class="info-box"><div class="info-lbl">اسم الطالب</div><div class="info-val">${esc(data.student_name)}</div></div>
+        ${data.student_name_en ? '<div class="info-box"><div class="info-lbl">الاسم بالإنجليزية</div><div class="info-val" dir="ltr">' + esc(data.student_name_en) + '</div></div>' : ''}
         <div class="info-box"><div class="info-lbl">${data.record_type==='academic'?'المؤهل العلمي':'الدورة / البرنامج'}</div><div class="info-val">${esc(data.record_type==='academic'?(data.academic_degree||data.course):data.course)}</div></div>
         ${data.record_type==='academic'?'<div class="info-box"><div class="info-lbl">الجامعة</div><div class="info-val">'+esc(data.academic_university)+'</div></div><div class="info-box"><div class="info-lbl">الكلية</div><div class="info-val">'+esc(data.academic_faculty)+'</div></div><div class="info-box"><div class="info-lbl">سنة التخرج</div><div class="info-val">'+esc(data.graduation_year)+'</div></div>':''}
         <div class="info-box"><div class="info-lbl">التقدير</div><div class="info-val">${esc(data.grade||'غير محدد')}</div></div>
