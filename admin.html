@@ -234,7 +234,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
             <label>سنة التخرج<input class="form-inp" id="al_year" type="number" min="1950" max="2100"></label>
             <label>التقدير<input class="form-inp" id="al_grade" placeholder="امتياز / جيد جداً / جيد / مقبول"></label>
           </div>
-          <label style="display:flex;align-items:center;gap:8px;margin:8px 0 14px"><input type="checkbox" id="al_public"> إظهار الاسم والمؤهل وسنة التخرج في البحث العام</label>
+          <label style="display:flex;align-items:center;gap:8px;margin:8px 0 14px"><input type="checkbox" id="al_public"> إظهار الاسم والبيانات الأكاديمية في البحث العام</label>
           <button class="btn-p" onclick="saveAlumniProfile()">حفظ ملف الخريج</button>
         </div>
       </div>
@@ -1048,6 +1048,9 @@ async function saveAlumniProfile(){
  if(error){toast(error.message,'err');return;}
  const{error:qError}=await sb.from('alumni_qualifications').insert({
   alumni_id:profile.id,qualification_name,
+  institution_name:document.getElementById('al_university').value.trim()||null,
+  faculty_name:document.getElementById('al_college').value.trim()||null,
+  grade:document.getElementById('al_grade').value.trim()||null,
   graduation_year:yearRaw?Number(yearRaw):null
  });
  if(qError){toast('تم إنشاء الملف لكن تعذر حفظ المؤهل: '+qError.message,'err');return;}
