@@ -463,3 +463,63 @@ create policy "approved companies manage own job ads"
 on public.job_announcements for all to authenticated
 using (public.is_approved_company(company_id))
 with check (public.is_approved_company(company_id));
+
+
+create or replace function public.current_alumni_profile_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select a.id
+  from public.alumni_profiles a
+  join public.graduate_profiles g on g.id = a.legacy_graduate_profile_id
+  where g.auth_user_id = auth.uid()
+    and a.visibility_status <> 'paused'
+  limit 1;
+$$;
+revoke all on function public.current_alumni_profile_id() from public;
+grant execute on function public.current_alumni_profile_id() to authenticated;
+
+drop policy if exists "registered graduates view approved jobs" on public.job_announcements;
+create policy "registered graduates view approved jobs"
+on public.job_announcements for select to authenticated
+using (
+  status = 'approved'
+  and exists (
+    select 1 from public.graduate_profiles g
+    where g.auth_user_id = auth.uid()
+  )
+);
+
+drop policy if exists "approved companies create access requests" on public.alumni_access_requests;
+create policy "approved companies create access requests"
+on public.alumni_access_requests for insert to authenticated
+with check (
+  status = 'pending'
+  and requested_by = auth.uid()
+  and public.is_approved_company(company_id)
+);
+
+drop policy if exists "approved companies view own access requests" on public.alumni_access_requests;
+create policy "approved companies view own access requests"
+on public.alumni_access_requests for select to authenticated
+using (public.is_approved_company(company_id));
+
+drop policy if exists "registered graduates apply to jobs" on public.job_applications;
+create policy "registered graduates apply to jobs"
+on public.job_applications for insert to authenticated
+with check (
+  alumni_id = public.current_alumni_profile_id()
+  and exists (
+    select 1 from public.job_announcements j
+    where j.id = job_id and j.status = 'approved'
+      and (j.expires_at is null or j.expires_at >= now())
+  )
+);
+
+drop policy if exists "registered graduates view own applications" on public.job_applications;
+create policy "registered graduates view own applications"
+on public.job_applications for select to authenticated
+using (alumni_id = public.current_alumni_profile_id());
