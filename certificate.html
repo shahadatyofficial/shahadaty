@@ -25,7 +25,7 @@ const id=new URLSearchParams(location.search).get('id');
 function esc(v){return String(v??'—').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 async function load(){
   if(!id)return showError('لم يتم تحديد رقم الشهادة.');
-  const {data,error}=await sb.rpc('verify_certificate',{p_cert_number:id});
+  const {data,error}=await sb.rpc('verify_certificate_details',{p_cert_number:id});
   if(error||!data?.length)return showError('لم يتم العثور على الشهادة أو أنها غير متاحة للتحقق.');
   const c=Array.isArray(data)?data[0]:data;
   const date=new Date(c.issue_date).toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});
