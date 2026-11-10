@@ -181,6 +181,10 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
   <nav class="sb-nav">
     <div class="sb-sec">الرئيسية</div>
     <div class="sb-item active" onclick="sp('overview',this)"><span class="material-symbols-outlined">dashboard</span>نظرة عامة</div>
+    <div class="sb-sec">الخريجون والتوظيف</div>
+    <div class="sb-item" onclick="sp('alumni',this)"><span class="material-symbols-outlined">school</span>إدارة الخريجين</div>
+    <div class="sb-item" onclick="sp('job-ads',this)"><span class="material-symbols-outlined">campaign</span>إعلانات الوظائف</div>
+    <div class="sb-item" onclick="sp('training-ads',this)"><span class="material-symbols-outlined">notifications_active</span>إعلانات الدورات</div>
     <div class="sb-sec">المؤسسات</div>
     <div class="sb-item" onclick="sp('institutions',this)"><span class="material-symbols-outlined">business</span>إدارة المؤسسات</div>
     <div class="sb-item" onclick="sp('requests',this)"><span class="material-symbols-outlined">approval</span>طلبات الاعتماد<span class="sb-badge" id="reqBadge">0</span></div>
@@ -214,6 +218,71 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
   </header>
   <div class="content">
 
+    <!-- ALUMNI -->
+    <div class="page" id="page-alumni">
+      <div class="card"><div class="card-head"><span class="card-title">إضافة ملف خريج</span></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+            <label>اسم الخريج<input class="form-inp" id="al_full_name" required></label>
+            <label>رقم الهاتف<input class="form-inp" id="al_phone" dir="ltr"></label>
+            <label>البريد الإلكتروني<input class="form-inp" id="al_email" dir="ltr"></label>
+            <label>المحافظة<input class="form-inp" id="al_governorate"></label>
+            <label style="grid-column:1/-1">نبذة مهنية<textarea class="form-inp" id="al_summary" rows="3"></textarea></label>
+            <label>المؤهل العلمي<input class="form-inp" id="al_qualification" required></label>
+            <label>سنة التخرج<input class="form-inp" id="al_year" type="number" min="1950" max="2100"></label>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;margin:8px 0 14px"><input type="checkbox" id="al_public"> إظهار الاسم والمؤهل وسنة التخرج في البحث العام</label>
+          <button class="btn-p" onclick="saveAlumniProfile()">حفظ ملف الخريج</button>
+        </div>
+      </div>
+      <div class="card"><div class="card-head"><span class="card-title">إضافة خبرة ومهارة للخريج</span></div><div class="card-body">
+        <label>الخريج<select class="form-inp" id="al_extra_profile"></select></label>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+          <label>المسمى الوظيفي<input class="form-inp" id="al_job_title"></label>
+          <label>جهة العمل<input class="form-inp" id="al_employer"></label>
+          <label>المهارة<input class="form-inp" id="al_skill_name"></label>
+          <label>مستوى المهارة<input class="form-inp" id="al_skill_level" placeholder="مبتدئ / متوسط / متقدم"></label>
+        </div>
+        <button class="btn-p" onclick="saveAlumniExperienceSkill()">حفظ الخبرة والمهارة</button>
+      </div></div>
+      <div class="card"><div class="card-head"><span class="card-title">إرفاق شهادة أو CV للخريج</span></div><div class="card-body">
+        <label>الخريج<select class="form-inp" id="al_document_profile"></select></label>
+        <label>اسم المستند<input class="form-inp" id="al_document_title" placeholder="مثال: ليسانس حقوق أو السيرة الذاتية"></label>
+        <label>نوع المستند<select class="form-inp" id="al_document_type"><option value="qualification">مؤهل علمي</option><option value="training">شهادة تدريبية</option><option value="experience">خبرة</option><option value="cv">سيرة ذاتية</option><option value="other">أخرى</option></select></label>
+        <label>الملف PDF أو JPG أو PNG<input class="form-inp" id="al_document_file" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"></label>
+        <button class="btn-p" onclick="uploadAlumniDocument()">رفع المستند بشكل خاص</button>
+      </div></div>
+      <div class="card"><div class="card-head"><span class="card-title">طلبات اطلاع الشركات</span><button class="btn-p" onclick="loadAlumniAccessRequests()">تحديث</button></div><div class="card-body" style="overflow:auto"><table class="tbl"><thead><tr><th>الشركة</th><th>الخريج</th><th>المطلوب</th><th>الحالة</th><th>الإجراء</th></tr></thead><tbody id="alumniAccessRows"><tr><td colspan="5">جاري التحميل...</td></tr></tbody></table></div></div>
+      <div class="card"><div class="card-head"><span class="card-title">ملفات الخريجين</span><button class="btn-p" onclick="loadAlumniProfiles()">تحديث</button></div>
+        <div class="card-body" style="overflow:auto"><table class="tbl"><thead><tr><th>الاسم</th><th>المؤهل</th><th>سنة التخرج</th><th>المحافظة</th><th>الظهور العام</th></tr></thead><tbody id="alumniRows"><tr><td colspan="5">جاري التحميل...</td></tr></tbody></table></div>
+      </div>
+    </div>
+    <!-- JOB ADS -->
+    <div class="page" id="page-job-ads">
+      <div class="card"><div class="card-head"><span class="card-title">إضافة إعلان وظيفة</span></div><div class="card-body">
+        <label>اسم الشركة<input class="form-inp" id="job_company"></label>
+        <label>المسمى الوظيفي<input class="form-inp" id="job_title"></label>
+        <label>نبذة تظهر في الشريط المتحرك<input class="form-inp" id="job_teaser"></label>
+        <label>تفاصيل الوظيفة<textarea class="form-inp" id="job_description" rows="4"></textarea></label>
+        <label>المحافظة<input class="form-inp" id="job_governorate"></label>
+        <label>المؤهل المطلوب<input class="form-inp" id="job_qualification"></label>
+        <label>آخر موعد للتقديم<input class="form-inp" id="job_expiry" type="date"></label>
+        <button class="btn-p" onclick="saveJobAnnouncement()">حفظ الإعلان للمراجعة</button>
+      </div></div>
+      <div class="card"><div class="card-head"><span class="card-title">إعلانات الوظائف</span></div><div class="card-body" id="jobRows">جاري التحميل...</div></div>
+    </div>
+    <!-- TRAINING ADS -->
+    <div class="page" id="page-training-ads">
+      <div class="card"><div class="card-head"><span class="card-title">إعلان دورة تدريبية</span></div><div class="card-body">
+        <label>عنوان الإعلان<input class="form-inp" id="training_title"></label>
+        <label>نبذة الشريط المتحرك<input class="form-inp" id="training_teaser"></label>
+        <label>التفاصيل<textarea class="form-inp" id="training_description" rows="4"></textarea></label>
+        <label>الفئات المستهدفة (افصل بينها بفاصلة)<input class="form-inp" id="training_targets" placeholder="حقوق، تجارة، تربية رياضية"></label>
+        <label>رابط التسجيل<input class="form-inp" id="training_url" dir="ltr"></label>
+        <button class="btn-p" onclick="saveTrainingAnnouncement()">حفظ الإعلان كمسودة</button>
+      </div></div>
+      <div class="card"><div class="card-head"><span class="card-title">إعلانات الدورات</span></div><div class="card-body" id="trainingRows">جاري التحميل...</div></div>
+    </div>
     <!-- OVERVIEW -->
     <div class="page active" id="page-overview">
       <div class="stats-row">
@@ -350,7 +419,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="page" id="page-companies">
       <div class="card">
         <div class="card-head"><span class="card-title">الشركات المشتركة</span><button class="btn-p" onclick="loadCompanies()"><span class="material-symbols-outlined">refresh</span>تحديث</button></div>
-        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الشركة</th><th>المسؤول</th><th>الحالة</th><th>رصيد البحث</th><th>إجراءات</th></tr></thead><tbody id="compTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الشركة</th><th>المسؤول</th><th>الحالة</th><th>رصيد البحث</th><th>حساب بوابة التوظيف</th><th>إجراءات</th></tr></thead><tbody id="compTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
       </div>
     </div>
 
@@ -462,7 +531,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
-const ptitles={overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات','add-cert':'إضافة شهادة',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام','academic-refs':'قوائم المؤهلات العلمية'};
+const ptitles={alumni:'إدارة الخريجين','job-ads':'إعلانات الوظائف','training-ads':'إعلانات الدورات',overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات','add-cert':'إضافة شهادة',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام','academic-refs':'قوائم المؤهلات العلمية'};
 let allInstitutions=[], allAdminCerts=[];
 function adminEsc(v){return String(v??'—').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}
 
@@ -491,7 +560,7 @@ function sp(name,el){
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('pageTitle').textContent=ptitles[name]||name;
   if(el)el.classList.add('active');
-  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
+  const loaders={alumni:loadAlumniProfiles,'job-ads':loadJobAnnouncements,'training-ads':loadTrainingAnnouncements,institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
   if(loaders[name])loaders[name]();
 }
 
@@ -800,17 +869,19 @@ async function srchRec(qual,gov,year){
 async function loadCompanies(){
   const{data,error}=await sb.rpc('admin_list_companies');
   if(error){toast(error.message,'err');return;}
-  document.getElementById('compTable').innerHTML=!(data||[]).length?'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">لا توجد شركات</td></tr>':data.map(c=>`<tr>
+  document.getElementById('compTable').innerHTML=!(data||[]).length?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">لا توجد شركات</td></tr>':data.map(c=>`<tr>
     <td>${c.company_name}<div style="font-size:10px;color:var(--muted)">${c.contact_email}</div></td>
     <td>${c.contact_name||'—'}</td>
     <td><span class="badge ${c.status==='approved'?'bok':'bwarn'}">${c.status==='approved'?'معتمد':'معلق'}</span></td>
     <td><div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;font-weight:900;color:var(--navy)">${c.search_credits||0}</span><button onclick="addCreds('${c.id}',${c.search_credits||0})" class="btn-s" style="font-size:10px;padding:4px 8px">+</button></div></td>
-    <td><div style="display:flex;gap:6px">
+    <td><div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button onclick="linkCompanyAccount('${c.id}')" class="btn-s" style="font-size:10px;padding:5px 10px">ربط / تغيير حساب البوابة</button>
       ${c.status!=='approved'?`<button onclick="setCompSt('${c.id}','approved')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button>`:''}
       ${c.status==='approved'?`<button onclick="setCompSt('${c.id}','suspended')" class="btn-d" style="font-size:10px;padding:5px 10px">إيقاف</button>`:''}
     </div></td>
   </tr>`).join('');
 }
+async function linkCompanyAccount(id){const email=prompt('أدخل البريد الإلكتروني لحساب الشركة المسجل في المنصة:');if(!email)return;const{error}=await sb.rpc('admin_link_company_user',{p_company_id:id,p_email:email.trim()});if(error){toast(error.message,'err');return;}toast('تم ربط حساب الشركة','ok');loadCompanies();}
 async function setCompSt(id,status){const{error}=await sb.rpc('admin_update_company',{p_company_id:id,p_status:status,p_search_credits:null});if(error){toast(error.message,'err');return;}toast('تم التحديث','ok');loadCompanies();}
 async function addCreds(id,current){const a=prompt('كم عملية بحث تضيف؟','10');if(!a||isNaN(a)||parseInt(a)<0)return;const{error}=await sb.rpc('admin_update_company',{p_company_id:id,p_status:null,p_search_credits:current+parseInt(a)});if(error){toast(error.message,'err');return;}toast(`تم إضافة ${a} عملية`,'ok');loadCompanies();}
 
@@ -955,6 +1026,138 @@ async function toggleSupportStatus(){
 function startSupportRealtime(){
  if(supportRealtimeChannel)return;
  supportRealtimeChannel=sb.channel('admin-support-inbox').on('postgres_changes',{event:'INSERT',schema:'public',table:'support_messages',filter:'sender=eq.visitor'},payload=>{loadSupportInbox();if(activeSupportConversation===payload.new.conversation_id)openSupportConversation(activeSupportConversation);else toast('وصلت رسالة دعم جديدة','ok');}).subscribe();
+}
+
+
+// ── ALUMNI & ANNOUNCEMENTS ─────────────────────────────────────
+async function saveAlumniProfile(){
+ const full_name=document.getElementById('al_full_name').value.trim();
+ const qualification_name=document.getElementById('al_qualification').value.trim();
+ const yearRaw=document.getElementById('al_year').value;
+ if(!full_name||!qualification_name){toast('أدخل اسم الخريج والمؤهل','err');return;}
+ const{data:profile,error}=await sb.from('alumni_profiles').insert({
+  full_name,phone:document.getElementById('al_phone').value.trim()||null,
+  email:document.getElementById('al_email').value.trim()||null,
+  governorate:document.getElementById('al_governorate').value.trim()||null,
+  professional_summary:document.getElementById('al_summary').value.trim()||null,
+  visibility_status:document.getElementById('al_public').checked?'public':'hidden'
+ }).select('id').single();
+ if(error){toast(error.message,'err');return;}
+ const{error:qError}=await sb.from('alumni_qualifications').insert({
+  alumni_id:profile.id,qualification_name,
+  graduation_year:yearRaw?Number(yearRaw):null
+ });
+ if(qError){toast('تم إنشاء الملف لكن تعذر حفظ المؤهل: '+qError.message,'err');return;}
+ ['al_full_name','al_phone','al_email','al_governorate','al_summary','al_qualification','al_year'].forEach(id=>document.getElementById(id).value='');
+ document.getElementById('al_public').checked=false;
+ toast('تم إنشاء ملف الخريج','ok');loadAlumniProfiles();
+}
+async function loadAlumniProfiles(){
+ await loadAlumniProfileOptions();
+
+ const body=document.getElementById('alumniRows');if(!body)return;
+ const{data,error}=await sb.from('alumni_profiles').select('id,full_name,governorate,visibility_status,alumni_qualifications(qualification_name,graduation_year)').order('created_at',{ascending:false}).limit(300);
+ if(error){body.innerHTML='<tr><td colspan="5">'+adminEsc(error.message)+'</td></tr>';return;}
+ body.innerHTML=(data||[]).map(p=>{const q=p.alumni_qualifications?.[0]||{};return '<tr><td>'+adminEsc(p.full_name)+' <button class="btn-s" onclick="printAlumniCv(\''+p.id+'\')">CV / طباعة</button> <button class="btn-s" onclick="linkAlumniGraduate(\''+p.id+'\')">ربط حساب الخريج</button></td><td>'+adminEsc(q.qualification_name)+'</td><td>'+adminEsc(q.graduation_year)+'</td><td>'+adminEsc(p.governorate)+'</td><td>'+(p.visibility_status==='public'?'ظاهر':'مخفي')+'</td></tr>';}).join('')||'<tr><td colspan="5">لا توجد ملفات بعد</td></tr>';
+}
+async function saveJobAnnouncement(){
+ const company_display_name=document.getElementById('job_company').value.trim(),title=document.getElementById('job_title').value.trim(),description=document.getElementById('job_description').value.trim();
+ if(!company_display_name||!title||!description){toast('أدخل الشركة والمسمى والتفاصيل','err');return;}
+ const{error}=await sb.from('job_announcements').insert({company_display_name,title,description,teaser:document.getElementById('job_teaser').value.trim()||null,governorate:document.getElementById('job_governorate').value.trim()||null,qualification_required:document.getElementById('job_qualification').value.trim()||null,expires_at:document.getElementById('job_expiry').value||null,status:'pending'});
+ if(error){toast(error.message,'err');return;}toast('تم حفظ الإعلان وإرساله للمراجعة','ok');loadJobAnnouncements();
+}
+async function loadJobAnnouncements(){
+ const el=document.getElementById('jobRows');if(!el)return;const{data,error}=await sb.from('job_announcements').select('id,announcement_number,company_display_name,title,status,expires_at').order('created_at',{ascending:false}).limit(100);
+ if(error){el.textContent=error.message;return;}
+ el.innerHTML=(data||[]).map(x=>'<div style="padding:10px;border-bottom:1px solid #e5edf5"><b>#'+adminEsc(x.announcement_number)+' '+adminEsc(x.title)+'</b> — '+adminEsc(x.company_display_name)+' <span class="badge">'+adminEsc(x.status)+'</span> '+(x.status==='pending'?'<button class="btn-p" onclick="moderateJobAnnouncement(\''+x.id+'\',\'approved\')">نشر الإعلان</button> <button class="btn-d" onclick="moderateJobAnnouncement(\''+x.id+'\',\'rejected\')">رفض</button>':x.status==='approved'?'<button class="btn-s" onclick="moderateJobAnnouncement(\''+x.id+'\',\'paused\')">إيقاف مؤقت</button>':x.status==='paused'?'<button class="btn-p" onclick="moderateJobAnnouncement(\''+x.id+'\',\'approved\')">إعادة النشر</button>':'')+'</div>').join('')||'لا توجد إعلانات';
+}
+async function moderateJobAnnouncement(id,status){
+ const patch={status,updated_at:new Date().toISOString()};
+ if(status==='approved')patch.published_at=new Date().toISOString();
+ const{error}=await sb.from('job_announcements').update(patch).eq('id',id);
+ if(error){toast(error.message,'err');return;}
+ toast(status==='approved'?'تم نشر إعلان الوظيفة':'تم تحديث حالة الإعلان','ok');loadJobAnnouncements();
+}
+async function saveTrainingAnnouncement(){
+ const title=document.getElementById('training_title').value.trim(),description=document.getElementById('training_description').value.trim();
+ if(!title||!description){toast('أدخل عنوان الإعلان والتفاصيل','err');return;}
+ const targets=document.getElementById('training_targets').value.split(/[،,]/).map(x=>x.trim()).filter(Boolean);
+ const{error}=await sb.from('training_announcements').insert({title,description,teaser:document.getElementById('training_teaser').value.trim()||null,target_qualifications:targets,registration_url:document.getElementById('training_url').value.trim()||null,status:'draft'});
+ if(error){toast(error.message,'err');return;}toast('تم حفظ الإعلان كمسودة','ok');loadTrainingAnnouncements();
+}
+async function loadTrainingAnnouncements(){
+ const el=document.getElementById('trainingRows');if(!el)return;const{data,error}=await sb.from('training_announcements').select('id,announcement_number,title,status,target_qualifications').order('created_at',{ascending:false}).limit(100);
+ if(error){el.textContent=error.message;return;}
+ el.innerHTML=(data||[]).map(x=>'<div style="padding:10px;border-bottom:1px solid #e5edf5"><b>#'+adminEsc(x.announcement_number)+' '+adminEsc(x.title)+'</b> — '+adminEsc((x.target_qualifications||[]).join('، ')||'كل الفئات')+' <span class="badge">'+adminEsc(x.status)+'</span> '+(x.status==='draft'||x.status==='paused'?'<button class="btn-p" onclick="moderateTrainingAnnouncement(\''+x.id+'\',\'published\')">نشر وإشعار المستهدفين</button>':x.status==='published'?'<button class="btn-s" onclick="moderateTrainingAnnouncement(\''+x.id+'\',\'paused\')">إيقاف مؤقت</button>':'')+'</div>').join('')||'لا توجد إعلانات';
+}
+async function moderateTrainingAnnouncement(id,status){
+ const patch={status,updated_at:new Date().toISOString()};
+ if(status==='published')patch.published_at=new Date().toISOString();
+ const{error}=await sb.from('training_announcements').update(patch).eq('id',id);
+ if(error){toast(error.message,'err');return;}
+ toast(status==='published'?'تم نشر الدورة وإرسال الإشعارات المستهدفة':'تم إيقاف الإعلان مؤقتًا','ok');loadTrainingAnnouncements();
+}
+
+
+async function loadAlumniProfileOptions(){
+ const sel=document.getElementById('al_document_profile');const extra=document.getElementById('al_extra_profile');if(!sel&&!extra)return;
+ const{data,error}=await sb.from('alumni_profiles').select('id,full_name').order('full_name').limit(1000);
+ const options=error?'<option value="">تعذر التحميل</option>':'<option value="">اختر الخريج</option>'+(data||[]).map(x=>'<option value="'+x.id+'">'+adminEsc(x.full_name)+'</option>').join('');if(sel)sel.innerHTML=options;if(extra)extra.innerHTML=options;
+}
+async function uploadAlumniDocument(){
+ const alumni_id=document.getElementById('al_document_profile').value;
+ const title=document.getElementById('al_document_title').value.trim();
+ const type=document.getElementById('al_document_type').value;
+ const file=document.getElementById('al_document_file').files?.[0];
+ if(!alumni_id||!title||!file){toast('اختر الخريج واكتب اسم المستند وحدد الملف','err');return;}
+ if(file.size>10*1024*1024){toast('الحد الأقصى لحجم الملف 10 ميجابايت','err');return;}
+ const allowed=['application/pdf','image/jpeg','image/png'];
+ if(!allowed.includes(file.type)){toast('يسمح فقط بملفات PDF وJPG وPNG','err');return;}
+ const ext=file.name.split('.').pop().toLowerCase();
+ const path=alumni_id+'/'+crypto.randomUUID()+'.'+ext;
+ const{error:upError}=await sb.storage.from('alumni-private').upload(path,file,{contentType:file.type,upsert:false});
+ if(upError){toast(upError.message,'err');return;}
+ const{error:dbError}=await sb.from('alumni_documents').insert({alumni_id,document_title:title,document_type:type,storage_path:path,mime_type:file.type,file_size_bytes:file.size});
+ if(dbError){await sb.storage.from('alumni-private').remove([path]);toast(dbError.message,'err');return;}
+ document.getElementById('al_document_title').value='';document.getElementById('al_document_file').value='';
+ toast('تم رفع المستند في مساحة خاصة','ok');
+}
+async function loadAlumniAccessRequests(){
+ const body=document.getElementById('alumniAccessRows');if(!body)return;
+ const{data,error}=await sb.from('alumni_access_requests').select('id,status,request_contact,request_cv,request_documents,created_at,alumni_profiles(full_name),companies(company_name)').order('created_at',{ascending:false}).limit(200);
+ if(error){body.innerHTML='<tr><td colspan="5">'+adminEsc(error.message)+'</td></tr>';return;}
+ body.innerHTML=(data||[]).map(x=>'<tr><td>'+adminEsc(x.companies?.company_name)+'</td><td>'+adminEsc(x.alumni_profiles?.full_name)+'</td><td>'+[x.request_contact?'تواصل':'',x.request_cv?'CV':'',x.request_documents?'شهادات':''].filter(Boolean).join('، ')+'</td><td>'+adminEsc(x.status)+'</td><td>'+(x.status==='pending'?'<button class="btn-p" onclick="decideAlumniAccess(\''+x.id+'\',false)">موافقة إدارية مشروطة</button> <button class="btn-s" onclick="decideAlumniAccess(\''+x.id+'\',true)">رفض</button>':'—')+'</td></tr>').join('')||'<tr><td colspan="5">لا توجد طلبات</td></tr>';
+}
+async function decideAlumniAccess(id,reject){
+ const{error}=await sb.from('alumni_access_requests').update({status:reject?'rejected':'admin_approved',admin_decided_by:(await sb.auth.getUser()).data.user?.id,admin_decided_at:new Date().toISOString()}).eq('id',id).eq('status','pending');
+ if(error){toast(error.message,'err');return;}toast(reject?'تم رفض الطلب':'تمت الموافقة المبدئية. يلزم موافقة الخريج أيضًا قبل إتاحة أي بيانات.','ok');loadAlumniAccessRequests();
+}
+
+
+
+async function linkAlumniGraduate(id){const email=prompt('أدخل البريد الإلكتروني المسجل لحساب الخريج في المنصة:');if(!email)return;const{error}=await sb.rpc('admin_link_alumni_graduate',{p_alumni_id:id,p_email:email.trim()});if(error){toast(error.message,'err');return;}toast('تم ربط ملف الخريج بحسابه الحالي','ok');loadAlumniProfiles();}
+async function saveAlumniExperienceSkill(){
+ const alumni_id=document.getElementById('al_extra_profile').value;
+ const job_title=document.getElementById('al_job_title').value.trim();
+ const employer_name=document.getElementById('al_employer').value.trim();
+ const skill_name=document.getElementById('al_skill_name').value.trim();
+ const proficiency=document.getElementById('al_skill_level').value.trim();
+ if(!alumni_id||(!job_title&&!skill_name)){toast('اختر الخريج وأدخل خبرة أو مهارة على الأقل','err');return;}
+ if(job_title){const{error}=await sb.from('alumni_experiences').insert({alumni_id,job_title,employer_name:employer_name||null});if(error){toast(error.message,'err');return;}}
+ if(skill_name){const{error}=await sb.from('alumni_skills').insert({alumni_id,skill_name,proficiency:proficiency||null});if(error){toast(error.message,'err');return;}}
+ ['al_job_title','al_employer','al_skill_name','al_skill_level'].forEach(id=>document.getElementById(id).value='');
+ toast('تم حفظ بيانات الملف المهني','ok');
+}
+async function printAlumniCv(id){
+ const{data:p,error}=await sb.from('alumni_profiles').select('*,alumni_qualifications(*),alumni_experiences(*),alumni_skills(*)').eq('id',id).single();
+ if(error||!p){toast(error?.message||'تعذر تحميل الملف','err');return;}
+ const esc=adminEsc;
+ const w=window.open('about:blank','_blank');if(!w){toast('اسمح بفتح النوافذ المنبثقة لطباعة CV','err');return;}
+ const qualifications=(p.alumni_qualifications||[]).map(x=>'<li>'+esc(x.qualification_name)+' — '+esc(x.graduation_year||'')+'</li>').join('');
+ const experiences=(p.alumni_experiences||[]).map(x=>'<li><b>'+esc(x.job_title)+'</b> — '+esc(x.employer_name||'')+'</li>').join('');
+ const skills=(p.alumni_skills||[]).map(x=>'<li>'+esc(x.skill_name)+' '+esc(x.proficiency||'')+'</li>').join('');
+ w.document.write('<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><title>السيرة الذاتية</title><style>body{font-family:Arial,sans-serif;max-width:850px;margin:35px auto;padding:25px;color:#172b45;line-height:1.8}h1{color:#12395d;border-bottom:2px solid #c9a45c;padding-bottom:10px}h2{color:#12395d;font-size:18px;margin-top:24px}li{margin:4px 0}.contact{color:#52657b}@media print{button{display:none}}</style><h1>'+esc(p.full_name)+'</h1><p class="contact">'+esc(p.governorate||'')+' | '+esc(p.phone||'')+' | '+esc(p.email||'')+'</p><h2>نبذة مهنية</h2><p>'+esc(p.professional_summary||'')+'</p><h2>المؤهلات العلمية</h2><ul>'+qualifications+'</ul><h2>الخبرات</h2><ul>'+experiences+'</ul><h2>المهارات</h2><ul>'+skills+'</ul><button onclick="window.print()">طباعة / حفظ PDF</button></html>');
+ w.document.close();
 }
 
 // ── REPORTS ───────────────────────────────────────────────────
