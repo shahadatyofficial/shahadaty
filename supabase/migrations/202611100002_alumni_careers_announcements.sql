@@ -433,3 +433,33 @@ on public.training_announcements
 for each row execute function public.notify_alumni_about_training();
 
 grant usage, select on sequence public.job_announcements_announcement_number_seq, public.training_announcements_announcement_number_seq to authenticated;
+
+
+-- SECURITY DEFINER helper avoids company-table RLS recursion while enforcing exact ownership.
+create or replace function public.is_approved_company(p_company_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select exists (
+    select 1 from public.companies c
+    where c.id = p_company_id
+      and c.auth_user_id = auth.uid()
+      and c.status = 'approved'
+  );
+$$;
+revoke all on function public.is_approved_company(uuid) from public;
+grant execute on function public.is_approved_company(uuid) to authenticated;
+
+drop policy if exists "approved companies view own job ads" on public.job_announcements;
+create policy "approved companies view own job ads"
+on public.job_announcements for select to authenticated
+using (public.is_approved_company(company_id));
+
+drop policy if exists "approved companies manage own job ads" on public.job_announcements;
+create policy "approved companies manage own job ads"
+on public.job_announcements for all to authenticated
+using (public.is_approved_company(company_id))
+with check (public.is_approved_company(company_id));
