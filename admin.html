@@ -869,12 +869,13 @@ async function srchRec(qual,gov,year){
 async function loadCompanies(){
   const{data,error}=await sb.rpc('admin_list_companies');
   if(error){toast(error.message,'err');return;}
-  document.getElementById('compTable').innerHTML=!(data||[]).length?'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">لا توجد شركات</td></tr>':data.map(c=>`<tr>
+  document.getElementById('compTable').innerHTML=!(data||[]).length?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">لا توجد شركات</td></tr>':data.map(c=>`<tr>
     <td>${c.company_name}<div style="font-size:10px;color:var(--muted)">${c.contact_email}</div></td>
     <td>${c.contact_name||'—'}</td>
     <td><span class="badge ${c.status==='approved'?'bok':'bwarn'}">${c.status==='approved'?'معتمد':'معلق'}</span></td>
     <td><div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;font-weight:900;color:var(--navy)">${c.search_credits||0}</span><button onclick="addCreds('${c.id}',${c.search_credits||0})" class="btn-s" style="font-size:10px;padding:4px 8px">+</button></div></td>
-    <td><div style="display:flex;gap:6px">
+    <td><div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button onclick="linkCompanyAccount('${c.id}')" class="btn-s" style="font-size:10px;padding:5px 10px">ربط / تغيير حساب البوابة</button>
       ${c.status!=='approved'?`<button onclick="setCompSt('${c.id}','approved')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button>`:''}
       ${c.status==='approved'?`<button onclick="setCompSt('${c.id}','suspended')" class="btn-d" style="font-size:10px;padding:5px 10px">إيقاف</button>`:''}
     </div></td>
