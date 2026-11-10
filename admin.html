@@ -194,6 +194,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="sb-item" onclick="sp('support',this)"><span class="material-symbols-outlined">forum</span>رسائل الدعم <span class="sb-badge" id="supportBadge">0</span></div>
     <div class="sb-sec">النظام</div>
     <div class="sb-item" onclick="sp('packages',this)"><span class="material-symbols-outlined">layers</span>إدارة الباقات</div>
+    <div class="sb-item" onclick="sp('academic-refs',this)"><span class="material-symbols-outlined">school</span>قوائم المؤهلات العلمية</div>
     <div class="sb-item" onclick="sp('reports',this)"><span class="material-symbols-outlined">bar_chart</span>التقارير</div>
     <div class="sb-item" onclick="sp('sys',this)"><span class="material-symbols-outlined">settings</span>إعدادات النظام</div>
   </nav>
@@ -403,6 +404,19 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       </div>
     </div>
 
+    <!-- ACADEMIC REFERENCE LISTS -->
+    <div class="page" id="page-academic-refs">
+      <div class="card">
+        <div class="card-head"><span class="card-title">إدارة قوائم المؤهلات العلمية</span><span class="badge bok">إدارة المنصة فقط</span></div>
+        <div class="card-body"><p style="font-size:12px;color:var(--muted);line-height:1.9">أضف الجامعات والكليات والدرجات العلمية أو عدّل أسماءها أو أوقف ظهورها في نموذج التسجيل. لا نحذف العناصر القديمة حتى لا نفقد مرجعيتها في السجلات السابقة.</p></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px">
+        <div class="card"><div class="card-head"><span class="card-title">الجامعات</span><button class="btn-p" onclick="addAcademicReference('universities')">＋ إضافة جامعة</button></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الاسم</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="academicUniversitiesTable"><tr><td colspan="3">جاري التحميل...</td></tr></tbody></table></div></div>
+        <div class="card"><div class="card-head"><span class="card-title">الكليات</span><button class="btn-p" onclick="addAcademicReference('faculties')">＋ إضافة كلية</button></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الاسم</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="academicFacultiesTable"><tr><td colspan="3">جاري التحميل...</td></tr></tbody></table></div></div>
+        <div class="card"><div class="card-head"><span class="card-title">الدرجات العلمية</span><button class="btn-p" onclick="addAcademicReference('degrees')">＋ إضافة درجة</button></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الاسم</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="academicDegreesTable"><tr><td colspan="3">جاري التحميل...</td></tr></tbody></table></div></div>
+      </div>
+    </div>
+
     <!-- SYSTEM SETTINGS -->
     <div class="page" id="page-sys">
       <div class="card" style="max-width:500px">
@@ -448,7 +462,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
-const ptitles={overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات','add-cert':'إضافة شهادة',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام'};
+const ptitles={overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات','add-cert':'إضافة شهادة',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام','academic-refs':'قوائم المؤهلات العلمية'};
 let allInstitutions=[], allAdminCerts=[];
 function adminEsc(v){return String(v??'—').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}
 
@@ -477,7 +491,7 @@ function sp(name,el){
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('pageTitle').textContent=ptitles[name]||name;
   if(el)el.classList.add('active');
-  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
+  const loaders={institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
   if(loaders[name])loaders[name]();
 }
 
@@ -652,7 +666,10 @@ async function loadAdminCertificateForm(){
   document.getElementById('academicUniversitiesList').innerHTML=(universities||[]).map(x=>'<option value="'+adminEsc(x.name)+'"></option>').join('');
   const{data:faculties}=await sb.from('academic_faculties').select('name').eq('is_active',true).order('name');
   document.getElementById('academicFacultiesList').innerHTML=(faculties||[]).map(x=>'<option value="'+adminEsc(x.name)+'"></option>').join('');
+  const{data:degrees, error:degreeError}=await sb.from('academic_degrees').select('name').eq('is_active',true).order('name');
+  if(!degreeError)document.getElementById('adminAcademicDegree').innerHTML='<option value="">اختر الدرجة العلمية</option>'+(degrees||[]).map(x=>'<option value="'+adminEsc(x.name)+'">'+adminEsc(x.name)+'</option>').join('');
   if(universityError)showAdminCertMessage('تعذر تحميل قائمة الجامعات: '+universityError.message,'error');
+  if(degreeError)showAdminCertMessage('تعذر تحميل قائمة الدرجات العلمية: '+degreeError.message,'error');
   if(!document.getElementById('adminCertIssueDate').value){const now=new Date();document.getElementById('adminCertIssueDate').value=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);}
   toggleAdminCertSource();toggleAdminQualificationFields();
 }
@@ -675,6 +692,47 @@ async function submitAdminCertificate(event){
  const no=data?.cert_number||'';showAdminCertMessage('تم تسجيل السجل بنجاح. الرقم المرجعي: '+no,'success');form.reset();toggleAdminCertSource();toggleAdminQualificationFields();
  const now=new Date();document.getElementById('adminCertIssueDate').value=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);await loadAdminCerts();
  const link=document.createElement('a');link.href='certificate.html?id='+encodeURIComponent(no);link.target='_blank';link.rel='noopener';link.textContent='عرض السجل المسجل';link.style.cssText='display:inline-block;margin-top:8px;color:#0369a1;font-weight:800';document.getElementById('adminCertFormMessage').appendChild(document.createElement('br'));document.getElementById('adminCertFormMessage').appendChild(link);
+}
+
+// ── ACADEMIC REFERENCE LIST MANAGEMENT ─────────────────────────
+const academicReferenceMeta={
+ universities:{table:'academic_universities',label:'الجامعة',target:'academicUniversitiesTable'},
+ faculties:{table:'academic_faculties',label:'الكلية',target:'academicFacultiesTable'},
+ degrees:{table:'academic_degrees',label:'الدرجة العلمية',target:'academicDegreesTable'}
+};
+async function loadAcademicReferences(){
+ for(const [key,meta] of Object.entries(academicReferenceMeta)){
+  const body=document.getElementById(meta.target);
+  body.innerHTML='<tr><td colspan="3">جاري التحميل...</td></tr>';
+  const{data,error}=await sb.from(meta.table).select('id,name,is_active').order('name');
+  if(error){body.innerHTML='<tr><td colspan="3">تعذر التحميل: '+adminEsc(error.message)+'</td></tr>';continue;}
+  body.innerHTML=(data||[]).length?(data||[]).map(item=>'<tr><td>'+adminEsc(item.name)+'</td><td><span class="badge '+(item.is_active?'bok':'bwarn')+'">'+(item.is_active?'نشط':'متوقف')+'</span></td><td><div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn-s" onclick="renameAcademicReference(\''+key+'\',\''+item.id+'\',\''+adminEsc(item.name).replace(/'/g,"&#39;")+'\')">تعديل</button><button class="'+(item.is_active?'btn-d':'btn-p')+'" onclick="toggleAcademicReference(\''+key+'\',\''+item.id+'\','+(!item.is_active)+')">'+(item.is_active?'إيقاف':'تفعيل')+'</button></div></td></tr>').join(''):'<tr><td colspan="3" style="text-align:center;color:var(--muted)">لا توجد عناصر</td></tr>';
+ }
+}
+async function saveAcademicReference(list,action,id,name,active){
+ const{error}=await sb.rpc('admin_manage_academic_reference',{p_list:list,p_action:action,p_id:id||null,p_name:name||null,p_active:active??null});
+ if(error){toast(error.message,'err');return false;}
+ toast('تم حفظ التغييرات','ok');await loadAcademicReferences();return true;
+}
+async function addAcademicReference(list){
+ const meta=academicReferenceMeta[list],name=prompt('اكتب اسم '+meta.label+':');if(name===null)return;
+ if(!name.trim()){toast('الاسم مطلوب','err');return;}
+ if(await saveAcademicReference(list,'add',null,name.trim(),null)){
+  if(list==='degrees')await loadAdminCertificateForm();
+ }
+}
+async function renameAcademicReference(list,id,current){
+ const meta=academicReferenceMeta[list],name=prompt('تعديل '+meta.label+':',current);if(name===null)return;
+ if(!name.trim()){toast('الاسم مطلوب','err');return;}
+ if(await saveAcademicReference(list,'rename',id,name.trim(),null)){
+  if(list==='degrees')await loadAdminCertificateForm();
+ }
+}
+async function toggleAcademicReference(list,id,active){
+ const meta=academicReferenceMeta[list];if(!confirm((active?'تفعيل':'إيقاف')+' هذا '+meta.label+'؟'))return;
+ if(await saveAcademicReference(list,'set_active',id,null,active)){
+  if(list==='degrees')await loadAdminCertificateForm();
+ }
 }
 
 // ── VERIFY ────────────────────────────────────────────────────
