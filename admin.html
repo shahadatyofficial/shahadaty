@@ -234,6 +234,14 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
           <button class="btn-p" onclick="saveAlumniProfile()">حفظ ملف الخريج</button>
         </div>
       </div>
+      <div class="card"><div class="card-head"><span class="card-title">إرفاق شهادة أو CV للخريج</span></div><div class="card-body">
+        <label>الخريج<select class="form-inp" id="al_document_profile"></select></label>
+        <label>اسم المستند<input class="form-inp" id="al_document_title" placeholder="مثال: ليسانس حقوق أو السيرة الذاتية"></label>
+        <label>نوع المستند<select class="form-inp" id="al_document_type"><option value="qualification">مؤهل علمي</option><option value="training">شهادة تدريبية</option><option value="experience">خبرة</option><option value="cv">سيرة ذاتية</option><option value="other">أخرى</option></select></label>
+        <label>الملف PDF أو JPG أو PNG<input class="form-inp" id="al_document_file" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"></label>
+        <button class="btn-p" onclick="uploadAlumniDocument()">رفع المستند بشكل خاص</button>
+      </div></div>
+      <div class="card"><div class="card-head"><span class="card-title">طلبات اطلاع الشركات</span><button class="btn-p" onclick="loadAlumniAccessRequests()">تحديث</button></div><div class="card-body" style="overflow:auto"><table class="tbl"><thead><tr><th>الشركة</th><th>الخريج</th><th>المطلوب</th><th>الحالة</th><th>الإجراء</th></tr></thead><tbody id="alumniAccessRows"><tr><td colspan="5">جاري التحميل...</td></tr></tbody></table></div></div>
       <div class="card"><div class="card-head"><span class="card-title">ملفات الخريجين</span><button class="btn-p" onclick="loadAlumniProfiles()">تحديث</button></div>
         <div class="card-body" style="overflow:auto"><table class="tbl"><thead><tr><th>الاسم</th><th>المؤهل</th><th>سنة التخرج</th><th>المحافظة</th><th>الظهور العام</th></tr></thead><tbody id="alumniRows"><tr><td colspan="5">جاري التحميل...</td></tr></tbody></table></div>
       </div>
@@ -1031,6 +1039,8 @@ async function saveAlumniProfile(){
  toast('تم إنشاء ملف الخريج','ok');loadAlumniProfiles();
 }
 async function loadAlumniProfiles(){
+ await loadAlumniProfileOptions();
+
  const body=document.getElementById('alumniRows');if(!body)return;
  const{data,error}=await sb.from('alumni_profiles').select('id,full_name,governorate,visibility_status,alumni_qualifications(qualification_name,graduation_year)').order('created_at',{ascending:false}).limit(300);
  if(error){body.innerHTML='<tr><td colspan="5">'+adminEsc(error.message)+'</td></tr>';return;}
@@ -1056,6 +1066,41 @@ async function saveTrainingAnnouncement(){
 async function loadTrainingAnnouncements(){
  const el=document.getElementById('trainingRows');if(!el)return;const{data,error}=await sb.from('training_announcements').select('announcement_number,title,status,target_qualifications').order('created_at',{ascending:false}).limit(100);
  el.innerHTML=error?adminEsc(error.message):(data||[]).map(x=>'<div style="padding:10px;border-bottom:1px solid #e5edf5"><b>#'+x.announcement_number+' '+adminEsc(x.title)+'</b> — '+adminEsc((x.target_qualifications||[]).join('، ')||'كل الفئات')+' <span class="badge">'+adminEsc(x.status)+'</span></div>').join('')||'لا توجد إعلانات';
+}
+
+
+async function loadAlumniProfileOptions(){
+ const sel=document.getElementById('al_document_profile');if(!sel)return;
+ const{data,error}=await sb.from('alumni_profiles').select('id,full_name').order('full_name').limit(1000);
+ sel.innerHTML=error?'<option value="">تعذر التحميل</option>':'<option value="">اختر الخريج</option>'+(data||[]).map(x=>'<option value="'+x.id+'">'+adminEsc(x.full_name)+'</option>').join('');
+}
+async function uploadAlumniDocument(){
+ const alumni_id=document.getElementById('al_document_profile').value;
+ const title=document.getElementById('al_document_title').value.trim();
+ const type=document.getElementById('al_document_type').value;
+ const file=document.getElementById('al_document_file').files?.[0];
+ if(!alumni_id||!title||!file){toast('اختر الخريج واكتب اسم المستند وحدد الملف','err');return;}
+ if(file.size>10*1024*1024){toast('الحد الأقصى لحجم الملف 10 ميجابايت','err');return;}
+ const allowed=['application/pdf','image/jpeg','image/png'];
+ if(!allowed.includes(file.type)){toast('يسمح فقط بملفات PDF وJPG وPNG','err');return;}
+ const ext=file.name.split('.').pop().toLowerCase();
+ const path=alumni_id+'/'+crypto.randomUUID()+'.'+ext;
+ const{error:upError}=await sb.storage.from('alumni-private').upload(path,file,{contentType:file.type,upsert:false});
+ if(upError){toast(upError.message,'err');return;}
+ const{error:dbError}=await sb.from('alumni_documents').insert({alumni_id,document_title:title,document_type:type,storage_path:path,mime_type:file.type,file_size_bytes:file.size});
+ if(dbError){await sb.storage.from('alumni-private').remove([path]);toast(dbError.message,'err');return;}
+ document.getElementById('al_document_title').value='';document.getElementById('al_document_file').value='';
+ toast('تم رفع المستند في مساحة خاصة','ok');
+}
+async function loadAlumniAccessRequests(){
+ const body=document.getElementById('alumniAccessRows');if(!body)return;
+ const{data,error}=await sb.from('alumni_access_requests').select('id,status,request_contact,request_cv,request_documents,created_at,alumni_profiles(full_name),companies(company_name)').order('created_at',{ascending:false}).limit(200);
+ if(error){body.innerHTML='<tr><td colspan="5">'+adminEsc(error.message)+'</td></tr>';return;}
+ body.innerHTML=(data||[]).map(x=>'<tr><td>'+adminEsc(x.companies?.company_name)+'</td><td>'+adminEsc(x.alumni_profiles?.full_name)+'</td><td>'+[x.request_contact?'تواصل':'',x.request_cv?'CV':'',x.request_documents?'شهادات':''].filter(Boolean).join('، ')+'</td><td>'+adminEsc(x.status)+'</td><td>'+(x.status==='pending'?'<button class="btn-p" onclick="decideAlumniAccess(\''+x.id+'\',false)">موافقة إدارية مشروطة</button> <button class="btn-s" onclick="decideAlumniAccess(\''+x.id+'\',true)">رفض</button>':'—')+'</td></tr>').join('')||'<tr><td colspan="5">لا توجد طلبات</td></tr>';
+}
+async function decideAlumniAccess(id,reject){
+ const{error}=await sb.from('alumni_access_requests').update({status:reject?'rejected':'approved',admin_decided_by:(await sb.auth.getUser()).data.user?.id,admin_decided_at:new Date().toISOString()}).eq('id',id).eq('status','pending');
+ if(error){toast(error.message,'err');return;}toast(reject?'تم رفض الطلب':'تمت الموافقة الإدارية. لا تُتاح المستندات إلا بعد موافقة الخريج أيضًا.','ok');loadAlumniAccessRequests();
 }
 
 // ── REPORTS ───────────────────────────────────────────────────
