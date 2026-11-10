@@ -432,4 +432,4 @@ after insert or update of status, target_qualifications, target_all_alumni
 on public.training_announcements
 for each row execute function public.notify_alumni_about_training();
 
-grant usage, select on all sequences in schema public to authenticated;
+grant usage, select on sequence public.job_announcements_announcement_number_seq, public.training_announcements_announcement_number_seq to authenticated;
