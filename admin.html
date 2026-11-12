@@ -965,7 +965,7 @@ async function loadPkgs(){
     <td>${s.billing_cycle==='yearly'?'سنوي':'شهري'}</td>
     <td>${s.pricingMismatch?'<span style="color:#b45309;font-weight:800">فرق سعر يحتاج مراجعة</span>':adminEsc(s.payment_status)+' / '+adminEsc(s.status)}</td>
     <td>${adminEsc(s.payment_reference)}</td>
-    <td>${s.pricingMismatch?'<span style="font-size:11px;color:#b45309">لا يمكن تأكيد السداد قبل مراجعة المبلغ</span>':s.payment_status==='paid'?'—':`<button class="btn-p" onclick="confirmSubscriptionPayment('${s.id}')">تأكيد السداد</button>`}</td>
+    <td>${s.pricingMismatch?(s.payment_status==='paid'?'<span style="font-size:11px;color:#b45309">مراجعة يدوية لسجل مدفوع</span>':`<button class="btn-s" onclick="repriceSubscription('${s.id}')">تحديث السعر الحالي</button>`):s.payment_status==='paid'?'—':`<button class="btn-p" onclick="confirmSubscriptionPayment('${s.id}')">تأكيد السداد</button>`}</td>
   </tr>`).join('');
 }
 function openPackageEditor(pkg=null){
@@ -1021,6 +1021,14 @@ async function deletePackage(id){
   const{error}=await sb.rpc('admin_delete_package',{p_package_id:id});
   if(error){toast(error.message,'err');return;}
   toast('تم حذف الباقة','ok');loadPkgs();
+}
+
+async function repriceSubscription(id){
+  if(!confirm('سيتم تحديث مبلغ الاشتراك إلى السعر الحالي للباقة ودورة الفوترة، دون تسجيل السداد أو تفعيل الاشتراك. هل تريد المتابعة؟'))return;
+  const{error}=await sb.rpc('admin_reprice_subscription',{p_subscription_id:id});
+  if(error){toast(error.message,'err');return;}
+  toast('تم تحديث السعر، وما زال الاشتراك بانتظار السداد','ok');
+  loadPkgs();
 }
 
 async function confirmSubscriptionPayment(id){
