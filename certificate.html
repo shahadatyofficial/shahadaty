@@ -28,7 +28,7 @@ async function load(){
   const {data,error}=await sb.rpc('verify_certificate_details',{p_cert_number:id});
   if(error||!data?.length)return showError('لم يتم العثور على الشهادة أو أنها غير متاحة للتحقق.');
   const c=Array.isArray(data)?data[0]:data;
-  const date=new Date(c.issue_date).toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});
+  const date=new Date(c.acquisition_date||c.issue_date).toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});
   const active=c.status==='active';
   const academic=c.record_type==='academic';
   const recordTitle=academic?'سجل مؤهل علمي':'شهادة تدريبية';
@@ -39,7 +39,7 @@ async function load(){
       <div class="box"><div class="lbl">${academic?'الجامعة':'جهة التسجيل'}</div><div class="val">${esc(academic?c.academic_university:c.institution_name)}</div></div>
       <div class="box"><div class="lbl">${academic?'الكلية':'نوع الجهة'}</div><div class="val">${esc(academic?c.academic_faculty:c.institution_type)}</div></div>
       <div class="box"><div class="lbl">${academic?'الدرجة العلمية':'التخصص'}</div><div class="val">${esc(academic?(c.academic_degree||c.course):c.specialization)}</div></div>
-      <div class="box"><div class="lbl">${academic?'سنة التخرج':'تاريخ الإصدار'}</div><div class="val">${esc(academic?c.graduation_year:date)}</div></div>
+      <div class="box"><div class="lbl">${academic?'سنة التخرج':'تاريخ الحصول على الدورة'}</div><div class="val">${esc(academic?c.graduation_year:date)}</div></div>
       <div class="box"><div class="lbl">التقدير</div><div class="val">${esc(c.grade||'غير محدد')}</div></div>
       <div class="box"><div class="lbl">${academic?'جهة تسجيل البيانات':'مدة البرنامج'}</div><div class="val">${esc(academic?(c.source_type==='admin'?'إدارة منصة شهادتي':c.institution_name):c.duration)}</div></div>
     </div>
