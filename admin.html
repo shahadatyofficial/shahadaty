@@ -345,14 +345,17 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="page" id="page-certs">
       <div class="card">
         <div class="card-head">
-          <span class="card-title">مراجعة الشهادات</span>
-          <div class="card-tools">
-            <input class="inp" id="certsSearch" placeholder="اسم أو رقم الشهادة..." style="width:220px" oninput="loadAdminCerts()">
-            <button class="btn-p" onclick="sp('add-cert',null)"><span class="material-symbols-outlined">add</span>إضافة شهادة</button>
-            <button class="btn-s" onclick="exportAdminCerts()"><span class="material-symbols-outlined">download</span>تصدير</button>
+          <span class="card-title">إدارة الشهادات والسجلات العلمية</span>
+          <div class="card-tools" style="flex-wrap:wrap">
+            <input class="inp" id="certsSearch" placeholder="اسم المتدرب، رقم الشهادة، الهاتف، البريد، الرقم القومي، المؤسسة..." style="width:min(420px,65vw)" oninput="loadAdminCerts()">
+            <select class="inp" id="certsTypeFilter" onchange="loadAdminCerts()"><option value="">كل أنواع السجلات</option><option value="training">شهادات تدريبية</option><option value="academic">مؤهلات علمية</option></select>
+            <select class="inp" id="certsStatusFilter" onchange="loadAdminCerts()"><option value="">كل الحالات</option><option value="active">نشطة</option><option value="suspended">موقوفة</option><option value="revoked">ملغاة</option></select>
+            <button class="btn-p" onclick="sp('add-cert',null)"><span class="material-symbols-outlined">add</span>إضافة سجل</button>
+            <button class="btn-s" onclick="exportAdminCerts()"><span class="material-symbols-outlined">download</span>تصدير النتائج</button>
           </div>
         </div>
-        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الطالب</th><th>رقم الشهادة</th><th>الدورة</th><th>المؤسسة</th><th>التاريخ</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="certsTable"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">أدخل كلمة بحث</td></tr></tbody></table></div>
+        <div style="padding:10px 20px;color:var(--muted);font-size:11px;line-height:1.8">البحث يشمل بيانات صاحب الشهادة وبيانات الجهة والتخصص. التعديل يحفظ سجل مراجعة ولا يغيّر رقم الشهادة أو حالة الاعتماد أو موافقات النشر وإتاحة الشركات.</div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>صاحب السجل</th><th>رقم الشهادة</th><th>النوع</th><th>الدورة / المؤهل</th><th>المؤسسة</th><th>تاريخ الحصول</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="certsTable"><tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">جاري تحميل السجلات...</td></tr></tbody></table></div>
       </div>
     </div>
 
@@ -752,20 +755,89 @@ async function savePublicationConsentChanges(){
 }
 async function loadAdminCerts(){
   const q=document.getElementById('certsSearch').value.trim();
-  if(q.length===1){document.getElementById('certsTable').innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">أدخل حرفاً إضافياً للبحث، أو اترك الحقل فارغاً لعرض أحدث الشهادات</td></tr>';return;}
-  const{data,error}=await sb.rpc('admin_list_certificates',{p_search:q||null});
-  if(error){toast(error.message,'err');return;}
-  allAdminCerts=(data||[]).map(c=>({...c,institutions:{name:c.institution_name}}));
-  document.getElementById('certsTable').innerHTML=!allAdminCerts.length?'<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج</td></tr>':allAdminCerts.map(c=>`<tr>
-    <td>${adminEsc(c.student_name)}</td><td style="font-family:monospace;font-size:11px">${adminEsc(c.cert_number)}</td><td>${adminEsc(c.course)}</td>
-    <td>${adminEsc(c.institutions?.name||'—')}</td><td>${new Date(c.acquisition_date||c.issue_date).toLocaleDateString('ar-EG')}</td>
-    <td><span class="badge ${c.status==='active'?'bok':c.status==='suspended'?'bwarn':'berr'}">${c.status==='active'?'نشط':c.status==='suspended'?'موقوف مؤقتاً':'ملغي'}</span></td>
-    <td><div style="display:flex;gap:6px">
-      <a href="certificate.html?id=${encodeURIComponent(c.cert_number||'')}&template=uploaded-2-html" target="_blank" class="btn-s" style="font-size:10px;padding:5px 10px">عرض</a>
-      ${c.status==='active'?`<button onclick="revokeCert('${c.id}')" class="btn-d" style="font-size:10px;padding:5px 10px">إلغاء</button>`:''}
-    </div></td>
-  </tr>`).join('');
+  const status=document.getElementById('certsStatusFilter')?.value||null;
+  const recordType=document.getElementById('certsTypeFilter')?.value||null;
+  const body=document.getElementById('certsTable');
+  body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">جاري تحميل السجلات...</td></tr>';
+  const{data,error}=await sb.rpc('admin_search_certificates_v2',{p_search:q||null,p_status:status,p_record_type:recordType});
+  if(error){body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:#dc2626">تعذر تحميل السجلات: '+adminEsc(error.message)+'</td></tr>';toast(error.message,'err');return;}
+  allAdminCerts=data||[];
+  body.innerHTML=!allAdminCerts.length?'<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج مطابقة</td></tr>':allAdminCerts.map(c=>{
+    const academic=c.record_type==='academic';
+    const date=c.acquisition_date||c.issue_date||'';
+    const statusLabel=c.status==='active'?'نشط':c.status==='suspended'?'موقوف مؤقتاً':c.status==='revoked'?'ملغي':adminEsc(c.status||'غير محدد');
+    const typeLabel=academic?'مؤهل علمي':'شهادة تدريبية';
+    return '<tr><td>'+adminEsc(c.student_name)+(c.student_name_en?'<div style="font-size:10px;color:var(--muted)">'+adminEsc(c.student_name_en)+'</div>':'')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+adminEsc(c.cert_number)+'</td><td><span class="badge '+(academic?'bnew':'bok')+'">'+typeLabel+'</span></td>'+
+      '<td>'+adminEsc(academic?[c.academic_degree,c.academic_faculty,c.academic_university].filter(Boolean).join(' - '):c.course)+'</td>'+
+      '<td>'+adminEsc(c.institution_name||'إدارة المنصة')+'</td><td>'+ (date?new Date(date+'T00:00:00').toLocaleDateString('ar-EG'):'—')+'</td>'+
+      '<td><span class="badge '+(c.status==='active'?'bok':c.status==='suspended'?'bwarn':'berr')+'">'+statusLabel+'</span></td>'+
+      '<td><div style="display:flex;gap:5px;flex-wrap:wrap"><button class="btn-s" style="font-size:10px;padding:5px 8px" onclick="openAdminCertificateDetails(\''+c.id+'\')">تعديل</button>'+
+      '<button class="btn-s" style="font-size:10px;padding:5px 8px" onclick="openAdminTraineeProfile(\''+c.id+'\')">ملف المتدرب</button>'+
+      '<a href="certificate.html?id='+encodeURIComponent(c.cert_number||'')+'&template=uploaded-2-html" target="_blank" class="btn-s" style="font-size:10px;padding:5px 8px">عرض الشهادة</a>'+
+      (c.status==='active'?'<button onclick="revokeCert(\''+c.id+'\')" class="btn-d" style="font-size:10px;padding:5px 8px">إلغاء</button>':'')+'</div></td></tr>';
+  }).join('');
 }
+function openAdminCertificateDetails(id){
+  const c=allAdminCerts.find(x=>x.id===id);if(!c)return;
+  const field=(label,name,value,type='text',attrs='')=>'<label class="form-lbl">'+label+'<input class="form-inp" id="adm_edit_'+name+'" type="'+type+'" value="'+adminEsc(value??'')+'" '+attrs+'></label>';
+  const academic=c.record_type==='academic';
+  const modal=document.createElement('div');modal.id='adminCertificateModal';modal.className='modal-ov';modal.onclick=e=>{if(e.target===modal)modal.remove();};
+  modal.innerHTML='<div class="modal-box" style="max-width:850px"><div class="modal-head"><div><div class="modal-title">تعديل بيانات السجل</div><div style="font-size:11px;color:var(--muted);margin-top:4px">'+adminEsc(c.cert_number)+' — '+(academic?'مؤهل علمي':'شهادة تدريبية')+'</div></div><button type="button" class="modal-close" onclick="document.getElementById(\\'adminCertificateModal\\').remove()">✕</button></div>'+
+  '<form onsubmit="saveAdminCertificateDetails(event,\\''+c.id+'\\')"><div class="modal-body"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">'+
+  field('اسم صاحب الشهادة *','student_name',c.student_name,'text','required')+field('الاسم بالإنجليزية','student_name_en',c.student_name_en)+
+  field(academic?'المؤهل العلمي':'الدورة التدريبية *','course',c.course,'text','required')+field('التخصص','specialization',c.specialization)+
+  field('تاريخ الحصول على المؤهل / الدورة *','acquisition_date',c.acquisition_date||c.issue_date,'date','required')+
+  field('مدة الدراسة / التدريب','duration',c.duration)+field('التقدير / الدرجة','grade',c.grade)+
+  field('البريد الإلكتروني','student_email',c.student_email,'email')+field('رقم الهاتف','student_phone',c.student_phone,'tel')+
+  field('الرقم القومي','student_national_id',c.student_national_id,'text','inputmode="numeric" maxlength="14"')+
+  field('المحافظة','governorate',c.governorate)+field('الجامعة','academic_university',c.academic_university)+
+  field('الكلية','academic_faculty',c.academic_faculty)+field('الدرجة العلمية','academic_degree',c.academic_degree)+
+  field('سنة التخرج','graduation_year',c.graduation_year,'number','min="1950" max="2100"')+
+  '</div><div style="font-size:11px;color:var(--muted);line-height:1.8;margin-top:12px">رقم الشهادة وتاريخ إصدارها الأصلي وحالة السجل وموافقات النشر وإتاحة الشركات لا تتغير من هذه الشاشة.</div></div>'+
+  '<div class="modal-foot"><button type="button" class="btn-cancel" onclick="document.getElementById(\\'adminCertificateModal\\').remove()">إلغاء</button><button class="btn-p" type="submit">حفظ التعديلات</button></div></form></div>';
+  document.getElementById('adminCertificateModal')?.remove();document.body.appendChild(modal);
+}
+async function saveAdminCertificateDetails(event,id){
+  event.preventDefault();const val=n=>document.getElementById('adm_edit_'+n).value.trim();
+  const year=val('graduation_year');
+  if(val('student_national_id')&&!/^\d{14}$/.test(val('student_national_id'))){toast('الرقم القومي يجب أن يتكون من 14 رقمًا','err');return;}
+  if(val('student_email')&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val('student_email'))){toast('البريد الإلكتروني غير صحيح','err');return;}
+  const{data,error}=await sb.rpc('admin_update_certificate_details',{
+    p_certificate_id:id,p_student_name:val('student_name'),p_student_name_en:val('student_name_en')||null,
+    p_course:val('course'),p_specialization:val('specialization')||null,p_acquisition_date:val('acquisition_date'),
+    p_duration:val('duration')||null,p_grade:val('grade')||null,p_student_email:val('student_email')||null,
+    p_student_phone:val('student_phone')||null,p_student_national_id:val('student_national_id')||null,
+    p_governorate:val('governorate')||null,p_academic_university:val('academic_university')||null,
+    p_academic_faculty:val('academic_faculty')||null,p_academic_degree:val('academic_degree')||null,
+    p_graduation_year:year?Number(year):null
+  });
+  if(error){toast('تعذر حفظ التعديل: '+error.message,'err');return;}
+  document.getElementById('adminCertificateModal')?.remove();toast('تم تحديث البيانات وتسجيل التعديل في سجل المراجعة');await loadAdminCerts();
+}
+async function openAdminTraineeProfile(id){
+  const c=allAdminCerts.find(x=>x.id===id);if(!c)return;
+  const key=c.student_national_id||c.student_phone||c.student_email||c.student_name;
+  const{data,error}=await sb.rpc('admin_search_certificates_v2',{p_search:key,p_status:null,p_record_type:null});
+  if(error){toast('تعذر تحميل ملف المتدرب: '+error.message,'err');return;}
+  const records=(data||[]).filter(x=>{
+    if(c.student_national_id)return x.student_national_id===c.student_national_id;
+    if(c.student_phone)return x.student_phone===c.student_phone;
+    if(c.student_email)return x.student_email===c.student_email;
+    return x.student_name===c.student_name;
+  });
+  const modal=document.createElement('div');modal.id='adminTraineeProfileModal';modal.className='modal-ov';modal.onclick=e=>{if(e.target===modal)modal.remove();};
+  modal.innerHTML='<div class="modal-box" style="max-width:850px"><div class="modal-head"><div><div class="modal-title">ملف صاحب الشهادة</div><div style="font-size:11px;color:var(--muted);margin-top:4px">سجل الشهادات والمؤهلات المرتبطة بالبيانات المتاحة</div></div><button class="modal-close" onclick="document.getElementById(\\'adminTraineeProfileModal\\').remove()">✕</button></div><div class="modal-body">'+
+  '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:18px">'+
+  '<div><b>الاسم:</b> '+adminEsc(c.student_name)+'</div><div><b>الهاتف:</b> '+adminEsc(c.student_phone)+'</div><div><b>البريد:</b> '+adminEsc(c.student_email)+'</div>'+
+  '<div><b>الرقم القومي:</b> '+adminEsc(c.student_national_id)+'</div><div><b>المحافظة:</b> '+adminEsc(c.governorate)+'</div></div>'+
+  '<h3 style="font-size:13px;margin-bottom:10px">السجل التدريبي والعلمي ('+records.length+')</h3><div style="overflow:auto"><table class="tbl"><thead><tr><th>رقم الشهادة</th><th>الدورة / المؤهل</th><th>الجهة</th><th>تاريخ الحصول</th><th>الحالة</th><th></th></tr></thead><tbody>'+
+  (records.length?records.map(r=>'<tr><td>'+adminEsc(r.cert_number)+'</td><td>'+adminEsc(r.record_type==='academic'?[r.academic_degree,r.academic_faculty,r.academic_university].filter(Boolean).join(' - '):r.course)+'</td><td>'+adminEsc(r.institution_name||'إدارة المنصة')+'</td><td>'+adminEsc(r.acquisition_date||r.issue_date)+'</td><td>'+adminEsc(r.status)+'</td><td><button class="btn-s" onclick="document.getElementById(\\'adminTraineeProfileModal\\').remove();openAdminCertificateDetails(\\''+r.id+'\\')">تعديل</button></td></tr>').join(''):'<tr><td colspan="6">لا توجد سجلات أخرى مرتبطة بالبيانات المتاحة.</td></tr>')+
+  '</tbody></table></div><div style="font-size:10px;color:var(--muted);margin-top:10px">يتم الربط بالرقم القومي أولاً، ثم الهاتف أو البريد الإلكتروني. عند عدم توافر معرف فريد، يُعرض سجل الاسم المطابق فقط لتجنب دمج أشخاص مختلفين.</div></div></div>';
+  document.getElementById('adminTraineeProfileModal')?.remove();document.body.appendChild(modal);
+}
+function exportAdminCerts(){const ws=XLSX.utils.json_to_sheet(allAdminCerts.map(c=>({'اسم صاحب الشهادة':c.student_name,'الاسم بالإنجليزية':c.student_name_en,'رقم الشهادة':c.cert_number,'النوع':c.record_type==='academic'?'مؤهل علمي':'تدريبية','الدورة / المؤهل':c.record_type==='academic'?c.academic_degree:c.course,'التخصص':c.specialization,'المؤسسة':c.institution_name,'تاريخ الحصول':c.acquisition_date||c.issue_date,'الهاتف':c.student_phone,'البريد':c.student_email,'الرقم القومي':c.student_national_id,'المحافظة':c.governorate,'الحالة':c.status})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'السجلات');XLSX.writeFile(wb,'تقرير_الشهادات_والمؤهلات.xlsx');}
+
 async function revokeCert(id){if(!confirm('هل تريد إلغاء هذه الشهادة؟'))return;const{error}=await sb.rpc('admin_revoke_certificate',{p_certificate_id:id});if(error){toast(error.message,'err');return;}toast('تم إلغاء الشهادة','err');loadAdminCerts();}
 function exportAdminCerts(){const ws=XLSX.utils.json_to_sheet(allAdminCerts.map(c=>({'الطالب':c.student_name,'رقم الشهادة':c.cert_number,'الدورة':c.course,'تاريخ الحصول':c.acquisition_date||c.issue_date,'الحالة':c.status})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الشهادات');XLSX.writeFile(wb,'تقرير_الشهادات.xlsx');}
 
