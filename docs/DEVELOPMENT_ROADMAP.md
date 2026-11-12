@@ -103,8 +103,8 @@
 
 **Release rule:** do not release until all critical tests pass and no unresolved critical/high security issue remains.
 
-## Immediate blocker
-The Supabase project was requested to be restored, but the latest observed status was `COMING_UP`, and PostgreSQL introspection was unavailable. Continue with repository-only, read-only work until the database becomes reachable. Do not guess the live schema or apply SQL based only on old scripts.
+## Historical baseline note
+The database unavailability recorded in the 2026-11-06 baseline was temporary. PostgreSQL has since been reached and production schema changes have been applied and verified. Use current database introspection and verified migrations for ongoing work.
 
 
 ## Verified delivery update — 2026-11-12
