@@ -1310,8 +1310,9 @@ async function loadInstitutionSupport(){
   const mins=Number(p.hour)*60+Number(p.minute);
   const startText=String(settings.work_start||'09:00'),endText=String(settings.work_end||'17:00');
   const start=Number(startText.slice(0,2))*60+Number(startText.slice(3,5)),end=Number(endText.slice(0,2))*60+Number(endText.slice(3,5));
-  const workDays=Array.isArray(settings.work_days)&&settings.work_days.length?settings.work_days:['Sun','Mon','Tue','Wed','Thu'];
-  const open=workDays.includes(p.weekday)&&mins>=start&&mins<end;
+  const weekdayNumber={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6}[p.weekday];
+  const workDays=Array.isArray(settings.work_days)&&settings.work_days.length?settings.work_days:[0,1,2,3,4];
+  const open=workDays.map(Number).includes(weekdayNumber)&&mins>=start&&mins<end;
   document.getElementById('institutionSupportStatus').textContent=open?'فريق الدعم متاح الآن':'خارج أوقات العمل';
  }
  try{const saved=JSON.parse(localStorage.getItem(institutionSupportKey())||'null');if(saved?.id&&saved?.token)institutionSupportSession=saved;}catch(e){}
