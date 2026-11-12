@@ -199,27 +199,27 @@ const PACKAGE_META={
   bronze:{emoji:'🏅',color:'#b45309',popular:true},
   silver:{emoji:'💎',color:'#475569'},
   gold:{emoji:'🏆',color:'#b08d48'},
-  enterprise:{emoji:'🏛️',color:'#0c2d4e'}
+  enterprise:{emoji:'💎',color:'#0c2d4e'}
 };
 
 const FALLBACK_PACKAGES=[
   {id:'trial',name:'تجريبية',emoji:'⏳',price:0,period:'14 يوم',quota:'10 شهادات',feats:['تحقق رقمي','QR Code'],color:'#64748b'},
-  {id:'basic',name:'أساسية',emoji:'🚀',price:125,period:'شهر',quota:'100 شهادة/سنة',feats:['QR لكل شهادة','لوحة تحكم'],color:'#92400e'},
-  {id:'bronze',name:'برونزية',emoji:'🏅',price:333,period:'شهر',quota:'500 شهادة/سنة',feats:['رفع Excel','3 مستخدمين','دعم أولوية'],color:'#b45309',popular:true},
-  {id:'silver',name:'فضية',emoji:'💎',price:667,period:'شهر',quota:'2,000 شهادة/سنة',feats:['10 مستخدمين','تقارير متقدمة'],color:'#475569'},
-  {id:'gold',name:'ذهبية',emoji:'🏆',price:1249,period:'شهر',quota:'6,000 شهادة/سنة',feats:['API كامل','دعم VIP'],color:'#b08d48'},
-  {id:'enterprise',name:'مؤسسات',emoji:'🏛️',price:null,period:'تواصل معنا',quota:'شهادات غير محدودة',feats:['SLA مضمون','مدير حساب خاص'],color:'#0c2d4e'}
+  {id:'basic',name:'أساسية',emoji:'🚀',price:250,yearlyPrice:2000,yearlyRegularPrice:3000,period:'شهر',quota:'100 شهادة/سنة',feats:['QR لكل شهادة','لوحة تحكم'],color:'#92400e'},
+  {id:'bronze',name:'برونزية',emoji:'🏅',price:416.67,yearlyPrice:4000,yearlyRegularPrice:5000,period:'شهر',quota:'500 شهادة/سنة',feats:['رفع Excel','3 مستخدمين','دعم أولوية'],color:'#b45309',popular:true},
+  {id:'silver',name:'فضية',emoji:'💎',price:666.67,yearlyPrice:6000,yearlyRegularPrice:8000,period:'شهر',quota:'2,000 شهادة/سنة',feats:['10 مستخدمين','تقارير متقدمة'],color:'#475569'},
+  {id:'gold',name:'ذهبية',emoji:'🏆',price:1000,yearlyPrice:9000,yearlyRegularPrice:12000,period:'شهر',quota:'6,000 شهادة/سنة',feats:['API كامل','دعم VIP'],color:'#b08d48'},
+  {id:'enterprise',name:'ماسية',emoji:'💎',price:1666.67,yearlyPrice:15000,yearlyRegularPrice:20000,period:'شهر',quota:'شهادات غير محدودة',feats:['كل مميزات الذهبية','SLA مضمون','مدير حساب خاص'],color:'#0c2d4e'}
 ];
 
 async function loadPackages(){
-  const {data,error}=await sb.from('packages').select('id,name,name_ar,price_monthly,price_yearly,quota_limit,sort_order').order('sort_order');
+  const {data,error}=await sb.from('packages').select('id,name,name_ar,price_monthly,price_yearly,price_yearly_regular,quota_limit,sort_order').order('sort_order');
   if(error || !data?.length){ PACKAGES=FALLBACK_PACKAGES.map(p=>({...p,dbId:null})); return; }
   PACKAGES=data.map(p=>{
     const meta=PACKAGE_META[p.name]||{emoji:'📦',color:'#0c2d4e'};
     const quota=Number(p.quota_limit||0);
     return {
       id:p.name, dbId:p.id, name:p.name_ar||p.name, emoji:meta.emoji,
-      price:Number(p.price_monthly||0), yearlyPrice:Number(p.price_yearly||0), period:'شهر',
+      price:Number(p.price_monthly||0), yearlyPrice:Number(p.price_yearly||0), yearlyRegularPrice:Number(p.price_yearly_regular||p.price_yearly||0), period:'شهر',
       quota:p.name==='enterprise'||quota>=999999?'شهادات غير محدودة':`${quota.toLocaleString('ar-EG')} شهادة`,
       feats:meta.feats||[], color:meta.color, popular:!!meta.popular
     };
@@ -508,8 +508,8 @@ function renderStep4(){
         <div class="pkg-option ${p.popular?'popular':''} ${formData.package_id===p.id?'selected':''}" onclick="selectPkg('${p.id}','${p.name}',this)">
           <span class="pkg-emoji">${p.emoji}</span>
           <div class="pkg-name" style="color:${p.color}">${p.name}</div>
-          <div class="pkg-price" style="color:${p.color}">${p.price===null?'تواصل':`<sup>ج</sup>${p.price.toLocaleString()} <span style="font-size:10px;font-weight:700">شهريًا</span>`}</div>
-          <div class="pkg-period">${p.price===null?'تواصل معنا':`<span style="font-weight:700">سنويًا: </span>${p.yearlyPrice===0?'مجاني':p.yearlyPrice.toLocaleString()+' ج'}`}</div>
+          <div class="pkg-price" style="color:${p.color}">${p.price===null?'تواصل':`<sup>ج</sup>${Number(p.price).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2})} <span style="font-size:10px;font-weight:700">شهريًا</span>`}</div>
+          <div class="pkg-period">${p.price===null?'تواصل معنا':p.yearlyPrice===0?'مجاني':`<span style="font-weight:700">سنويًا: </span>${Number(p.yearlyPrice).toLocaleString('en-US')} ج <s style="color:#94a3b8;margin-inline-start:6px">${Number(p.yearlyRegularPrice||p.yearlyPrice).toLocaleString('en-US')} ج</s>`}</div>
           <div class="pkg-quota">${p.quota}</div>
           ${p.feats.map(f=>`<div class="pkg-feat"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>${f}</div>`).join('')}
           <div class="pkg-check"></div>
@@ -580,7 +580,8 @@ function renderStep5(){
         <div class="review-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/></svg>الباقة المختارة <span class="review-edit" onclick="goBack(3)">تعديل</span></div>
         <div class="review-grid">
           <div class="review-item"><div class="review-lbl">الباقة</div><div class="review-val">${pkg?.emoji||''} ${escapeHtml(formData.package_name)}</div></div>
-          <div class="review-item"><div class="review-lbl">السعر</div><div class="review-val">${pkg?.price===null?'تواصل معنا':pkg?.price===0?'مجاني':pkg?.price+' ج / شهر'}</div></div>
+          <div class="review-item"><div class="review-lbl">السعر الشهري المكافئ</div><div class="review-val">${pkg?.price===null?'تواصل معنا':pkg?.price===0?'مجاني':Number(pkg.price).toLocaleString('en-US',{maximumFractionDigits:2})+' ج / شهر'}</div></div>
+           <div class="review-item"><div class="review-lbl">السعر السنوي بعد الخصم</div><div class="review-val">${pkg?.yearlyPrice===0?'مجاني':Number(pkg?.yearlyPrice||0).toLocaleString('en-US')+' ج'} <s style="color:#94a3b8">${Number(pkg?.yearlyRegularPrice||pkg?.yearlyPrice||0).toLocaleString('en-US')} ج</s></div></div>
         </div>
       </div>
 
