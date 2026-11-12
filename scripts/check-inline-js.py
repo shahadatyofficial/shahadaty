@@ -6,8 +6,34 @@ import sys
 
 PAGES = [
     "index.html", "admin.html", "institution.html", "register.html",
-    "packages.html", "verify.html", "certificate.html", "graduate.html", "talent.html",
+    "packages.html", "verify.html", "certificate.html", "institution-certificate.html",
+    "graduate.html", "talent.html", "company.html",
 ]
+
+class PageMetadata(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.html_attrs = {}
+        self.has_viewport = False
+        self.in_title = False
+        self.title_parts = []
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag.lower() == "html":
+            self.html_attrs = attrs
+        elif tag.lower() == "meta" and attrs.get("name", "").lower() == "viewport":
+            self.has_viewport = True
+        elif tag.lower() == "title":
+            self.in_title = True
+
+    def handle_data(self, data):
+        if self.in_title:
+            self.title_parts.append(data)
+
+    def handle_endtag(self, tag):
+        if tag.lower() == "title":
+            self.in_title = False
 
 class InlineScripts(HTMLParser):
     def __init__(self):
@@ -43,8 +69,29 @@ for page in PAGES:
         print(f"FAIL missing page: {page}")
         failed = True
         continue
+    source_text = path.read_text(encoding="utf-8")
+
+    metadata = PageMetadata()
+    metadata.feed(source_text)
+    title = "".join(metadata.title_parts).strip()
+    if metadata.html_attrs.get("lang", "").lower() != "ar" or metadata.html_attrs.get("dir", "").lower() != "rtl":
+        print(f"FAIL Arabic RTL document metadata: {page}")
+        failed = True
+    if not metadata.has_viewport:
+        print(f"FAIL missing responsive viewport meta: {page}")
+        failed = True
+    if "شهادتي العلمية" not in title:
+        print(f"FAIL page title does not use the approved brand: {page} ({title})")
+        failed = True
+    if page in ("certificate.html", "institution-certificate.html"):
+        if "@media screen and (max-width: 640px)" not in source_text or "zoom: calc((100vw - 24px) / 1024)" not in source_text:
+            print(f"FAIL mobile certificate scaling rules: {page}")
+            failed = True
+        else:
+            print(f"PASS mobile certificate scaling: {page}")
+
     parser = InlineScripts()
-    parser.feed(path.read_text(encoding="utf-8"))
+    parser.feed(source_text)
     if not parser.scripts:
         print(f"FAIL no inline JavaScript found: {page}")
         failed = True
