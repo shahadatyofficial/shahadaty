@@ -462,15 +462,20 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
               <div><label class="form-lbl">رقم الشهادة (تلقائي)</label><input type="text" id="fi_certnum" class="form-inp2" dir="ltr" readonly style="background:#f8fbff" placeholder="سيتم التوليد تلقائياً"></div>
             </div>
             <div class="form-row">
-              <div><label class="form-lbl">الدورة / البرنامج *</label><input type="text" id="fi_course" class="form-inp2" placeholder="اسم الدورة"></div>
+              <div><label class="form-lbl">الدورة / البرنامج *</label><input type="text" id="fi_course" class="form-inp2" list="institutionCourseOptions" onchange="applySelectedCourse()" placeholder="اختر دورة مسجلة أو اكتب اسمها"></div>
               <div><label class="form-lbl">التخصص</label><input type="text" id="fi_spec" class="form-inp2" placeholder="التخصص الأكاديمي"></div>
             </div>
+            <div class="form-row"><div><label class="form-lbl">مدة الدورة</label><input type="text" id="fi_duration" class="form-inp2" placeholder="مثال: 3 أشهر / 120 ساعة"></div><div></div></div>
             <div class="form-row">
               <div><label class="form-lbl">تاريخ الحصول على الدورة *</label><input type="date" id="fi_date" class="form-inp2" dir="ltr"></div>
               <div><label class="form-lbl">التقدير العام</label><select id="fi_grade" class="form-inp2" style="background:#f0f9ff"><option value="">اختر</option><option>ممتاز</option><option>جيد جداً</option><option>جيد</option><option>مقبول</option></select></div>
             </div>
             <div class="form-row">
               <div><label class="form-lbl">رقم الهاتف (اختياري)</label><input type="tel" id="fi_phone" class="form-inp2" dir="ltr" placeholder="01xxxxxxxxx"></div>
+              <div><label class="form-lbl">البريد الإلكتروني (اختياري)</label><input type="email" id="fi_email" class="form-inp2" dir="ltr" placeholder="name@example.com"></div>
+            </div>
+            <div class="form-row">
+              <div><label class="form-lbl">الرقم القومي (اختياري)</label><input type="text" id="fi_national" class="form-inp2" inputmode="numeric" maxlength="14" dir="ltr" placeholder="14 رقمًا"></div>
               <div><label class="form-lbl">المحافظة</label><input type="text" id="fi_gov" class="form-inp2" placeholder="المحافظة"></div>
             </div>
             <div class="consent-row">
@@ -873,6 +878,14 @@ async function loadCourses(){
   </tr>`).join(''):'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">لم تسجل دورات بعد. أضف أول دورة من النموذج بالأعلى.</td></tr>';
   document.getElementById('institutionCourseOptions').innerHTML=institutionCourses.filter(c=>c.is_active).map(c=>'<option value="'+courseEsc(c.name)+'"></option>').join('');
 }
+function applySelectedCourse(){
+  const selected=document.getElementById('fi_course')?.value?.trim();
+  const course=institutionCourses.find(c=>c.is_active&&c.name.trim()===selected);
+  if(!course)return;
+  const spec=document.getElementById('fi_spec'),duration=document.getElementById('fi_duration');
+  if(spec&&!spec.value)spec.value=course.specialization||'';
+  if(duration&&!duration.value)duration.value=course.duration||'';
+}
 function resetCourseForm(){
   document.getElementById('courseForm').reset();document.getElementById('courseId').value='';
   document.getElementById('courseSaveBtn').textContent='حفظ الدورة';
@@ -1004,12 +1017,15 @@ async function issueFullCert(){
   const student=document.getElementById('fi_student').value.trim(), course=document.getElementById('fi_course').value.trim(), date=document.getElementById('fi_date').value, res=document.getElementById('fi_result');
   if(!student||!course||!date){showRes(res,'يرجى تعبئة الحقول المطلوبة *','err');return;}
   try{
-    const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('fi_grade').value,specialization:document.getElementById('fi_spec').value,student_phone:document.getElementById('fi_phone').value,governorate:document.getElementById('fi_gov').value,visible_to_companies:document.getElementById('fi_consent').checked});
+    const email=document.getElementById('fi_email').value.trim(),national=document.getElementById('fi_national').value.trim();
+  if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showRes(res,'صيغة البريد الإلكتروني غير صحيحة.','err');return;}
+  if(national&&!/^\d{14}$/.test(national)){showRes(res,'الرقم القومي يجب أن يتكون من 14 رقمًا.','err');return;}
+  const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,acquisition_date:date,grade:document.getElementById('fi_grade').value,specialization:document.getElementById('fi_spec').value,duration:document.getElementById('fi_duration')?.value||'',student_phone:document.getElementById('fi_phone').value,student_email:email,student_national_id:national,governorate:document.getElementById('fi_gov').value,visible_to_companies:document.getElementById('fi_consent').checked});
     showRes(res,`✓ تم الإصدار بنجاح — رقم الشهادة: <strong>${row.cert_number}</strong> — <a href="certificate.html?id=${encodeURIComponent(row.cert_number)}" target="_blank" style="color:var(--blue)">عرض الشهادة ↗</a>`,'ok');
     clearIssueForm(); await loadInst();
   }catch(e){showRes(res,dbErrorMessage(e),'err');}
 }
-function clearIssueForm(){['fi_student','fi_certnum','fi_course','fi_spec','fi_phone','fi_gov'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});const g=document.getElementById('fi_grade');if(g)g.value='';const c=document.getElementById('fi_consent');if(c)c.checked=false;}
+function clearIssueForm(){['fi_student','fi_certnum','fi_course','fi_spec','fi_phone','fi_email','fi_national','fi_gov','fi_duration'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});const g=document.getElementById('fi_grade');if(g)g.value='';const c=document.getElementById('fi_consent');if(c)c.checked=false;}
 function openIssueModal(){document.getElementById('issueModal').style.display='flex';}
 function closeIssueModal(){document.getElementById('issueModal').style.display='none';['mi_student','mi_course','mi_phone','mi_gov'].forEach(id=>document.getElementById(id).value='');document.getElementById('mi_grade').value='';document.getElementById('mi_consent').checked=false;document.getElementById('mi_result').style.display='none';}
 
@@ -1102,7 +1118,7 @@ function showPage(name,el){
   document.getElementById('page-'+name).classList.add('active');
   if(el)el.classList.add('active');
   if(name==='certs')loadCerts();
-  if(name==='courses')loadCourses();
+  if(name==='courses'||name==='issue')loadCourses();
   if(name==='students')loadStudents();
   if(name==='documents')loadInstitutionDocuments();
 }
