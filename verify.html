@@ -217,7 +217,7 @@ async function doSearch(){
         <div class="info-box"><div class="info-lbl">رقم الشهادة</div><div class="info-val" style="font-family:monospace;font-size:12px">${esc(data.cert_number)}</div></div>
       </div>
       <div class="result-actions">
-        <a href="certificate.html?id=${encodeURIComponent(data.cert_number)}" class="btn-view" target="_blank">
+        <a href="certificate.html?id=${encodeURIComponent(data.cert_number)}&template=uploaded-2-html" class="btn-view" target="_blank">
           <span class="material-symbols-outlined" style="font-size:18px">open_in_new</span> عرض الشهادة الرقمية
         </a>
         <button class="btn-share" onclick="share('${String(data.cert_number).replace(/'/g, "\\'")}')">
