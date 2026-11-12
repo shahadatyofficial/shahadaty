@@ -646,9 +646,12 @@ function renderInst(rows){
 function filterInst(){const q=document.getElementById('instSearch').value.toLowerCase();renderInst(allInstitutions.filter(r=>r.name.toLowerCase().includes(q)||r.contact_email.toLowerCase().includes(q)));}
 async function setInstSt(id,status){
   if(status==='approved'){
-    const{error}=await sb.rpc('admin_approve_institution',{p_institution_id:id,p_billing_cycle:'monthly',p_payment_status:'unpaid'});
+    const cycleChoice=(prompt('اختر دورة الاشتراك للمؤسسة:\\n1 - سنوي (السعر المخفض)\\n2 - شهري','1')||'').trim();
+    if(!['1','2'].includes(cycleChoice)){toast('تم إلغاء الاعتماد. اختر 1 للسنوي أو 2 للشهري.','err');return;}
+    const billingCycle=cycleChoice==='1'?'yearly':'monthly';
+    const{error}=await sb.rpc('admin_approve_institution',{p_institution_id:id,p_billing_cycle:billingCycle,p_payment_status:'unpaid'});
     if(error){toast(error.message,'err');return;}
-    toast('تم اعتماد المؤسسة بنجاح','ok');
+    toast(billingCycle==='yearly'?'تم اعتماد المؤسسة بالاشتراك السنوي':'تم اعتماد المؤسسة بالاشتراك الشهري','ok');
   }else if(status==='rejected'){
     const reason=prompt('سبب الرفض:','');
     if(reason===null)return;
