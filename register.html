@@ -509,8 +509,8 @@ function renderStep4(){
         <div class="pkg-option ${p.popular?'popular':''} ${formData.package_id===p.id?'selected':''}" onclick="selectPkg('${p.id}','${p.name}',this)">
           <span class="pkg-emoji">${p.emoji}</span>
           <div class="pkg-name" style="color:${p.color}">${p.name}</div>
-          <div class="pkg-price" style="color:${p.color}">${p.price===null?'تواصل':`<sup>ج</sup>${Number(p.price).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2})} <span style="font-size:10px;font-weight:700">شهريًا</span>`}</div>
-          <div class="pkg-period">${p.price===null?'تواصل معنا':p.yearlyPrice===0?'مجاني':`<span style="font-weight:700">سنويًا: </span>${Number(p.yearlyPrice).toLocaleString('en-US')} ج <s style="color:#94a3b8;margin-inline-start:6px">${Number(p.yearlyRegularPrice||p.yearlyPrice).toLocaleString('en-US')} ج</s>`}</div>
+          <div class="pkg-price" style="color:${p.color}">${p.price===null?'تواصل':p.yearlyPrice===0?'مجاني':`<sup>ج</sup>${Number(p.yearlyPrice).toLocaleString('en-US')} <span style="font-size:10px;font-weight:700">سنويًا بعد الخصم</span>`}</div>
+          <div class="pkg-period">${p.price===null?'تواصل معنا':p.yearlyPrice===0?'تجربة مجانية لمدة 14 يومًا':`<span style="font-weight:700">بدلًا من </span><s style="color:#94a3b8">${Number(p.yearlyRegularPrice||p.yearlyPrice).toLocaleString('en-US')} ج</s><br><span style="display:inline-block;margin-top:5px">أو ${Number(p.price).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2})} ج شهريًا</span>`}</div>
           <div class="pkg-quota">${p.quota}</div>
           ${p.feats.map(f=>`<div class="pkg-feat"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>${f}</div>`).join('')}
           <div class="pkg-check"></div>
@@ -581,8 +581,8 @@ function renderStep5(){
         <div class="review-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/></svg>الباقة المختارة <span class="review-edit" onclick="goBack(3)">تعديل</span></div>
         <div class="review-grid">
           <div class="review-item"><div class="review-lbl">الباقة</div><div class="review-val">${pkg?.emoji||''} ${escapeHtml(formData.package_name)}</div></div>
-          <div class="review-item"><div class="review-lbl">السعر الشهري المكافئ</div><div class="review-val">${pkg?.price===null?'تواصل معنا':pkg?.price===0?'مجاني':Number(pkg.price).toLocaleString('en-US',{maximumFractionDigits:2})+' ج / شهر'}</div></div>
-           <div class="review-item"><div class="review-lbl">السعر السنوي بعد الخصم</div><div class="review-val">${pkg?.yearlyPrice===0?'مجاني':Number(pkg?.yearlyPrice||0).toLocaleString('en-US')+' ج'} <s style="color:#94a3b8">${Number(pkg?.yearlyRegularPrice||pkg?.yearlyPrice||0).toLocaleString('en-US')} ج</s></div></div>
+          <div class="review-item" style="border:1px solid #dbeafe;background:#eff6ff"><div class="review-lbl">السعر السنوي بعد الخصم</div><div class="review-val">${pkg?.yearlyPrice===0?'مجاني':Number(pkg?.yearlyPrice||0).toLocaleString('en-US')+' ج'} ${pkg?.yearlyPrice===0?'':`<s style="color:#94a3b8">${Number(pkg?.yearlyRegularPrice||pkg?.yearlyPrice||0).toLocaleString('en-US')} ج</s>`}</div></div>
+          <div class="review-item"><div class="review-lbl">السعر عند الاشتراك الشهري</div><div class="review-val">${pkg?.price===null?'تواصل معنا':pkg?.price===0?'مجاني':Number(pkg.price).toLocaleString('en-US',{maximumFractionDigits:2})+' ج / شهر'}</div></div>
         </div>
       </div>
 
