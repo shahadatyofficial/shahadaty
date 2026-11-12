@@ -190,6 +190,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="sb-item" onclick="sp('requests',this)"><span class="material-symbols-outlined">approval</span>طلبات الاعتماد<span class="sb-badge" id="reqBadge">0</span></div>
     <div class="sb-sec">الشهادات</div>
     <div class="sb-item" onclick="sp('certs',this)"><span class="material-symbols-outlined">description</span>مراجعة الشهادات</div>
+    <div class="sb-item" onclick="sp('publication-consents',this)"><span class="material-symbols-outlined">how_to_reg</span>موافقات النشر</div>
     <div class="sb-item" onclick="sp('add-cert',this)"><span class="material-symbols-outlined">add_circle</span>إضافة شهادة</div>
     <div class="sb-item" onclick="sp('verify',this)"><span class="material-symbols-outlined">verified</span>تحقق يدوي</div>
     <div class="sb-sec">الشركات</div>
@@ -352,6 +353,19 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
           </div>
         </div>
         <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الطالب</th><th>رقم الشهادة</th><th>الدورة</th><th>المؤسسة</th><th>التاريخ</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="certsTable"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">أدخل كلمة بحث</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- PUBLICATION CONSENTS -->
+    <div class="page" id="page-publication-consents">
+      <div class="card">
+        <div class="card-head"><span class="card-title">موافقات النشر</span><div class="card-tools">
+          <input class="inp" id="publicationConsentSearch" placeholder="ابحث بالاسم أو الدورة أو المؤهل أو رقم الشهادة..." style="width:min(360px,55vw)" oninput="loadPublicationConsents()">
+          <button class="btn-s" onclick="loadPublicationConsents()">تحديث</button>
+          <button class="btn-p" id="savePublicationConsentsBtn" onclick="savePublicationConsentChanges()"><span class="material-symbols-outlined">save</span>حفظ التعديلات</button>
+        </div></div>
+        <div style="padding:12px 20px;color:var(--muted);font-size:11px;line-height:1.8">حدد «نعم» فقط عند وجود موافقة صريحة من صاحب الشهادة على النشر في محرك البحث العام. إلغاء الموافقة يخفي السجل من نتائج البحث العام.</div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>صاحب الشهادة</th><th>رقم الشهادة</th><th>الدورة / المؤهل</th><th>المؤسسة</th><th>التاريخ</th><th>موافقة النشر</th></tr></thead><tbody id="publicationConsentRows"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">جاري تحميل السجلات...</td></tr></tbody></table></div>
       </div>
     </div>
 
@@ -534,8 +548,9 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
-const ptitles={alumni:'إدارة الخريجين','job-ads':'إعلانات الوظائف','training-ads':'إعلانات الدورات',overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات','add-cert':'إضافة شهادة',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام','academic-refs':'قوائم المؤهلات العلمية'};
-let allInstitutions=[], allAdminCerts=[];
+const ptitles={alumni:'إدارة الخريجين','job-ads':'إعلانات الوظائف','training-ads':'إعلانات الدورات',overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات','publication-consents':'موافقات النشر','add-cert':'إضافة شهادة',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام','academic-refs':'قوائم المؤهلات العلمية'};
+let allInstitutions=[], allAdminCerts=[], allPublicationRows=[];
+const pendingPublicationConsents={};
 function adminEsc(v){return String(v??'—').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}
 
 // ── AUTH ──────────────────────────────────────────────────────
@@ -563,7 +578,7 @@ function sp(name,el){
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('pageTitle').textContent=ptitles[name]||name;
   if(el)el.classList.add('active');
-  const loaders={alumni:loadAlumniProfiles,'job-ads':loadJobAnnouncements,'training-ads':loadTrainingAnnouncements,institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
+  const loaders={alumni:loadAlumniProfiles,'job-ads':loadJobAnnouncements,'training-ads':loadTrainingAnnouncements,institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'publication-consents':loadPublicationConsents,'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
   if(loaders[name])loaders[name]();
 }
 
@@ -696,6 +711,30 @@ async function reviewDoc(id,status){
 }
 
 // ── CERTS ─────────────────────────────────────────────────────
+async function loadPublicationConsents(){
+ const q=document.getElementById('publicationConsentSearch')?.value.trim()||'';
+ const body=document.getElementById('publicationConsentRows');if(!body)return;
+ body.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">جاري تحميل السجلات...</td></tr>';
+ const{data,error}=await sb.rpc('admin_list_certificates_with_consent',{p_search:q||null});
+ if(error){body.innerHTML='<tr><td colspan="6">'+adminEsc(error.message)+'</td></tr>';toast(error.message,'err');return;}
+ allPublicationRows=data||[];Object.keys(pendingPublicationConsents).forEach(k=>delete pendingPublicationConsents[k]);
+ body.innerHTML=!allPublicationRows.length?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">لا توجد سجلات مطابقة</td></tr>':allPublicationRows.map(c=>{
+  const yes=c.declaration_accepted===true;
+  return '<tr><td>'+adminEsc(c.student_name)+'</td><td style="font-family:monospace;font-size:11px">'+adminEsc(c.cert_number)+'</td><td>'+adminEsc(c.course)+(c.specialization?'<div style="font-size:10px;color:var(--muted)">'+adminEsc(c.specialization)+'</div>':'')+'</td><td>'+adminEsc(c.institution_name||'إدارة المنصة')+'</td><td>'+(c.issue_date?new Date(c.issue_date+'T00:00:00').toLocaleDateString('ar-EG'):'—')+'</td><td><label style="display:inline-flex;align-items:center;gap:8px;white-space:nowrap;font-weight:800"><input type="checkbox" id="publication-consent-'+c.id+'" '+(yes?'checked':'')+' onchange="togglePublicationConsent(\''+c.id+'\',this.checked)" style="width:19px;height:19px;accent-color:var(--blue)"><span id="publication-consent-label-'+c.id+'" style="color:'+(yes?'#047857':'#b91c1c')+'">'+(yes?'نعم':'لا')+'</span></label></td></tr>';
+ }).join('');
+}
+function togglePublicationConsent(id,checked){
+ pendingPublicationConsents[id]=checked;const label=document.getElementById('publication-consent-label-'+id);
+ if(label){label.textContent=checked?'نعم':'لا';label.style.color=checked?'#047857':'#b91c1c';}
+}
+async function savePublicationConsentChanges(){
+ const changes=allPublicationRows.filter(c=>Object.prototype.hasOwnProperty.call(pendingPublicationConsents,c.id)&&pendingPublicationConsents[c.id]!== (c.declaration_accepted===true));
+ if(!changes.length){toast('لا توجد تعديلات لحفظها','err');return;}
+ const btn=document.getElementById('savePublicationConsentsBtn');btn.disabled=true;let saved=0,failed=[];
+ for(const c of changes){const{error}=await sb.rpc('admin_update_certificate_publication_consent',{p_certificate_id:c.id,p_consent:pendingPublicationConsents[c.id]});if(error)failed.push(c.student_name+': '+error.message);else saved++;}
+ btn.disabled=false;if(failed.length)toast('تم حفظ '+saved+' وتعذر حفظ '+failed.length+' سجلات. '+failed[0],'err');else toast('تم حفظ موافقات النشر بنجاح ('+saved+')','ok');
+ await loadPublicationConsents();
+}
 async function loadAdminCerts(){
   const q=document.getElementById('certsSearch').value.trim();
   if(q.length===1){document.getElementById('certsTable').innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">أدخل حرفاً إضافياً للبحث، أو اترك الحقل فارغاً لعرض أحدث الشهادات</td></tr>';return;}
