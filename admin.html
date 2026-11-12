@@ -1060,15 +1060,19 @@ async function saveAlumniProfile(){
 }
 async function loadAlumniProfiles(){
  await loadAlumniProfileOptions();
-
  const body=document.getElementById('alumniRows');if(!body)return;
- const{data,error}=await sb.from('alumni_profiles').select('id,full_name,governorate,visibility_status,alumni_qualifications(qualification_name,graduation_year)').order('created_at',{ascending:false}).limit(300);
+ const{data,error}=await sb.from('alumni_profiles').select('id,profile_number,full_name,governorate,visibility_status,alumni_qualifications(qualification_name,institution_name,faculty_name,graduation_year,grade)').order('created_at',{ascending:false}).limit(300);
  if(error){body.innerHTML='<tr><td colspan="5">'+adminEsc(error.message)+'</td></tr>';return;}
- body.innerHTML=(data||[]).map(p=>{const q=p.alumni_qualifications?.[0]||{};return '<tr><td>'+adminEsc(p.full_name)+' <button class="btn-s" onclick="printAlumniCv(\''+p.id+'\')">CV / طباعة</button> <button class="btn-s" onclick="linkAlumniGraduate(\''+p.id+'\')">ربط حساب الخريج</button></td><td>'+adminEsc(q.qualification_name)+'</td><td>'+adminEsc(q.graduation_year)+'</td><td>'+adminEsc(p.governorate)+'</td><td>'+(p.visibility_status==='public'?'ظاهر':'مخفي')+' <button class="btn-s" onclick="setAlumniVisibility(\''+p.id+'\',\''+p.visibility_status+'\')">'+(p.visibility_status==='public'?'إخفاء':'إظهار')+'</button></td></tr>';}).join('')||'<tr><td colspan="5">لا توجد ملفات بعد</td></tr>';
+ body.innerHTML=(data||[]).map(p=>{
+  const q=p.alumni_qualifications?.[0]||{};
+  const source=String(p.profile_number||'').startsWith('LEGACY-CERT-')?'مرتبط تلقائيًا بسجل شهادة':'ملف خريج';
+  return '<tr><td>'+adminEsc(p.full_name)+'<div style="font-size:10px;color:var(--muted);margin-top:3px">'+source+'</div> <button class="btn-s" onclick="printAlumniCv(\\''+p.id+'\\')">CV / طباعة</button> <button class="btn-s" onclick="linkAlumniGraduate(\\''+p.id+'\\')">ربط حساب الخريج</button></td><td>'+adminEsc(q.qualification_name)+'<div style="font-size:10px;color:var(--muted)">'+adminEsc(q.institution_name||'')+' '+adminEsc(q.faculty_name||'')+'</div></td><td>'+adminEsc(q.graduation_year)+'</td><td>'+adminEsc(p.governorate)+'</td><td>'+(p.visibility_status==='public'?'ظاهر':'مخفي — يحتاج مراجعة')+' <button class="btn-s" onclick="setAlumniVisibility(\\''+p.id+'\\',\\''+p.visibility_status+'\\')">'+(p.visibility_status==='public'?'إخفاء':'إظهار')+'</button></td></tr>';
+ }).join('')||'<tr><td colspan="5">لا توجد ملفات بعد</td></tr>';
 }
 async function setAlumniVisibility(id,currentStatus){
  const nextStatus=currentStatus==='public'?'hidden':'public';
- if(!confirm(nextStatus==='public'?'إظهار ملف الخريج في البحث العام؟':'إخفاء ملف الخريج من البحث العام؟'))return;
+ const message=nextStatus==='public'?'سيظهر اسم الخريج ومؤهله وبياناته الأكاديمية المتاحة في البحث العام. لن تظهر بيانات التواصل أو المستندات. هل تؤكد الإظهار؟':'إخفاء ملف الخريج من البحث العام؟';
+ if(!confirm(message))return;
  const{data,error}=await sb.from('alumni_profiles').update({visibility_status:nextStatus}).eq('id',id).select('id').maybeSingle();
  if(error||!data){toast(error?.message||'تعذر تحديث حالة الظهور','err');return;}
  toast(nextStatus==='public'?'تم إظهار ملف الخريج في البحث العام':'تم إخفاء ملف الخريج من البحث العام','ok');
