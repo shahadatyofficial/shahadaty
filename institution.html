@@ -727,7 +727,7 @@ async function loadInst(){
   const{data:membership,error:membershipError}=await sb.from('institution_users').select('institution_id,role,status').eq('auth_user_id',user.id).eq('status','active').order('created_at',{ascending:true}).limit(1).maybeSingle();
   if(membershipError){toast('تعذر التحقق من عضوية المؤسسة: '+membershipError.message,'err');return;}
   if(membership)institutionId=membership.institution_id;
-  let query=sb.from('institutions').select('*,packages(name_ar,quota_limit)');
+  let query=sb.from('institutions').select('*,packages(name,name_ar,quota_limit)');
   if(institutionId)query=query.eq('id',institutionId);else query=query.eq('auth_user_id',user.id);
   const{data,error}=await query.maybeSingle();
   if(error||!data){document.getElementById('loginErr').textContent='لا يوجد حساب مؤسسة نشط مرتبط بهذا المستخدم. تواصل مع مسؤول المؤسسة.';document.getElementById('loginErr').style.display='block';await sb.auth.signOut();return;}
@@ -745,7 +745,7 @@ async function loadInst(){
     box.querySelector('#approvalMessage').textContent=statusMessage;
     return;
   }
-  const{data:subscription, error:subscriptionError}=await sb.from('subscriptions').select('id,status,payment_status,amount,currency,billing_cycle,starts_at,ends_at,quota_limit,quota_used').eq('institution_id',data.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+  const{data:subscription, error:subscriptionError}=await sb.from('subscriptions').select('id,status,payment_status,amount,currency,billing_cycle,starts_at,ends_at,quota_limit,quota_used,packages(name)').eq('institution_id',data.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
   if(subscriptionError){toast('تعذر تحميل حالة الاشتراك: '+subscriptionError.message,'err');}
   inst={...data,membershipRole:membership?.role||'owner',currentSubscription:subscription||null};
   if(subscription?.quota_limit!=null&&Number(subscription.quota_limit)>0)inst.quota_total=Number(subscription.quota_limit);
@@ -754,7 +754,8 @@ async function loadInst(){
   document.getElementById('sbAvatar').textContent=n.charAt(0);
   document.getElementById('sbInstName').textContent=n;
   const statusText=data.status==='approved'?'✓ معتمد':data.status==='suspended'?'⛔ موقوف':data.status==='rejected'?'✕ مرفوض':'قيد المراجعة';
-  const subscriptionText=subscription?.status==='active'&& (Number(subscription.amount||0)===0||subscription.payment_status==='paid')?' · اشتراك نشط':subscription?.status==='pending'?' · بانتظار السداد':' · الاشتراك غير نشط';
+  const isFreeTrial=subscription?.packages?.name==='trial'&&Number(subscription.amount||0)===0;
+  const subscriptionText=subscription?.status==='active'&&(isFreeTrial||subscription.payment_status==='paid')?' · اشتراك نشط':subscription?.status==='pending'?' · بانتظار السداد':' · الاشتراك غير نشط';
   document.getElementById('sbInstStatus').textContent=statusText+subscriptionText;
   document.getElementById('sbPkgName').textContent=data.packages?.name_ar||'—';
   const quotaTotal=Number(inst.quota_total||0),quotaUsed=Number(data.quota_used||0);
@@ -958,14 +959,15 @@ async function loadQuotaDetails(){
   if(!inst)return;
   const quotaTotal=Number(inst.quota_total||0),quotaUsed=Number(inst.quota_used||0);
   const pct=quotaTotal>0?Math.min(100,Math.round(quotaUsed/quotaTotal*100)):0;
-  const{data:sub,error}=await sb.from('subscriptions').select('status,payment_status,amount,currency,billing_cycle,starts_at,ends_at,quota_limit,quota_used,packages(name_ar)').eq('institution_id',inst.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+  const{data:sub,error}=await sb.from('subscriptions').select('status,payment_status,amount,currency,billing_cycle,starts_at,ends_at,quota_limit,quota_used,packages(name,name_ar)').eq('institution_id',inst.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
   if(error){toast('تعذر تحميل تفاصيل الاشتراك: '+error.message,'err');}
   const status=sub?.status==='active'?'نشط':sub?.status==='pending'?'بانتظار السداد':sub?.status==='expired'?'منتهي':sub?.status==='suspended'?'موقوف':sub?.status==='cancelled'?'ملغي':'غير مفعل';
-  const paid=sub?.payment_status==='paid'?'تم السداد':Number(sub?.amount||0)===0?'مجاني':sub?.payment_status==='pending'?'قيد تأكيد السداد':sub?.payment_status==='failed'?'فشل السداد':'لم يتم السداد';
+  const isFreeTrial=sub?.packages?.name==='trial'&&Number(sub?.amount||0)===0;
+  const paid=sub?.payment_status==='paid'?'تم السداد':isFreeTrial?'تجربة مجانية':sub?.payment_status==='pending'?'قيد تأكيد السداد':sub?.payment_status==='failed'?'فشل السداد':'لم يتم السداد';
   const pkgName=sub?.packages?.name_ar||inst.packages?.name_ar||'—';
   document.getElementById('quotaDetails').innerHTML=`
     <div style="background:#f0f9ff;border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px"><div><div style="font-size:13px;font-weight:700;color:var(--navy)">الباقة الحالية: ${escapeHtml(pkgName)}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">حالة الاشتراك: ${status} · ${paid}</div></div><span class="badge ${sub?.status==='active'&&(Number(sub?.amount||0)===0||sub?.payment_status==='paid')?'badge-ok':'badge-warn'}">${status}</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px"><div><div style="font-size:13px;font-weight:700;color:var(--navy)">الباقة الحالية: ${escapeHtml(pkgName)}</div><div style="font-size:11px;color:var(--muted);margin-top:4px">حالة الاشتراك: ${status} · ${paid}</div></div><span class="badge ${sub?.status==='active'&&(isFreeTrial||sub?.payment_status==='paid')?'badge-ok':'badge-warn'}">${status}</span></div>
       <div class="quota-bar" style="margin-bottom:8px"><div class="quota-fill ${pct>=90?'danger':pct>=75?'warn':''}" style="width:${pct}%"></div></div>
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>المستخدم: ${quotaUsed.toLocaleString('ar-EG')}</span><span>الإجمالي: ${quotaTotal>0?quotaTotal.toLocaleString('ar-EG'):'غير محدد'}</span></div>
       ${sub?'<div style="margin-top:12px;font-size:12px;color:var(--muted)">قيمة الاشتراك: '+Number(sub.amount||0).toLocaleString('ar-EG')+' '+escapeHtml(sub.currency||'EGP')+' · '+(sub.billing_cycle==='yearly'?'سنوي':'شهري')+'</div>':''}
