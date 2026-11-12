@@ -131,3 +131,30 @@ The live project is now reachable and has moved beyond the original Phase 0 base
 
 ### Current release posture
 Core production workflows are implemented and the latest changes are deployed. Full acceptance testing is still pending; do not describe the platform as fully certified or all device/browser scenarios as tested until the checks above pass.
+
+
+## Release acceptance update — 2026-11-12 (PR #72)
+
+### Delivered and deployed
+- Partner/institution certificate now preserves its original A4 landscape artwork while scaling to fit narrow mobile screens; print/PDF rules reset the screen scaling.
+- Both certificate templates use the approved «شهادتي العلمية» browser-tab identity.
+- CI smoke validation now covers 11 user-facing pages: Arabic/RTL metadata, viewport declaration, approved brand title, both certificate mobile scaling rules, and inline JavaScript syntax.
+- PR #72 merged as `a148d7e72b3bbe5511236b0145eeae409c2322a3`; inline JavaScript + page smoke checks passed; GitHub Pages deployment completed successfully.
+
+### Database checks executed
+- All public tables have RLS enabled.
+- Six RLS-enabled tables have no row policies; inspection confirmed they expose no direct `anon` or `authenticated` table grants (only database/service-role access).
+- All 29 `admin_*` SECURITY DEFINER functions inspected in this check include the platform-admin guard and deny anonymous execution.
+- The eight anonymous-callable SECURITY DEFINER functions are intentionally public endpoints: published tickers, aggregate public statistics, consent-filtered public alumni search, certificate verification, and support visitor endpoints protected by the conversation access token.
+- Simulated non-admin JWT checks rejected admin listing, certificate issuance, payment-reference submission, and rejected-application resubmission with `NOT_ALLOWED`.
+- Certificate verification smoke checks passed for a known active certificate and an unknown certificate; the successful verification test was rolled back to avoid altering production verification analytics.
+- Integrity checks returned zero duplicate certificate numbers, zero duplicate payment references, zero institutions with multiple active subscriptions, zero orphan certificates, and zero active paid-plan subscriptions marked unpaid.
+
+### Remaining operational items (not safe to claim complete)
+1. Real-device browser acceptance on Android/iOS and desktop is still required; CI is static validation, not a visual browser test.
+2. There are no production pending/rejected/suspended institution records for full lifecycle testing; use dedicated test accounts before exercising those paths end-to-end.
+3. Supabase Auth's leaked-password protection remains disabled and requires an eligible-plan dashboard setting; it was not changed through database SQL.
+4. Security Advisor still reports 14 multiple-permissive-policy groups and 34 unused-index notices. These are not blanket-remediated: policy consolidation and index removal require workload/behavior validation to avoid changing access semantics or slowing future queries.
+5. Complete an actual backup/restore drill and test the support inbox from each real user role.
+
+**Release statement:** core workflows and the latest code changes are deployed; static checks and targeted database permission/verification tests passed. Full device/browser and operational acceptance remain open.
