@@ -503,6 +503,7 @@ function renderStep4(){
       <div><div class="card-head-title">اختر الباقة المناسبة</div><div class="card-head-sub">يمكنك ترقية الباقة في أي وقت لاحقاً</div></div>
     </div>
     <div class="card-body">
+      <p style="font-size:11px;color:var(--muted);text-align:center;margin:0 0 16px">السعر الشهري محسوب من السعر السنوي قبل الخصم ÷ 12 شهرًا، والسعر السنوي المعروض يشمل الخصم.</p>
       <div class="pkg-grid">
         ${PACKAGES.map(p=>`
         <div class="pkg-option ${p.popular?'popular':''} ${formData.package_id===p.id?'selected':''}" onclick="selectPkg('${p.id}','${p.name}',this)">
