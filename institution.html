@@ -1290,6 +1290,64 @@ function showPage(name,el){
   if(name==='courses'||name==='issue')loadCourses();
   if(name==='students')loadStudents();
   if(name==='documents')loadInstitutionDocuments();
+  if(name==='support')loadInstitutionSupport();
+  else if(institutionSupportTimer){clearInterval(institutionSupportTimer);institutionSupportTimer=null;}
+}
+
+
+let institutionSupportSession=null,institutionSupportTimer=null,institutionSupportSettings=null;
+function institutionSupportKey(){return 'shahadaty_institution_support_'+String(inst?.id||'unknown');}
+function institutionSupportEsc(v){return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+async function loadInstitutionSupport(){
+ if(!inst?.id)return;
+ const{data:settings,error}=await sb.from('support_settings').select('work_days,work_start,work_end,welcome_message,offline_message,waiting_message').eq('id',true).maybeSingle();
+ if(!error&&settings){
+  institutionSupportSettings=settings;
+  document.getElementById('institutionSupportWelcome').textContent=settings.welcome_message||'أهلاً بك، يسعدنا مساعدتك.';
+  document.getElementById('institutionSupportOffline').textContent=settings.offline_message||'يمكنك إرسال رسالتك وسنرد عليك في أقرب وقت عمل.';
+  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Cairo',weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());
+  const p=Object.fromEntries(parts.map(x=>[x.type,x.value]));
+  const mins=Number(p.hour)*60+Number(p.minute);
+  const startText=String(settings.work_start||'09:00'),endText=String(settings.work_end||'17:00');
+  const start=Number(startText.slice(0,2))*60+Number(startText.slice(3,5)),end=Number(endText.slice(0,2))*60+Number(endText.slice(3,5));
+  const workDays=Array.isArray(settings.work_days)&&settings.work_days.length?settings.work_days:['Sun','Mon','Tue','Wed','Thu'];
+  const open=workDays.includes(p.weekday)&&mins>=start&&mins<end;
+  document.getElementById('institutionSupportStatus').textContent=open?'فريق الدعم متاح الآن':'خارج أوقات العمل';
+ }
+ try{const saved=JSON.parse(localStorage.getItem(institutionSupportKey())||'null');if(saved?.id&&saved?.token)institutionSupportSession=saved;}catch(e){}
+ await pollInstitutionSupport();
+ if(institutionSupportTimer)clearInterval(institutionSupportTimer);
+ institutionSupportTimer=setInterval(()=>{if(document.getElementById('page-support')?.classList.contains('active'))pollInstitutionSupport();},5000);
+}
+async function pollInstitutionSupport(){
+ if(!institutionSupportSession)return;
+ const{data,error}=await sb.rpc('get_visitor_support_messages',{p_conversation_id:institutionSupportSession.id,p_access_token:institutionSupportSession.token});
+ if(error){document.getElementById('institutionSupportNotice').textContent='تعذر تحديث المحادثة. حاول تحديث الصفحة.';return;}
+ const box=document.getElementById('institutionSupportMessages');
+ box.innerHTML=(data||[]).length?(data||[]).map(m=>'<div class="support-bubble '+(m.sender==='admin'?'admin':'visitor')+'">'+institutionSupportEsc(m.body)+'<small>'+new Date(m.created_at).toLocaleString('ar-EG',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'})+'</small></div>').join(''):'<div style="text-align:center;color:var(--muted);margin:auto">رسالتك هتظهر هنا، وفريق الدعم هيرد عليك من داخل المنصة.</div>';
+ box.scrollTop=box.scrollHeight;
+}
+async function sendInstitutionSupportMessage(event){
+ event.preventDefault();
+ const input=document.getElementById('institutionSupportInput'),btn=document.getElementById('institutionSupportSend'),body=input.value.trim();
+ if(!body||!inst?.id)return;
+ btn.disabled=true;btn.textContent='جارٍ الإرسال';
+ try{
+  let session=institutionSupportSession;
+  if(!session){
+   session={id:crypto.randomUUID(),token:crypto.randomUUID(),name:inst.name,email:inst.contact_email||''};
+   const{error}=await sb.from('support_conversations').insert({id:session.id,access_token:session.token,visitor_name:session.name,visitor_email:session.email||null});
+   if(error)throw error;
+   institutionSupportSession=session;
+   localStorage.setItem(institutionSupportKey(),JSON.stringify(session));
+  }
+  const{error}=await sb.from('support_messages').insert({conversation_id:session.id,sender:'visitor',access_token:session.token,body});
+  if(error)throw error;
+  input.value='';
+  document.getElementById('institutionSupportNotice').textContent=institutionSupportSettings?.waiting_message||'وصلت رسالتك، وأنت الآن في قائمة انتظار الدعم الفني. سنرد عليك في أقرب وقت ممكن.';
+  await pollInstitutionSupport();
+ }catch(error){document.getElementById('institutionSupportNotice').textContent='تعذر إرسال الرسالة: '+(error?.message||'حاول مرة أخرى.');}
+ finally{btn.disabled=false;btn.textContent='إرسال ↗';}
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
