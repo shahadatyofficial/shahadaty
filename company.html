@@ -49,8 +49,16 @@ $('companyJoinForm').addEventListener('submit',async e=>{
  if(!companyName||!contactName||!phone||!email||password.length<8){msg.textContent='راجع البيانات المطلوبة، وكلمة المرور يجب ألا تقل عن 8 أحرف.';return;}
  btn.disabled=true;btn.textContent='جارٍ إرسال الطلب...';msg.textContent='';
  try{
-  const{data:authData,error:authError}=await sb.auth.signUp({email,password,options:{data:{full_name:contactName}}});
-  if(authError)throw authError;
+  let authData=null;
+  const signup=await sb.auth.signUp({email,password,options:{data:{full_name:contactName}}});
+  if(signup.error){
+   const authMessage=String(signup.error.message||'').toLowerCase();
+   const alreadyRegistered=authMessage.includes('already registered')||authMessage.includes('already been registered')||authMessage.includes('user already exists');
+   if(!alreadyRegistered)throw signup.error;
+   const login=await sb.auth.signInWithPassword({email,password});
+   if(login.error)throw new Error('هذا البريد مسجل بالفعل. استخدم كلمة مرور الحساب الحالي أو بريدًا آخر.');
+   authData=login.data;
+  }else authData=signup.data;
   const authUserId=authData?.session?.user?.id||null;
   const{error:insertError}=await sb.from('companies').insert({
    company_name:companyName,contact_name:contactName,contact_email:email,contact_phone:phone,
