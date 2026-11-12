@@ -48,11 +48,12 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 .save-badge{background:#dcfce7;color:#16a34a;font-size:9px;font-weight:700;padding:2px 7px;border-radius:7px;margin-right:5px;vertical-align:middle;}
 
 /* PKG GRID */
-.pkg-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:52px;}
+.pkg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:52px;}
 .pkg{border:1.5px solid var(--border);border-radius:20px;padding:24px 18px;background:#fff;text-align:center;position:relative;transition:all .22s;}
 .pkg:hover{border-color:var(--sky);box-shadow:0 18px 48px rgba(3,105,161,0.11);transform:translateY(-5px);}
 .pkg.feat{border-color:var(--blue);border-width:2px;box-shadow:0 8px 32px rgba(3,105,161,0.13);}
 .pkg.gold-pkg{border-color:var(--gold);border-width:2px;}
+.pkg.diamond-pkg{border-color:#0f766e;border-width:2px;}
 .pkg-ribbon{position:absolute;top:-1px;left:50%;transform:translateX(-50%);color:#fff;font-size:9px;font-weight:800;padding:3px 16px;border-radius:0 0 10px 10px;white-space:nowrap;}
 .pkg-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;}
 .pkg-icon .material-symbols-outlined{font-size:24px;}
@@ -60,6 +61,8 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 .pkg-tagline{font-size:10px;color:#94a3b8;margin-bottom:14px;}
 .pkg-price{font-size:32px;font-weight:900;color:var(--navy);line-height:1;}
 .pkg-price sup{font-size:15px;vertical-align:top;margin-top:8px;}
+.pkg-old-price{font-size:12px;color:#94a3b8;text-decoration:line-through;margin:5px 0 2px;}
+.compare-tbl{min-width:900px;}
 .pkg-period{font-size:10px;color:#94a3b8;margin-bottom:3px;}
 .pkg-quota-box{background:var(--bg);border-radius:10px;padding:10px;margin:14px 0;}
 .pkg-quota-num{font-size:22px;font-weight:900;display:block;line-height:1.1;}
@@ -81,7 +84,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 .sec-sub{font-size:13px;color:var(--muted);margin-bottom:28px;}
 
 /* COMPARE */
-.compare-box{background:#fff;border-radius:18px;overflow:hidden;border:1px solid var(--border);margin-bottom:52px;}
+.compare-box{background:#fff;border-radius:18px;overflow-x:auto;border:1px solid var(--border);margin-bottom:52px;}
 .compare-head{padding:20px 28px;font-size:16px;font-weight:800;color:var(--navy);border-bottom:1px solid #f0f7ff;background:#f8fbff;display:flex;align-items:center;gap:8px;}
 .compare-tbl{width:100%;border-collapse:collapse;}
 .compare-tbl th{padding:12px 18px;font-size:12px;font-weight:700;color:var(--muted);text-align:center;border-bottom:1.5px solid #f0f7ff;background:#fafcff;}
@@ -132,17 +135,17 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 
 <!-- NAV -->
 <nav class="nav">
-  <a href="landing.html" class="logo-wrap">
+  <a href="index.html" class="logo-wrap">
     <img src="logo.png" class="logo-img" alt="شهادتي" onerror="this.style.display='none'">
     <div><div class="logo-name">شهادتي</div><div class="logo-sub">CERTIFICATE VERIFICATION</div></div>
   </a>
   <div class="nav-links">
-    <a href="landing.html" class="nl">الرئيسية</a>
-    <a href="landing.html#why" class="nl">المميزات</a>
-    <a href="landing.html#sectors" class="nl">القطاعات</a>
+    <a href="index.html" class="nl">الرئيسية</a>
+    <a href="index.html#why" class="nl">المميزات</a>
+    <a href="index.html#sectors" class="nl">القطاعات</a>
     <a href="packages.html" class="nl act">الباقات</a>
-    <a href="landing.html#faq" class="nl">الأسئلة</a>
-    <a href="landing.html#contact" class="nl">تواصل معنا</a>
+    <a href="index.html#faq" class="nl">الأسئلة</a>
+    <a href="index.html#contact" class="nl">تواصل معنا</a>
   </div>
   <div class="nav-right">
     <a href="institution.html" class="btn-ghost">بوابة المؤسسات</a>
@@ -169,8 +172,8 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
   <!-- TOGGLE -->
   <div class="toggle-wrap">
     <div class="toggle-box">
-      <button class="tog active" onclick="setBilling('monthly',this)">شهري</button>
-      <button class="tog" onclick="setBilling('yearly',this)">سنوي <span class="save-badge">وفر 20%</span></button>
+      <button class="tog" onclick="setBilling('monthly',this)">شهري</button>
+      <button class="tog active" onclick="setBilling('yearly',this)">سنوي <span class="save-badge">خصم سنوي</span></button>
     </div>
   </div>
 
@@ -198,9 +201,10 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       <div class="pkg-icon" style="background:#fef9ee"><span class="material-symbols-outlined" style="color:#92400e">rocket_launch</span></div>
       <div class="pkg-name" style="color:#92400e">أساسية</div>
       <div class="pkg-tagline">للبداية القوية</div>
-      <div class="pkg-price stat-num monthly"><sup>ج</sup>125</div>
+      <div class="pkg-price stat-num monthly"><sup>ج</sup>250</div>
       <div class="pkg-period monthly-p">جنيه / شهر</div>
-      <div class="pkg-price stat-num yearly" style="display:none"><sup>ج</sup>1,499</div>
+      <div class="pkg-price stat-num yearly" style="display:none"><sup>ج</sup>2,000</div>
+      <div class="pkg-old-price yearly-old" style="display:none">3,000 ج</div>
       <div class="pkg-period yearly-p" style="display:none">جنيه / سنة</div>
       <div class="pkg-quota-box"><span class="pkg-quota-num stat-num" style="color:#92400e">100</span><span class="pkg-quota-lbl">شهادة / سنة</span></div>
       <div class="pkg-divider"></div>
@@ -218,9 +222,10 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       <div class="pkg-icon" style="background:#fff7ed;margin-top:14px"><span class="material-symbols-outlined" style="color:#b45309">star</span></div>
       <div class="pkg-name" style="color:#b45309">برونزية</div>
       <div class="pkg-tagline">للمؤسسات المتنامية</div>
-      <div class="pkg-price stat-num monthly"><sup>ج</sup>333</div>
+      <div class="pkg-price stat-num monthly"><sup>ج</sup>416.67</div>
       <div class="pkg-period monthly-p">جنيه / شهر</div>
-      <div class="pkg-price stat-num yearly" style="display:none"><sup>ج</sup>3,999</div>
+      <div class="pkg-price stat-num yearly" style="display:none"><sup>ج</sup>4,000</div>
+      <div class="pkg-old-price yearly-old" style="display:none">5,000 ج</div>
       <div class="pkg-period yearly-p" style="display:none">جنيه / سنة</div>
       <div class="pkg-quota-box"><span class="pkg-quota-num stat-num" style="color:#b45309">500</span><span class="pkg-quota-lbl">شهادة / سنة</span></div>
       <div class="pkg-divider"></div>
@@ -237,9 +242,10 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       <div class="pkg-icon" style="background:#f8fafc"><span class="material-symbols-outlined" style="color:#475569">diamond</span></div>
       <div class="pkg-name" style="color:#475569">فضية</div>
       <div class="pkg-tagline">للمؤسسات المتقدمة</div>
-      <div class="pkg-price stat-num monthly"><sup>ج</sup>667</div>
+      <div class="pkg-price stat-num monthly"><sup>ج</sup>666.67</div>
       <div class="pkg-period monthly-p">جنيه / شهر</div>
-      <div class="pkg-price stat-num yearly" style="display:none"><sup>ج</sup>7,999</div>
+      <div class="pkg-price stat-num yearly" style="display:none"><sup>ج</sup>6,000</div>
+      <div class="pkg-old-price yearly-old" style="display:none">8,000 ج</div>
       <div class="pkg-period yearly-p" style="display:none">جنيه / سنة</div>
       <div class="pkg-quota-box"><span class="pkg-quota-num stat-num" style="color:#475569">2,000</span><span class="pkg-quota-lbl">شهادة / سنة</span></div>
       <div class="pkg-divider"></div>
@@ -257,9 +263,10 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       <div class="pkg-icon" style="background:#fef9ee;margin-top:14px"><span class="material-symbols-outlined" style="color:#b08d48">workspace_premium</span></div>
       <div class="pkg-name" style="color:#b08d48">ذهبية</div>
       <div class="pkg-tagline">للمؤسسات الكبرى</div>
-      <div class="pkg-price stat-num monthly"><sup>ج</sup>1,249</div>
+      <div class="pkg-price stat-num monthly"><sup>ج</sup>1,000</div>
       <div class="pkg-period monthly-p">جنيه / شهر</div>
-      <div class="pkg-price stat-num yearly" style="display:none"><sup>ج</sup>14,999</div>
+      <div class="pkg-price stat-num yearly" style="display:none"><sup>ج</sup>9,000</div>
+      <div class="pkg-old-price yearly-old" style="display:none">12,000 ج</div>
       <div class="pkg-period yearly-p" style="display:none">جنيه / سنة</div>
       <div class="pkg-quota-box"><span class="pkg-quota-num stat-num" style="color:#b08d48">6,000</span><span class="pkg-quota-lbl">شهادة / سنة</span></div>
       <div class="pkg-divider"></div>
@@ -271,6 +278,26 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       <div class="pkg-feat"><span class="material-symbols-outlined">check_circle</span>مدير حساب خاص</div>
       <button class="pkg-btn gold-btn" onclick="location.href='register.html'">اشترك الآن</button>
     </div>
+    <!-- الماسية -->
+    <div class="pkg diamond-pkg">
+      <div class="pkg-ribbon" style="background:linear-gradient(135deg,#0f766e,#0ea5a4)">💎 باقة المؤسسات الكبرى</div>
+      <div class="pkg-icon" style="background:#ecfeff;margin-top:14px"><span class="material-symbols-outlined" style="color:#0f766e">diamond</span></div>
+      <div class="pkg-name" style="color:#0f766e">ماسية</div>
+      <div class="pkg-tagline">للجهات والمؤسسات الكبرى</div>
+      <div class="pkg-price stat-num monthly"><sup>ج</sup>1,666.67</div>
+      <div class="pkg-period monthly-p">جنيه / شهر</div>
+      <div class="pkg-price stat-num yearly" style="display:none"><sup>ج</sup>15,000</div>
+      <div class="pkg-old-price yearly-old" style="display:none">20,000 ج</div>
+      <div class="pkg-period yearly-p" style="display:none">جنيه / سنة</div>
+      <div class="pkg-quota-box"><span class="pkg-quota-num stat-num" style="color:#0f766e">999,999</span><span class="pkg-quota-lbl">شهادة / سنة</span></div>
+      <div class="pkg-divider"></div>
+      <div class="pkg-feat"><span class="material-symbols-outlined">check_circle</span>مستخدمون غير محدودين</div>
+      <div class="pkg-feat"><span class="material-symbols-outlined">check_circle</span>API وتكاملات مخصصة</div>
+      <div class="pkg-feat"><span class="material-symbols-outlined">check_circle</span>تخصيص كامل للهوية</div>
+      <div class="pkg-feat"><span class="material-symbols-outlined">check_circle</span>دعم VIP ومدير حساب</div>
+      <div class="pkg-feat"><span class="material-symbols-outlined">check_circle</span>SLA متفق عليه</div>
+      <button class="pkg-btn fill" style="background:#0f766e" onclick="location.href='register.html'">اشترك الآن</button>
+    </div>
   </div>
 
   <!-- COMPARE -->
@@ -279,25 +306,25 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <table class="compare-tbl">
       <thead><tr>
         <th style="width:200px">الميزة</th>
-        <th>تجريبية</th><th>أساسية</th><th class="col-feat">برونزية</th><th>فضية</th><th>ذهبية</th>
+        <th>تجريبية</th><th>أساسية</th><th class="col-feat">برونزية</th><th>فضية</th><th>ذهبية</th><th>ماسية</th>
       </tr></thead>
       <tbody>
-        <tr><td>عدد الشهادات / سنة</td><td>10</td><td>100</td><td class="col-feat" style="color:#b45309;font-weight:800">500</td><td>2,000</td><td style="color:#b08d48;font-weight:800">6,000</td></tr>
-        <tr><td>رفع Excel الجماعي</td><td><span class="xmark">✕</span></td><td><span class="xmark">✕</span></td><td class="col-feat"><span class="chk">✓</span></td><td><span class="chk">✓</span></td><td><span class="chk">✓</span></td></tr>
-        <tr><td>عدد المستخدمين</td><td>1</td><td>1</td><td class="col-feat">3</td><td>10</td><td style="color:#b08d48;font-weight:800">غير محدود</td></tr>
-        <tr><td>التقارير والإحصائيات</td><td>أساسية</td><td>أساسية</td><td class="col-feat">متوسطة</td><td>متقدمة</td><td style="color:#b08d48;font-weight:800">احترافية</td></tr>
-        <tr><td>صلاحيات الموظفين</td><td><span class="xmark">✕</span></td><td><span class="xmark">✕</span></td><td class="col-feat"><span class="xmark">✕</span></td><td><span class="chk">✓</span></td><td><span class="chk">✓</span></td></tr>
-        <tr><td>تخصيص الهوية البصرية</td><td><span class="xmark">✕</span></td><td><span class="xmark">✕</span></td><td class="col-feat"><span class="xmark">✕</span></td><td>جزئي</td><td style="color:#b08d48;font-weight:800">كامل</td></tr>
-        <tr><td>API للتكامل</td><td><span class="xmark">✕</span></td><td><span class="xmark">✕</span></td><td class="col-feat"><span class="xmark">✕</span></td><td><span class="xmark">✕</span></td><td><span class="chk">✓</span></td></tr>
-        <tr><td>مستوى الدعم الفني</td><td>بريد إلكتروني</td><td>عادي</td><td class="col-feat">أولوية</td><td>سريع</td><td style="color:#b08d48;font-weight:800">VIP</td></tr>
-        <tr><td>شراء رصيد إضافي</td><td><span class="xmark">✕</span></td><td><span class="xmark">✕</span></td><td class="col-feat"><span class="chk">✓</span></td><td><span class="chk">✓</span></td><td><span class="chk">✓</span></td></tr>
+        <tr><td>عدد الشهادات / سنة</td><td>10</td><td>100</td><td class="col-feat" style="color:#b45309;font-weight:800">500</td><td>2,000</td><td style="color:#b08d48;font-weight:800">6,000</td><td style="color:#0f766e;font-weight:800">999,999</td></tr>
+        <tr><td>رفع Excel الجماعي</td><td><span class="xmark">✕</span></td><td><span class="xmark">✕</span></td><td class="col-feat"><span class="chk">✓</span></td><td><span class="chk">✓</span></td><td><span class="chk">✓</span></td><td><span class="chk">✓</span></td></tr>
+        <tr><td>عدد المستخدمين</td><td>1</td><td>1</td><td class="col-feat">3</td><td>10</td><td style="color:#b08d48;font-weight:800">غير محدود</td><td style="color:#0f766e;font-weight:800">غير محدود</td></tr>
+        <tr><td>التقارير والإحصائيات</td><td>أساسية</td><td>أساسية</td><td class="col-feat">متوسطة</td><td>متقدمة</td><td style="color:#b08d48;font-weight:800">احترافية</td><td style="color:#0f766e;font-weight:800">مخصصة</td></tr>
+        <tr><td>صلاحيات الموظفين</td><td><span class="xmark">✕</span></td><td><span class="xmark">✕</span></td><td class="col-feat"><span class="xmark">✕</span></td><td><span class="chk">✓</span></td><td><span class="chk">✓</span></td><td><span class="chk">✓</span></td></tr>
+        <tr><td>تخصيص الهوية البصرية</td><td><span class="xmark">✕</span></td><td><span class="xmark">✕</span></td><td class="col-feat"><span class="xmark">✕</span></td><td>جزئي</td><td style="color:#b08d48;font-weight:800">كامل</td><td style="color:#0f766e;font-weight:800">كامل</td></tr>
+        <tr><td>API للتكامل</td><td><span class="xmark">✕</span></td><td><span class="xmark">✕</span></td><td class="col-feat"><span class="xmark">✕</span></td><td><span class="xmark">✕</span></td><td><span class="chk">✓</span></td><td><span class="chk">✓</span></td></tr>
+        <tr><td>مستوى الدعم الفني</td><td>بريد إلكتروني</td><td>عادي</td><td class="col-feat">أولوية</td><td>سريع</td><td style="color:#b08d48;font-weight:800">VIP</td><td style="color:#0f766e;font-weight:800">VIP + مدير حساب</td></tr>
+        <tr><td>طلب رصيد إضافي</td><td><span class="xmark">✕</span></td><td><span class="xmark">✕</span></td><td class="col-feat"><span class="chk">✓</span></td><td><span class="chk">✓</span></td><td><span class="chk">✓</span></td><td><span class="chk">✓</span></td></tr>
       </tbody>
     </table>
   </div>
 
   <!-- ADDONS -->
   <h2 class="sec-title" style="text-align:center">رصيد شهادات إضافي</h2>
-  <p class="sec-sub" style="text-align:center">اشترِ رصيداً إضافياً في أي وقت دون الحاجة لترقية الباقة</p>
+  <p class="sec-sub" style="text-align:center">اطلب زيادة رصيد الشهادات من فريق شهادتي دون الحاجة إلى تغيير الباقة</p>
   <div class="addons-grid">
     <div class="addon"><div class="addon-icon" style="background:#f0f9ff"><span class="material-symbols-outlined" style="color:#0369a1">add_circle</span></div><div><div class="addon-name">+100 شهادة</div><div class="addon-price">600 جنيه</div><div class="addon-qty">6 جنيه / شهادة</div></div></div>
     <div class="addon"><div class="addon-icon" style="background:#f0f9ff"><span class="material-symbols-outlined" style="color:#0369a1">add_circle</span></div><div><div class="addon-name">+500 شهادة</div><div class="addon-price">2,500 جنيه</div><div class="addon-qty">5 جنيه / شهادة</div></div></div>
@@ -309,11 +336,11 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
   <h2 class="sec-title" style="text-align:center">أسئلة شائعة عن الباقات</h2>
   <p class="sec-sub" style="text-align:center">كل اللي محتاج تعرفه قبل ما تشترك</p>
   <div class="faq-list">
-    <div class="faq-item"><div class="faq-q open" onclick="tFaq(this)">هل يمكنني تغيير الباقة في أي وقت؟<span class="material-symbols-outlined">add</span></div><div class="faq-a show">نعم، يمكنك الترقية أو التخفيض في أي وقت. في حالة الترقية يتم احتساب الفارق بشكل تلقائي. في حالة التخفيض يسري التغيير من أول الدورة القادمة.</div></div>
-    <div class="faq-item"><div class="faq-q" onclick="tFaq(this)">ماذا يحدث إذا انتهى رصيد الشهادات؟<span class="material-symbols-outlined">add</span></div><div class="faq-a">يمكنك شراء رصيد إضافي فوراً بدون الحاجة لترقية الباقة. لن تنقطع خدمتك وسيظهر لك تنبيه قبل انتهاء الرصيد.</div></div>
+    <div class="faq-item"><div class="faq-q open" onclick="tFaq(this)">هل يمكنني تغيير الباقة في أي وقت؟<span class="material-symbols-outlined">add</span></div><div class="faq-a show">يمكنك طلب تغيير الباقة من فريق شهادتي، وسيتم تأكيد الباقة والتكلفة وموعد سريان التغيير قبل تطبيقه.</div></div>
+    <div class="faq-item"><div class="faq-q" onclick="tFaq(this)">ماذا يحدث إذا انتهى رصيد الشهادات؟<span class="material-symbols-outlined">add</span></div><div class="faq-a">يمكنك طلب رصيد إضافي من فريق شهادتي. تتم مراجعة الطلب وتأكيد التكلفة قبل إضافة الرصيد إلى حسابك.</div></div>
     <div class="faq-item"><div class="faq-q" onclick="tFaq(this)">هل التجربة المجانية تحتاج بطاقة ائتمانية؟<span class="material-symbols-outlined">add</span></div><div class="faq-a">لا، التجربة المجانية 14 يوم بدون أي بيانات دفع. تقدر تبدأ فوراً بدون أي التزام مالي.</div></div>
     <div class="faq-item"><div class="faq-q" onclick="tFaq(this)">هل الأسعار تشمل ضريبة القيمة المضافة؟<span class="material-symbols-outlined">add</span></div><div class="faq-a">جميع الأسعار المعروضة لا تشمل ضريبة القيمة المضافة. سيتم إضافة الضريبة المقررة عند الدفع.</div></div>
-    <div class="faq-item"><div class="faq-q" onclick="tFaq(this)">هل يمكن إلغاء الاشتراك في أي وقت؟<span class="material-symbols-outlined">add</span></div><div class="faq-a">نعم، يمكنك إلغاء اشتراكك في أي وقت من لوحة التحكم. لن يتم تجديد الاشتراك تلقائياً بعد الإلغاء.</div></div>
+    <div class="faq-item"><div class="faq-q" onclick="tFaq(this)">هل يمكن إلغاء الاشتراك في أي وقت؟<span class="material-symbols-outlined">add</span></div><div class="faq-a">لإيقاف الاشتراك أو عدم تجديده، تواصل مع فريق شهادتي قبل موعد انتهاء الباقة لتأكيد الإجراء.</div></div>
   </div>
 
   <!-- CTA -->
@@ -322,7 +349,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <p>انضم لآلاف المؤسسات وابدأ تجربتك المجانية 14 يوم بدون أي التزام</p>
     <div class="cta-btns">
       <button class="cb1" onclick="location.href='register.html'">ابدأ تجربتك المجانية الآن</button>
-      <button class="cb2">تحدث مع فريقنا</button>
+      <button class="cb2" onclick="location.href='index.html#contact'">تحدث مع فريقنا</button>
     </div>
     <div class="cta-note">✓ 14 يوم مجاناً &nbsp;·&nbsp; ✓ بدون بطاقة ائتمانية &nbsp;·&nbsp; ✓ إلغاء في أي وقت</div>
   </div>
@@ -340,12 +367,14 @@ function setBilling(mode,el){
   const m=mode==='monthly';
   document.querySelectorAll('.pkg-price.monthly,.pkg-period.monthly-p').forEach(e=>e.style.display=m?'block':'none');
   document.querySelectorAll('.pkg-price.yearly,.pkg-period.yearly-p').forEach(e=>e.style.display=m?'none':'block');
+  document.querySelectorAll('.pkg-old-price.yearly-old').forEach(e=>e.style.display=m?'none':'block');
 }
 function tFaq(el){
   const a=el.nextElementSibling;const open=el.classList.contains('open');
   document.querySelectorAll('.faq-q.open').forEach(q=>{q.classList.remove('open');q.nextElementSibling.classList.remove('show');});
   if(!open){el.classList.add('open');a.classList.add('show');}
 }
+setBilling('yearly',document.querySelectorAll('.tog')[1]);
 </script>
 </body>
 </html>
