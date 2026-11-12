@@ -650,7 +650,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 <nav class="nav" id="mainNav">
   <a href="#" class="logo">
     <img src="logo.png" class="logo-img" alt="شهادتي" onerror="this.style.display='none'">
-    <div><div class="logo-name" id="logoName">شهادتي</div><div class="logo-sub">CERTIFICATE VERIFICATION</div></div>
+    <div><div class="logo-name" id="logoName">شهادتي العلمية</div><div class="logo-sub">CERTIFICATE VERIFICATION</div></div>
   </a>
   <div class="nav-links" id="navLinks">
     <a href="#" class="nl active">الرئيسية</a>
@@ -794,6 +794,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
     </div>
   </div>
   <div class="s-hint">مثال: <code>SHD-2024-00123</code> — أو اضغط QR لتشغيل الكاميرا</div>
+  <p class="hero-brand-slogan">نصنع المعرفة... نبني الحاضر... ونوثق المستقبل.</p>
   <div class="scanner-wrap" id="scannerWrap">
     <div class="scanner-box">
       <video class="cam" id="camFeed" autoplay playsinline muted></video>
@@ -1489,6 +1490,64 @@ window.addEventListener('load',()=>{
  document.addEventListener('keydown',e=>{if(!modal.classList.contains('is-open'))return;if(e.key==='Escape'){close();return;}if(e.key==='Tab'){const focusables=[...dialog.querySelectorAll('a[href],button:not([disabled]),[tabindex="0"]')];if(!focusables.length)return;const first=focusables[0],last=focusables[focusables.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
 })();
 </script>
+
+
+<style id="shahadaty-premium-home-hero">
+/* Premium Shahadaty identity — navy, electric blue and gold */
+.hero{
+  background:
+    radial-gradient(ellipse at 78% 8%,rgba(14,165,233,.22),transparent 34%),
+    radial-gradient(ellipse at 8% 88%,rgba(198,161,91,.14),transparent 32%),
+    linear-gradient(128deg,#061629 0%,#0a2947 48%,#073b60 100%);
+  padding:clamp(54px,6vw,82px) clamp(18px,4.5vw,68px) 48px;
+  color:#fff;
+}
+.hero::before{
+  top:-220px;right:-120px;width:650px;height:650px;
+  background:radial-gradient(circle,rgba(56,189,248,.2) 0%,rgba(14,116,144,.08) 34%,transparent 70%);
+}
+.hero::after{
+  bottom:-240px;left:-150px;width:620px;height:620px;
+  background:radial-gradient(circle,rgba(214,173,85,.16) 0%,transparent 68%);
+}
+.hero-badge{
+  background:rgba(255,255,255,.08);border-color:rgba(226,189,112,.42);
+  color:#f3d58d;box-shadow:0 10px 30px rgba(0,0,0,.12);backdrop-filter:blur(8px);
+}
+.hero-h1{color:#fff;text-shadow:0 8px 32px rgba(0,0,0,.2);}
+.hero-h1 .accent{color:#f1cf83;}
+.hero-h1 .accent::after{background:linear-gradient(90deg,#d2ad62,#f7e4ae,#38bdf8);opacity:.95;}
+.hero-sub1{color:#e7f2fa;}
+.hero-sub2{color:#b7cad9;}
+.s-hint{color:#a9c0d2;}
+.s-hint code{color:#f4d58a;background:rgba(255,255,255,.09);padding:3px 7px;border-radius:6px;}
+.hero-brand-slogan{
+  position:relative;z-index:1;margin:15px 0 0;color:#e8c981;
+  font-size:12px;font-weight:800;letter-spacing:.15px;
+}
+.hero-showcase{
+  border-color:rgba(226,189,112,.42);
+  box-shadow:0 34px 90px rgba(0,0,0,.34),0 0 42px rgba(14,165,233,.1),inset 0 1px rgba(255,255,255,.18);
+}
+.stats-row{
+  background:rgba(255,255,255,.075);border:1px solid rgba(226,189,112,.32);
+  box-shadow:0 18px 50px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.1);
+  backdrop-filter:blur(14px);
+}
+.stat:not(:last-child){border-left-color:rgba(255,255,255,.16);}
+.sn{color:#fff;}
+.sn span{color:#f1cf83;}
+.sl{color:#c2d3df;}
+@media(max-width:820px){
+  .hero{padding:46px 16px 34px;}
+  .hero-brand-slogan{font-size:11px;line-height:1.8;}
+  .stats-row{background:rgba(255,255,255,.08);padding:17px 9px;}
+  .stat{padding:0 7px;}
+}
+@media(prefers-reduced-motion:reduce){
+  .hero-badge .badge-dot{animation:none;}
+}
+</style>
 
 </body>
 </html>
