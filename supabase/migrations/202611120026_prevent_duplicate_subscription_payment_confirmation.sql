@@ -196,3 +196,8 @@ REVOKE ALL ON FUNCTION public.admin_confirm_subscription_payment(uuid, text) FRO
 GRANT EXECUTE ON FUNCTION public.admin_confirm_subscription_payment(uuid, text) TO authenticated;
 REVOKE ALL ON FUNCTION public.admin_activate_subscription(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_activate_subscription(uuid) TO authenticated;
+
+-- Enforce reference uniqueness at the database level to prevent concurrent reuse.
+CREATE UNIQUE INDEX IF NOT EXISTS subscriptions_payment_reference_unique_idx
+ON public.subscriptions (lower(btrim(payment_reference)))
+WHERE payment_reference IS NOT NULL AND btrim(payment_reference) <> '';
