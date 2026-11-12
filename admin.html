@@ -387,7 +387,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
                 <div><label class="form-lbl" for="adminCertCourse">اسم الدورة / البرنامج *</label><input class="inp" id="adminCertCourse" maxlength="180" style="width:100%"></div>
                 <div><label class="form-lbl" for="adminCertSpecialization">التخصص</label><input class="inp" id="adminCertSpecialization" maxlength="180" style="width:100%"></div>
                 <div><label class="form-lbl" for="adminCertDuration">مدة الدورة</label><input class="inp" id="adminCertDuration" maxlength="80" style="width:100%" placeholder="مثال: 30 ساعة تدريبية"></div>
-                <div><label class="form-lbl" for="adminCertIssueDate">تاريخ إصدار الشهادة *</label><input class="inp" id="adminCertIssueDate" type="date" required style="width:100%"></div>
+                <div><label class="form-lbl" for="adminCertIssueDate">تاريخ الحصول على الدورة / المؤهل *</label><input class="inp" id="adminCertIssueDate" type="date" required style="width:100%"></div>
               </div>
             </section>
             <section id="adminQualificationFields" style="display:none"><div style="font-weight:800;color:var(--navy);margin:8px 0 12px">بيانات المؤهل العلمي</div>
@@ -720,7 +720,7 @@ async function loadPublicationConsents(){
  allPublicationRows=data||[];Object.keys(pendingPublicationConsents).forEach(k=>delete pendingPublicationConsents[k]);
  body.innerHTML=!allPublicationRows.length?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">لا توجد سجلات مطابقة</td></tr>':allPublicationRows.map(c=>{
   const yes=c.declaration_accepted===true;
-  return '<tr><td>'+adminEsc(c.student_name)+'</td><td style="font-family:monospace;font-size:11px">'+adminEsc(c.cert_number)+'</td><td>'+adminEsc(c.course)+(c.specialization?'<div style="font-size:10px;color:var(--muted)">'+adminEsc(c.specialization)+'</div>':'')+'</td><td>'+adminEsc(c.institution_name||'إدارة المنصة')+'</td><td>'+(c.issue_date?new Date(c.issue_date+'T00:00:00').toLocaleDateString('ar-EG'):'—')+'</td><td><label style="display:inline-flex;align-items:center;gap:8px;white-space:nowrap;font-weight:800"><input type="checkbox" id="publication-consent-'+c.id+'" '+(yes?'checked':'')+' onchange="togglePublicationConsent(\''+c.id+'\',this.checked)" style="width:19px;height:19px;accent-color:var(--blue)"><span id="publication-consent-label-'+c.id+'" style="color:'+(yes?'#047857':'#b91c1c')+'">'+(yes?'نعم':'لا')+'</span></label></td></tr>';
+  return '<tr><td>'+adminEsc(c.student_name)+'</td><td style="font-family:monospace;font-size:11px">'+adminEsc(c.cert_number)+'</td><td>'+adminEsc(c.course)+(c.specialization?'<div style="font-size:10px;color:var(--muted)">'+adminEsc(c.specialization)+'</div>':'')+'</td><td>'+adminEsc(c.institution_name||'إدارة المنصة')+'</td><td>'+(c.issue_date?new Date((c.acquisition_date||c.issue_date)+'T00:00:00').toLocaleDateString('ar-EG'):'—')+'</td><td><label style="display:inline-flex;align-items:center;gap:8px;white-space:nowrap;font-weight:800"><input type="checkbox" id="publication-consent-'+c.id+'" '+(yes?'checked':'')+' onchange="togglePublicationConsent(\''+c.id+'\',this.checked)" style="width:19px;height:19px;accent-color:var(--blue)"><span id="publication-consent-label-'+c.id+'" style="color:'+(yes?'#047857':'#b91c1c')+'">'+(yes?'نعم':'لا')+'</span></label></td></tr>';
  }).join('');
 }
 function togglePublicationConsent(id,checked){
@@ -743,7 +743,7 @@ async function loadAdminCerts(){
   allAdminCerts=(data||[]).map(c=>({...c,institutions:{name:c.institution_name}}));
   document.getElementById('certsTable').innerHTML=!allAdminCerts.length?'<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج</td></tr>':allAdminCerts.map(c=>`<tr>
     <td>${adminEsc(c.student_name)}</td><td style="font-family:monospace;font-size:11px">${adminEsc(c.cert_number)}</td><td>${adminEsc(c.course)}</td>
-    <td>${adminEsc(c.institutions?.name||'—')}</td><td>${new Date(c.issue_date).toLocaleDateString('ar-EG')}</td>
+    <td>${adminEsc(c.institutions?.name||'—')}</td><td>${new Date(c.acquisition_date||c.issue_date).toLocaleDateString('ar-EG')}</td>
     <td><span class="badge ${c.status==='active'?'bok':c.status==='suspended'?'bwarn':'berr'}">${c.status==='active'?'نشط':c.status==='suspended'?'موقوف مؤقتاً':'ملغي'}</span></td>
     <td><div style="display:flex;gap:6px">
       <a href="certificate.html?id=${encodeURIComponent(c.cert_number||'')}" target="_blank" class="btn-s" style="font-size:10px;padding:5px 10px">عرض</a>
@@ -752,7 +752,7 @@ async function loadAdminCerts(){
   </tr>`).join('');
 }
 async function revokeCert(id){if(!confirm('هل تريد إلغاء هذه الشهادة؟'))return;const{error}=await sb.rpc('admin_revoke_certificate',{p_certificate_id:id});if(error){toast(error.message,'err');return;}toast('تم إلغاء الشهادة','err');loadAdminCerts();}
-function exportAdminCerts(){const ws=XLSX.utils.json_to_sheet(allAdminCerts.map(c=>({'الطالب':c.student_name,'رقم الشهادة':c.cert_number,'الدورة':c.course,'التاريخ':c.issue_date,'الحالة':c.status})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الشهادات');XLSX.writeFile(wb,'تقرير_الشهادات.xlsx');}
+function exportAdminCerts(){const ws=XLSX.utils.json_to_sheet(allAdminCerts.map(c=>({'الطالب':c.student_name,'رقم الشهادة':c.cert_number,'الدورة':c.course,'تاريخ الحصول':c.acquisition_date||c.issue_date,'الحالة':c.status})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الشهادات');XLSX.writeFile(wb,'تقرير_الشهادات.xlsx');}
 
 function toggleAdminCertSource(){
   const isInstitution=document.getElementById('adminCertSource').value==='institution';
@@ -858,7 +858,7 @@ async function adminVerify(){
   if(!row){res.innerHTML='<div style="background:#fff5f5;color:#dc2626;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600">❌ لم يتم العثور على الشهادة</div>';return;}
   res.innerHTML=`<div style="background:var(--bg);border:2px solid var(--blue);border-radius:12px;padding:18px">
     <div style="font-size:15px;font-weight:800;color:var(--blue);margin-bottom:12px">✓ شهادة مسجلة — ${row.status==='active'?'نشطة':'ملغاة'}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[['الطالب',row.student_name],['الدورة',row.course],['التاريخ',new Date(row.issue_date).toLocaleDateString('ar-EG')],['المؤسسة',row.institution_name||row.institution?.name||'—']].map(([l,v])=>`<div style="background:#fff;border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${l}</div><div style="font-size:13px;font-weight:700;color:var(--navy)">${v||'—'}</div></div>`).join('')}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[['الطالب',row.student_name],['الدورة',row.course],['التاريخ',new Date(row.acquisition_date||row.issue_date).toLocaleDateString('ar-EG')],['المؤسسة',row.institution_name||row.institution?.name||'—']].map(([l,v])=>`<div style="background:#fff;border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${l}</div><div style="font-size:13px;font-weight:700;color:var(--navy)">${v||'—'}</div></div>`).join('')}</div>
   </div>`;
 }
 
@@ -888,9 +888,9 @@ async function loadRec(){
 }
 async function setRecSt(id,status){const{error}=await sb.rpc('admin_update_recruitment_status',{p_request_id:id,p_status:status});if(error){toast(error.message,'err');return;}toast('تم التحديث','ok');loadRec();}
 async function srchRec(qual,gov,year){
-  let q=sb.from('certificates').select('student_name,course,grade,issue_date,governorate,student_phone,institutions(name)').eq('visible_to_companies',true).eq('status','active');
+  let q=sb.from('certificates').select('student_name,course,grade,issue_date,acquisition_date,governorate,student_phone,institutions(name)').eq('visible_to_companies',true).eq('status','active');
   if(qual)q=q.ilike('course',`%${qual}%`);if(gov)q=q.eq('governorate',gov);
-  if(year)q=q.gte('issue_date',`${year}-01-01`).lte('issue_date',`${year}-12-31`);
+  if(year)q=q.gte('acquisition_date',`${year}-01-01`).lte('acquisition_date',`${year}-12-31`);
   const{data}=await q.limit(30);
   if(!data?.length){toast('لا توجد نتائج مطابقة','err');return;}
   const m=document.createElement('div');
@@ -901,7 +901,7 @@ async function srchRec(qual,gov,year){
       <button onclick="this.closest('[style*=fixed]').remove()" style="width:32px;height:32px;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--bg)">✕</button>
     </div>
     ${data.map(c=>`<div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
-      <div><div style="font-size:13px;font-weight:800;color:var(--navy)">${c.student_name}</div><div style="font-size:11px;color:var(--muted)">${c.course} · ${c.governorate||'—'} · ${new Date(c.issue_date).getFullYear()}</div><div style="font-size:10px;color:#94a3b8">${c.institutions?.name||''}</div></div>
+      <div><div style="font-size:13px;font-weight:800;color:var(--navy)">${c.student_name}</div><div style="font-size:11px;color:var(--muted)">${c.course} · ${c.governorate||'—'} · ${new Date(c.acquisition_date||c.issue_date).getFullYear()}</div><div style="font-size:10px;color:#94a3b8">${c.institutions?.name||''}</div></div>
       <div style="text-align:left"><div style="font-size:14px;font-weight:800;color:var(--blue);direction:ltr">${c.student_phone||'غير متاح'}</div><div style="font-size:11px;color:var(--gold);font-weight:700">${c.grade||'ناجح'}</div></div>
     </div>`).join('')}
   </div>`;
