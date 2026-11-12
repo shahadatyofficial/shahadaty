@@ -191,4 +191,8 @@ update public.alumni_profiles ap
       and c.status = 'active'
       and c.declaration_accepted is true
  )
- and ap.legacy_graduate_profile_id is null;
+ and not exists (
+   select 1 from public.graduate_profiles gp
+    where gp.id = ap.legacy_graduate_profile_id
+      and gp.publication_consent is true
+ );
