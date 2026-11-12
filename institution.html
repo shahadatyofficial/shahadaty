@@ -466,7 +466,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
               <div><label class="form-lbl">التخصص</label><input type="text" id="fi_spec" class="form-inp2" placeholder="التخصص الأكاديمي"></div>
             </div>
             <div class="form-row">
-              <div><label class="form-lbl">تاريخ الإصدار *</label><input type="date" id="fi_date" class="form-inp2" dir="ltr"></div>
+              <div><label class="form-lbl">تاريخ الحصول على الدورة *</label><input type="date" id="fi_date" class="form-inp2" dir="ltr"></div>
               <div><label class="form-lbl">التقدير العام</label><select id="fi_grade" class="form-inp2" style="background:#f0f9ff"><option value="">اختر</option><option>ممتاز</option><option>جيد جداً</option><option>جيد</option><option>مقبول</option></select></div>
             </div>
             <div class="form-row">
@@ -662,7 +662,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
         <div><label class="form-lbl">الدورة / البرنامج *</label><input type="text" id="mi_course" class="form-inp2" list="institutionCourseOptions" placeholder="اسم الدورة"><datalist id="institutionCourseOptions"></datalist></div>
       </div>
       <div class="form-row">
-        <div><label class="form-lbl">تاريخ الإصدار *</label><input type="date" id="mi_date" class="form-inp2" dir="ltr"></div>
+        <div><label class="form-lbl">تاريخ الحصول على الدورة *</label><input type="date" id="mi_date" class="form-inp2" dir="ltr"></div>
         <div><label class="form-lbl">التقدير</label><select id="mi_grade" class="form-inp2" style="background:#f0f9ff"><option value="">اختر</option><option>ممتاز</option><option>جيد جداً</option><option>جيد</option><option>مقبول</option></select></div>
       </div>
       <div class="form-row">
@@ -815,7 +815,7 @@ async function loadStudents(){
   body.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px">جاري تحميل البيانات...</td></tr>';
   let rows=[],from=0,batch=1000;
   while(true){
-    const{data,error}=await sb.from('certificates').select('student_name,student_phone,student_national_id,student_email,course,issue_date,cert_number,status').eq('institution_id',inst.id).order('issue_date',{ascending:false}).range(from,from+batch-1);
+    const{data,error}=await sb.from('certificates').select('student_name,student_phone,student_national_id,student_email,course,issue_date,acquisition_date,cert_number,status').eq('institution_id',inst.id).order('acquisition_date',{ascending:false}).range(from,from+batch-1);
     if(error){body.innerHTML='<tr><td colspan="5">تعذر تحميل المتدربين: '+courseEsc(error.message)+'</td></tr>';return;}
     rows=rows.concat(data||[]);
     if(!data||data.length<batch)break;
@@ -842,13 +842,13 @@ function renderStudents(){
   document.getElementById('studentsSummary').textContent='إجمالي المتدربين: '+allStudents.length.toLocaleString('ar-EG')+' · نتائج البحث: '+list.length.toLocaleString('ar-EG');
   document.getElementById('studentsTable').innerHTML=list.length?list.map(s=>{
     const courses=[...new Set(s.certificates.map(c=>c.course).filter(Boolean))];
-    const last=s.certificates.map(c=>c.issue_date).filter(Boolean).sort().reverse()[0];
+    const last=s.certificates.map(c=>c.acquisition_date||c.issue_date).filter(Boolean).sort().reverse()[0];
     return '<tr><td>'+courseEsc(s.name)+'</td><td dir="ltr">'+courseEsc(s.phone||'—')+'</td><td>'+s.certificates.length.toLocaleString('ar-EG')+'</td><td>'+courseEsc(courses.join('، ')||'—')+'</td><td>'+(last?new Date(last+'T00:00:00').toLocaleDateString('ar-EG'):'—')+'</td></tr>';
   }).join(''):'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج مطابقة.</td></tr>';
 }
 function exportStudents(){
   if(!allStudents.length){toast('لا يوجد متدربون لتصديرهم','err');return;}
-  const rows=allStudents.map(s=>({اسم_المتدرب:s.name,الهاتف:s.phone,الرقم_القومي:s.national,البريد:s.email,عدد_الشهادات:s.certificates.length,الدورات:[...new Set(s.certificates.map(c=>c.course))].join('، '),آخر_شهادة:s.certificates.map(c=>c.issue_date).filter(Boolean).sort().reverse()[0]||''}));
+  const rows=allStudents.map(s=>({اسم_المتدرب:s.name,الهاتف:s.phone,الرقم_القومي:s.national,البريد:s.email,عدد_الشهادات:s.certificates.length,الدورات:[...new Set(s.certificates.map(c=>c.course))].join('، '),آخر_شهادة:s.certificates.map(c=>c.acquisition_date||c.issue_date).filter(Boolean).sort().reverse()[0]||''}));
   const ws=XLSX.utils.json_to_sheet(rows),wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'المتدربون');XLSX.writeFile(wb,'سجل_متدربي_المؤسسة.xlsx');
   toast('تم تصدير سجل المتدربين','ok');
@@ -1023,7 +1023,7 @@ async function loadCerts(){
 function renderCerts(certs){
   document.getElementById('certsTable').innerHTML=!certs.length?'<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted)">لا توجد شهادات</td></tr>':certs.map(c=>`<tr>
     <td>${escapeHtml(c.student_name)}</td><td style="font-family:monospace;font-size:11px">${escapeHtml(c.cert_number)}</td><td>${escapeHtml(c.course)}</td>
-    <td>${c.issue_date?new Date(c.issue_date).toLocaleDateString('ar-EG'):'—'}</td>
+    <td>${c.issue_date?new Date(c.acquisition_date||c.issue_date).toLocaleDateString('ar-EG'):'—'}</td>
     <td><span class="badge badge-ok">${escapeHtml(c.grade||'ناجح')}</span></td>
     <td><span class="badge ${c.status==='active'?'badge-ok':c.status==='suspended'?'badge-warn':'badge-err'}">${c.status==='active'?'نشط':c.status==='suspended'?'موقوف مؤقتاً':'ملغاة'}</span></td>
     <td><a href="certificate.html?id=${encodeURIComponent(c.cert_number||'')}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;font-weight:700;text-decoration:none">عرض ↗</a>
@@ -1038,7 +1038,7 @@ async function setCertStatus(id,status){
   if(error){toast('تعذر تحديث حالة الشهادة: '+error.message,'err');return;}
   toast('تم تحديث حالة الشهادة','ok');await loadCerts();await loadDashboard();
 }
-function exportCerts(){const ws=XLSX.utils.json_to_sheet(allCerts.map(c=>({'اسم الطالب':c.student_name,'رقم الشهادة':c.cert_number,'الدورة':c.course,'التاريخ':c.issue_date,'التقدير':c.grade})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الشهادات');XLSX.writeFile(wb,'شهادات.xlsx');}
+function exportCerts(){const ws=XLSX.utils.json_to_sheet(allCerts.map(c=>({'اسم الطالب':c.student_name,'رقم الشهادة':c.cert_number,'الدورة':c.course,'تاريخ الحصول':c.acquisition_date||c.issue_date,'التقدير':c.grade})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الشهادات');XLSX.writeFile(wb,'شهادات.xlsx');}
 
 // ── Bulk Upload ────────────────────────────────────────────────
 function handleDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('over');const f=e.dataTransfer.files[0];if(f)processFile(f);}
@@ -1056,7 +1056,7 @@ async function confirmBulk(){
     sourceRow:index+2,
     student_name:String(r['اسم الطالب']||r['student_name']||'').trim(),
     course:String(r['الدورة']||r['course']||'').trim(),
-    issue_date:String(r['التاريخ']||r['issue_date']||new Date().toISOString().slice(0,10)).trim(),
+    issue_date:String(r['تاريخ الحصول']||r['التاريخ']||r['issue_date']||new Date().toISOString().slice(0,10)).trim(),
     grade:String(r['التقدير']||r['grade']||'').trim(),
     governorate:String(r['المحافظة']||r['governorate']||'').trim(),
     visible_to_companies:false
@@ -1090,7 +1090,7 @@ async function doVerify(){
   if(!q){res.innerHTML='';return;}
   const {data,error}=await sb.rpc('verify_certificate',{p_cert_number:q}); const c=Array.isArray(data)?data[0]:data;
   if(error||!c){res.innerHTML='<div style="background:#fff5f5;color:#dc2626;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600">❌ لم يتم العثور على الشهادة</div>';return;}
-  res.innerHTML=`<div style="background:#f0f9ff;border:2px solid var(--blue);border-radius:12px;padding:16px"><div style="font-size:15px;font-weight:800;color:${c.status==='active'?'var(--blue)':'#dc2626'};margin-bottom:12px">${c.status==='active'?'✓ شهادة موثقة وصالحة':'⚠ الشهادة غير سارية'}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[['الطالب',c.student_name],['الدورة',c.course],['التاريخ',new Date(c.issue_date).toLocaleDateString('ar-EG')],['المؤسسة',c.institution_name||'—'],['الحالة',c.status]].map(([l,v])=>`<div style="background:#fff;border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${l}</div><div style="font-size:13px;font-weight:700;color:var(--navy)">${v}</div></div>`).join('')}</div></div>`;
+  res.innerHTML=`<div style="background:#f0f9ff;border:2px solid var(--blue);border-radius:12px;padding:16px"><div style="font-size:15px;font-weight:800;color:${c.status==='active'?'var(--blue)':'#dc2626'};margin-bottom:12px">${c.status==='active'?'✓ شهادة موثقة وصالحة':'⚠ الشهادة غير سارية'}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${[['الطالب',c.student_name],['الدورة',c.course],['التاريخ',new Date(c.acquisition_date||c.issue_date).toLocaleDateString('ar-EG')],['المؤسسة',c.institution_name||'—'],['الحالة',c.status]].map(([l,v])=>`<div style="background:#fff;border-radius:8px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--muted)">${l}</div><div style="font-size:13px;font-weight:700;color:var(--navy)">${v}</div></div>`).join('')}</div></div>`;
 }
 
 // ── Nav ─────────────────────────────────────────────────────────
