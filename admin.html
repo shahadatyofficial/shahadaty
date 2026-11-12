@@ -1038,7 +1038,8 @@ async function saveAlumniProfile(){
  const full_name=document.getElementById('al_full_name').value.trim();
  const qualification_name=document.getElementById('al_qualification').value.trim();
  const yearRaw=document.getElementById('al_year').value;
- if(!full_name||!qualification_name){toast('أدخل اسم الخريج والمؤهل','err');return;}\n if(!document.getElementById('al_public').checked){toast('لا يمكن إضافة ملف للبحث العام دون تأكيد موافقة الخريج الصريحة على النشر.','err');return;}
+ if(!full_name||!qualification_name){toast('أدخل اسم الخريج والمؤهل','err');return;}
+ if(!document.getElementById('al_public').checked){toast('لا يمكن إضافة ملف للبحث العام دون تأكيد موافقة الخريج الصريحة على النشر.','err');return;}
  const{data:profile,error}=await sb.from('alumni_profiles').insert({
   full_name,phone:document.getElementById('al_phone').value.trim()||null,
   email:document.getElementById('al_email').value.trim()||null,
