@@ -942,7 +942,7 @@ function initCharts(rows, active, revoked){
 async function loadActivity(){
   const{data}=await sb.from('certificates').select('student_name,course,created_at').eq('institution_id',inst.id).order('created_at',{ascending:false}).limit(5);
   const icons=[{ic:'description',bg:'#eff6ff',c:'#0369a1'},{ic:'upload_file',bg:'#f0fdf4',c:'#059669'},{ic:'verified',bg:'#f0f9ff',c:'#0284c7'},{ic:'group_add',bg:'#fef9ee',c:'#b08d48'},{ic:'settings',bg:'#fdf4ff',c:'#7c3aed'}];
-  document.getElementById('activityList').innerHTML=(data||[]).length?data.map((c,i)=>{const ic=icons[i%5];return`<div class="activity-item"><div class="act-icon" style="background:${ic.bg}"><span class="material-symbols-outlined" style="color:${ic.c};font-size:17px">${ic.ic}</span></div><div><div class="act-text">تم إصدار شهادة جديدة — ${c.student_name}</div><div class="act-time">${new Date(c.created_at).toLocaleString('ar-EG',{hour:'2-digit',minute:'2-digit'})}</div></div></div>`;}).join(''):'<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">لا توجد أنشطة بعد</div>';
+  document.getElementById('activityList').innerHTML=(data||[]).length?data.map((c,i)=>{const ic=icons[i%5];return`<div class="activity-item"><div class="act-icon" style="background:${ic.bg}"><span class="material-symbols-outlined" style="color:${ic.c};font-size:17px">${ic.ic}</span></div><div><div class="act-text">تم إصدار شهادة جديدة — ${courseEsc(c.student_name)}</div><div class="act-time">${new Date(c.created_at).toLocaleString('ar-EG',{hour:'2-digit',minute:'2-digit'})}</div></div></div>`;}).join(''):'<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">لا توجد أنشطة بعد</div>';
 }
 
 async function loadTopCerts(){
