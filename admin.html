@@ -650,7 +650,7 @@ async function reactivateInstitution(id){
   const {data,error}=await sb.rpc('admin_reactivate_institution',{p_institution_id:id});
   if(error){toast(error.message==='PAYMENT_REQUIRED'?'لا يمكن إعادة التفعيل قبل تأكيد السداد.':error.message==='SUBSCRIPTION_EXPIRED'?'انتهت مدة الاشتراك؛ يجب تجديده أولاً.':error.message,'err');return;}
   toast('تمت إعادة تفعيل المؤسسة والاشتراك بنجاح','ok');
-  loadInstitutions();loadBadges();loadReqs();loadOverview();loadSubscriptions?.();
+  loadInstitutions();loadBadges();loadReqs();loadOverview();
 }
 
 async function setInstSt(id,status){
