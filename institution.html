@@ -1098,7 +1098,7 @@ function normalizeBulkDate(value){
   if(typeof value==='number'&&Number.isFinite(value)){const d=XLSX.SSF.parse_date_code(value);if(d)return [d.y,String(d.m).padStart(2,'0'),String(d.d).padStart(2,'0')].join('-');}
   const s=String(value||'').trim();if(!s)return '';
   let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);if(m){const y=+m[1],mo=+m[2],d=+m[3],dt=new Date(y,mo-1,d);return dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d?[y,String(mo).padStart(2,'0'),String(d).padStart(2,'0')].join('-'):'';}
-  m=s.match(/^(\d{1,2})[\\/.-](\d{1,2})[\\/.-](\d{4})$/);if(m){const d=+m[1],mo=+m[2],y=+m[3],dt=new Date(y,mo-1,d);return dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d?[y,String(mo).padStart(2,'0'),String(d).padStart(2,'0')].join('-'):'';}
+  m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);if(m){const d=+m[1],mo=+m[2],y=+m[3],dt=new Date(y,mo-1,d);return dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d?[y,String(mo).padStart(2,'0'),String(d).padStart(2,'0')].join('-'):'';}
   return '';
 }
 function prepareBulkRow(r,index){
