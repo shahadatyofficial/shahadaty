@@ -576,7 +576,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       </div>
       <div class="card">
         <div class="card-head"><span class="card-title">الدورات والبرامج المسجلة</span><button type="button" class="btn-cancel" onclick="loadCourses()">تحديث</button></div>
-        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>اسم الدورة</th><th>التخصص</th><th>المدة</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="coursesTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>اسم الدورة</th><th>التخصص</th><th>المدة</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="coursesTable"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
       </div>
     </div>
 
@@ -585,8 +585,16 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       <div class="card">
         <div class="card-head"><span class="card-title">سجل المتدربين</span><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="studentSearch" type="search" class="form-inp2" placeholder="ابحث بالاسم أو الهاتف أو الرقم القومي..." oninput="renderStudents()" style="max-width:300px;margin:0"><button type="button" class="btn-cancel" onclick="exportStudents()">تصدير Excel</button><button type="button" class="btn-cancel" onclick="loadStudents()">تحديث</button></div></div>
         <div class="card-body"><div id="studentsSummary" style="font-size:12px;color:var(--muted);margin-bottom:12px">جاري تحميل سجل المتدربين...</div>
-          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>اسم المتدرب</th><th>رقم الهاتف</th><th>عدد الشهادات</th><th>الدورات المسجلة</th><th>آخر شهادة</th></tr></thead><tbody id="studentsTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>اسم المتدرب</th><th>رقم الهاتف</th><th>عدد الشهادات</th><th>الدورات المسجلة</th><th>آخر شهادة</th><th>الملف</th></tr></thead><tbody id="studentsTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
         </div>
+      </div>
+    </div>
+
+    <!-- TRAINEE DETAILS MODAL -->
+    <div id="studentDetailModal" role="dialog" aria-modal="true" aria-labelledby="studentDetailTitle" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(7,18,38,.68);padding:18px;overflow:auto;align-items:center;justify-content:center" onclick="if(event.target===this)closeStudentDetails()">
+      <div style="background:#fff;color:#17243a;width:min(900px,100%);max-height:92vh;overflow:auto;border-radius:18px;padding:20px;box-shadow:0 20px 70px rgba(0,0,0,.25)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px"><h3 id="studentDetailTitle" style="margin:0;font-size:19px">ملف المتدرب</h3><button type="button" class="btn-cancel" onclick="closeStudentDetails()">إغلاق ✕</button></div>
+        <div id="studentDetailBody"></div>
       </div>
     </div>
 
@@ -821,7 +829,7 @@ async function loadStudents(){
   body.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px">جاري تحميل البيانات...</td></tr>';
   let rows=[],from=0,batch=1000;
   while(true){
-    const{data,error}=await sb.from('certificates').select('student_name,student_phone,student_national_id,student_email,course,issue_date,acquisition_date,cert_number,status').eq('institution_id',inst.id).order('acquisition_date',{ascending:false}).range(from,from+batch-1);
+    const{data,error}=await sb.from('certificates').select('id,student_name,student_name_en,student_phone,student_national_id,student_email,governorate,course,specialization,duration,issue_date,acquisition_date,expiry_date,cert_number,status,grade,record_type,source_type').eq('institution_id',inst.id).order('acquisition_date',{ascending:false}).range(from,from+batch-1);
     if(error){body.innerHTML='<tr><td colspan="5">تعذر تحميل المتدربين: '+courseEsc(error.message)+'</td></tr>';return;}
     rows=rows.concat(data||[]);
     if(!data||data.length<batch)break;
@@ -832,11 +840,15 @@ async function loadStudents(){
   rows.forEach(c=>{
     const phone=String(c.student_phone||'').trim(),national=String(c.student_national_id||'').trim();
     const name=String(c.student_name||'').trim();
-    const key=national?'nid:'+national:phone?'phone:'+phone:'name:'+name.toLocaleLowerCase('ar');
-    if(!groups.has(key))groups.set(key,{key,name,phone,national,email:c.student_email||'',certificates:[]});
+    const email=String(c.student_email||'').trim().toLocaleLowerCase('en');
+    // Avoid merging two different people who merely share the same name.
+    const key=national?'nid:'+national:phone?'phone:'+phone:email?'email:'+email:'certificate:'+c.id;
+    if(!groups.has(key))groups.set(key,{key,name,englishName:c.student_name_en||'',phone,national,email:c.student_email||'',governorate:c.governorate||'',certificates:[]});
     const student=groups.get(key);
     if(!student.phone&&phone)student.phone=phone;
     if(!student.email&&c.student_email)student.email=c.student_email;
+    if(!student.governorate&&c.governorate)student.governorate=c.governorate;
+    if(!student.englishName&&c.student_name_en)student.englishName=c.student_name_en;
     student.certificates.push(c);
   });
   allStudents=[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,'ar'));
@@ -844,14 +856,32 @@ async function loadStudents(){
 }
 function renderStudents(){
   const term=(document.getElementById('studentSearch')?.value||'').trim().toLocaleLowerCase('ar');
-  const list=allStudents.filter(s=>[s.name,s.phone,s.national,s.email,...s.certificates.map(c=>c.course)].join(' ').toLocaleLowerCase('ar').includes(term));
-  document.getElementById('studentsSummary').textContent='إجمالي المتدربين: '+allStudents.length.toLocaleString('ar-EG')+' · نتائج البحث: '+list.length.toLocaleString('ar-EG');
+  const list=allStudents.filter(s=>[s.name,s.englishName,s.phone,s.national,s.email,s.governorate,...s.certificates.flatMap(c=>[c.course,c.specialization])].join(' ').toLocaleLowerCase('ar').includes(term));
+  document.getElementById('studentsSummary').textContent='إجمالي ملفات المتدربين: '+allStudents.length.toLocaleString('ar-EG')+' · نتائج البحث: '+list.length.toLocaleString('ar-EG');
   document.getElementById('studentsTable').innerHTML=list.length?list.map(s=>{
     const courses=[...new Set(s.certificates.map(c=>c.course).filter(Boolean))];
     const last=s.certificates.map(c=>c.acquisition_date||c.issue_date).filter(Boolean).sort().reverse()[0];
-    return '<tr><td>'+courseEsc(s.name)+'</td><td dir="ltr">'+courseEsc(s.phone||'—')+'</td><td>'+s.certificates.length.toLocaleString('ar-EG')+'</td><td>'+courseEsc(courses.join('، ')||'—')+'</td><td>'+(last?new Date(last+'T00:00:00').toLocaleDateString('ar-EG'):'—')+'</td></tr>';
-  }).join(''):'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج مطابقة.</td></tr>';
+    const index=allStudents.indexOf(s);
+    return '<tr><td>'+courseEsc(s.name)+(s.englishName?'<div style="font-size:11px;color:var(--muted)">'+courseEsc(s.englishName)+'</div>':'')+'</td><td dir="ltr">'+courseEsc(s.phone||'—')+'</td><td>'+s.certificates.length.toLocaleString('ar-EG')+'</td><td>'+courseEsc(courses.join('، ')||'—')+'</td><td>'+(last?new Date(last+'T00:00:00').toLocaleDateString('ar-EG'):'—')+'</td><td><button type="button" class="btn-cancel" onclick="viewStudentDetails('+index+')">الملف والتفاصيل</button></td></tr>';
+  }).join(''):'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">لا توجد نتائج مطابقة.</td></tr>';
 }
+function viewStudentDetails(index){
+  const s=allStudents[index];if(!s)return;
+  document.getElementById('studentDetailTitle').textContent='ملف المتدرب: '+s.name;
+  const certificates=[...s.certificates].sort((a,b)=>String(b.acquisition_date||b.issue_date||'').localeCompare(String(a.acquisition_date||a.issue_date||'')));
+  const field=(label,value)=>'<div style="padding:10px;border:1px solid #e7edf5;border-radius:10px"><div style="font-size:11px;color:#64748b;margin-bottom:4px">'+label+'</div><div style="font-weight:700;overflow-wrap:anywhere">'+courseEsc(value||'—')+'</div></div>';
+  document.getElementById('studentDetailBody').innerHTML=
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px;margin-bottom:18px">'+
+    field('الاسم بالعربية',s.name)+field('الاسم بالإنجليزية',s.englishName)+field('رقم الهاتف',s.phone)+field('البريد الإلكتروني',s.email)+
+    field('الرقم القومي',s.national)+field('المحافظة',s.governorate)+field('عدد الشهادات',String(s.certificates.length))+'</div>'+
+    '<h4 style="margin:14px 0 10px">سجل الدورات والشهادات</h4>'+
+    (certificates.length?'<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الدورة / المؤهل</th><th>التخصص</th><th>تاريخ الحصول</th><th>المدة</th><th>التقدير</th><th>الحالة</th><th>الشهادة</th></tr></thead><tbody>'+
+    certificates.map(c=>'<tr><td>'+courseEsc(c.course)+'</td><td>'+courseEsc(c.specialization||'—')+'</td><td>'+(c.acquisition_date||c.issue_date?new Date((c.acquisition_date||c.issue_date)+'T00:00:00').toLocaleDateString('ar-EG'):'—')+'</td><td>'+courseEsc(c.duration||'—')+'</td><td>'+courseEsc(c.grade||'—')+'</td><td>'+courseEsc(c.status==='active'?'نشطة':c.status==='suspended'?'موقوفة':'ملغاة')+'</td><td><a href="certificate.html?id='+encodeURIComponent(c.cert_number||'')+'" target="_blank" rel="noopener">عرض الشهادة ↗</a></td></tr>').join('')+
+    '</tbody></table></div>':'<p>لا توجد شهادات مسجلة لهذا المتدرب.</p>');
+  const modal=document.getElementById('studentDetailModal');modal.style.display='flex';document.body.style.overflow='hidden';
+}
+function closeStudentDetails(){const modal=document.getElementById('studentDetailModal');if(modal)modal.style.display='none';document.body.style.overflow='';}
+
 function exportStudents(){
   if(!allStudents.length){toast('لا يوجد متدربون لتصديرهم','err');return;}
   const rows=allStudents.map(s=>({اسم_المتدرب:s.name,الهاتف:s.phone,الرقم_القومي:s.national,البريد:s.email,عدد_الشهادات:s.certificates.length,الدورات:[...new Set(s.certificates.map(c=>c.course))].join('، '),آخر_شهادة:s.certificates.map(c=>c.acquisition_date||c.issue_date).filter(Boolean).sort().reverse()[0]||''}));
