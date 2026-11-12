@@ -970,7 +970,7 @@ async function loadPkgs(){
   if(subErr){body.innerHTML='<tr><td colspan="7">تعذر تحميل الاشتراكات: '+adminEsc(subErr.message)+'</td></tr>';return;}
   body.innerHTML=!pendingPayments.length?'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">لا توجد مدفوعات معلقة أو فروق أسعار</td></tr>':pendingPayments.map(s=>`<tr>
     <td>${adminEsc(s.institution_name)}</td><td>${adminEsc(s.package_name)}</td>
-    <td>${Number(s.amount||0).toLocaleString('ar-EG')} ${adminEsc(s.currency||'EGP')}${s.pricingMismatch?`<div style="font-size:10px;color:#b45309;margin-top:4px">السعر الحالي للباقة: ${Number(s.expectedAmount).toLocaleString('ar-EG')} ${adminEsc(s.currency||'EGP')}</div>`:''}</td>
+    <td>${Number(s.amount||0).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2})} ${adminEsc(s.currency||'EGP')}${s.pricingMismatch?`<div style="font-size:10px;color:#b45309;margin-top:4px">السعر الحالي للباقة: ${Number(s.expectedAmount).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2})} ${adminEsc(s.currency||'EGP')}</div>`:''}</td>
     <td>${s.billing_cycle==='yearly'?'سنوي':'شهري'}</td>
     <td>${s.pricingMismatch?'<span style="color:#b45309;font-weight:800">فرق سعر يحتاج مراجعة</span>':adminEsc(s.payment_status)+' / '+adminEsc(s.status)}</td>
     <td>${adminEsc(s.payment_reference)}</td>
@@ -1040,13 +1040,29 @@ async function repriceSubscription(id){
   loadPkgs();
 }
 
+function subscriptionPaymentErrorMessage(error){
+  const code=String(error?.message||error||'');
+  const messages={
+    PAYMENT_ALREADY_CONFIRMED:'تم تأكيد سداد هذا الاشتراك بالفعل.',
+    PAYMENT_REFERENCE_ALREADY_USED:'مرجع التحويل مستخدم في اشتراك آخر. راجع رقم الإيصال.',
+    PAYMENT_NOT_REQUIRED:'هذه الباقة مجانية ولا تحتاج إلى تسجيل دفعة.',
+    SUBSCRIPTION_AMOUNT_MISMATCH:'قيمة الاشتراك لا تطابق السعر الحالي للباقة. حدّث السعر أولاً.',
+    INSTITUTION_NOT_APPROVED:'لا يمكن تفعيل الاشتراك قبل اعتماد المؤسسة.',
+    SUBSCRIPTION_NOT_CONFIRMABLE:'حالة الاشتراك لا تسمح بتأكيد السداد.',
+    PAYMENT_STATUS_NOT_CONFIRMABLE:'حالة الدفع الحالية لا تسمح بتأكيد السداد.',
+    PAYMENT_REFERENCE_REQUIRED:'رقم مرجع الدفع مطلوب.',
+    PAYMENT_REFERENCE_TOO_LONG:'رقم مرجع الدفع أطول من المسموح.',
+    NOT_ALLOWED:'هذه العملية متاحة لإدارة المنصة فقط.'
+  };
+  return messages[code]||code||'تعذر تأكيد السداد. حاول مرة أخرى.';
+}
 async function confirmSubscriptionPayment(id){
   const reference=prompt('أدخل رقم إيصال التحويل أو مرجع الدفع بعد التحقق منه:','');
   if(reference===null)return;
   if(!reference.trim()){toast('مرجع الدفع مطلوب بعد مراجعة إثبات السداد','err');return;}
   if(!confirm('هل تحققت فعلياً من استلام المبلغ وتريد تفعيل الاشتراك؟'))return;
   const{error}=await sb.rpc('admin_confirm_subscription_payment',{p_subscription_id:id,p_payment_reference:reference.trim()});
-  if(error){toast(error.message,'err');return;}
+  if(error){toast(subscriptionPaymentErrorMessage(error),'err');return;}
   toast('تم تسجيل السداد وتفعيل الاشتراك','ok');loadPkgs();
 }
 
