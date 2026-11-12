@@ -234,7 +234,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
             <label>سنة التخرج<input class="form-inp" id="al_year" type="number" min="1950" max="2100"></label>
             <label>التقدير<input class="form-inp" id="al_grade" placeholder="امتياز / جيد جداً / جيد / مقبول"></label>
           </div>
-          <label style="display:flex;align-items:center;gap:8px;margin:8px 0 14px"><input type="checkbox" id="al_public"> إظهار الاسم والبيانات الأكاديمية في البحث العام</label>
+          <label style="display:flex;align-items:flex-start;gap:8px;margin:8px 0 14px;line-height:1.8"><input type="checkbox" id="al_public" required style="margin-top:5px"> أؤكد أن الخريج وافق صراحةً على تسجيل ونشر اسمه ومؤهله وبياناته الأكاديمية في محرك البحث العام لمنصة شهادتي.</label>
           <button class="btn-p" onclick="saveAlumniProfile()">حفظ ملف الخريج</button>
         </div>
       </div>
@@ -386,7 +386,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
               </div>
             </section>
             <div style="margin-top:14px"><label class="form-lbl" for="adminCertGrade">التقدير / النتيجة (للشهادة التدريبية)</label><input class="inp" id="adminCertGrade" maxlength="80" style="width:100%"></div>
-            <label style="display:flex;align-items:flex-start;gap:9px;margin-top:18px;padding:13px;background:#fff8e8;border:1px solid #ead7a5;border-radius:10px;font-size:12px;line-height:1.9"><input type="checkbox" id="adminCertDeclaration" required style="margin-top:5px"><span>أقر بأن البيانات والمستندات قد تمت مراجعتها، وأن صحتها واكتمالها على مسؤولية صاحب البيانات، وأن تسجيلها في المنصة لا يمثل تصديقاً من منصة شهادتي على صحة المؤهل أو اعتماداً له.</span></label>
+            <label style="display:flex;align-items:flex-start;gap:9px;margin-top:18px;padding:13px;background:#fff8e8;border:1px solid #ead7a5;border-radius:10px;font-size:12px;line-height:1.9"><input type="checkbox" id="adminCertDeclaration" required style="margin-top:5px"><span>أؤكد أن صاحب البيانات وافق صراحةً على تسجيل ونشر اسمه وبيانات مؤهله في محرك البحث العام لمنصة شهادتي.</span></label><label style="display:flex;align-items:flex-start;gap:9px;margin-top:10px;padding:13px;background:#f0f9ff;border:1px solid #dbeafe;border-radius:10px;font-size:12px;line-height:1.9"><input type="checkbox" id="adminCertReview" required style="margin-top:5px"><span>أقر بصفتي مدخل البيانات أنني راجعت البيانات والمستندات، وأن صحتها واكتمالها على مسؤولية الجهة المقدمة، وأن التسجيل لا يمثل تصديقاً من منصة شهادتي على صحة المؤهل أو اعتماده.</span></label>
             <div id="adminCertFormMessage" role="status" style="display:none;margin-top:16px;padding:11px 14px;border-radius:9px;font-size:12px"></div>
           </div>
           <div class="card-head" style="justify-content:flex-start;gap:10px"><button class="btn-p" id="adminCertSubmit" type="submit"><span class="material-symbols-outlined">save</span>حفظ السجل</button><button class="btn-s" type="button" onclick="sp('certs',null)">العودة لمراجعة الشهادات</button></div>
@@ -756,7 +756,7 @@ function showAdminCertMessage(message,type='success'){const el=document.getEleme
 async function submitAdminCertificate(event){
  event.preventDefault();const form=document.getElementById('adminCertificateForm');if(!form.reportValidity())return;
  const academic=document.getElementById('adminCertKind').value==='academic',year=academic?Number(document.getElementById('adminAcademicYear').value):null;
- if(academic&&(year<1950||year>2100)){showAdminCertMessage('سنة التخرج غير صحيحة.','error');return;}
+ if(academic&&(year<1950||year>2100)){showAdminCertMessage('سنة التخرج غير صحيحة.','error');return;}\n if(!document.getElementById('adminCertDeclaration').checked||!document.getElementById('adminCertReview').checked){showAdminCertMessage('يلزم تأكيد موافقة صاحب البيانات على النشر وإقرار مراجعة البيانات قبل التسجيل.','error');return;}
  const payload={p_source:document.getElementById('adminCertSource').value,p_institution_id:document.getElementById('adminCertSource').value==='institution'?document.getElementById('adminCertInstitution').value:null,p_record_type:academic?'academic':'training',p_student_name:document.getElementById('adminCertStudent').value.trim(),p_student_name_en:document.getElementById('adminCertStudentEn').value.trim()||null,p_course:academic?'مؤهل علمي':document.getElementById('adminCertCourse').value.trim(),p_specialization:academic?document.getElementById('adminAcademicFaculty').value.trim():document.getElementById('adminCertSpecialization').value.trim()||null,p_issue_date:academic?year+'-06-30':document.getElementById('adminCertIssueDate').value,p_duration:academic?null:document.getElementById('adminCertDuration').value.trim()||null,p_grade:academic?document.getElementById('adminAcademicGrade').value||null:document.getElementById('adminCertGrade').value.trim()||null,p_university:academic?document.getElementById('adminAcademicUniversity').value.trim():null,p_faculty:academic?document.getElementById('adminAcademicFaculty').value.trim():null,p_academic_degree:academic?document.getElementById('adminAcademicDegree').value:null,p_graduation_year:year,p_declaration_accepted:document.getElementById('adminCertDeclaration').checked};
  const btn=document.getElementById('adminCertSubmit');btn.disabled=true;btn.textContent='جارٍ تسجيل البيانات...';
  const{data,error}=await sb.rpc('admin_add_certificate_v2',payload);btn.disabled=false;btn.innerHTML='<span class="material-symbols-outlined">save</span>حفظ السجل';
@@ -1037,13 +1037,13 @@ async function saveAlumniProfile(){
  const full_name=document.getElementById('al_full_name').value.trim();
  const qualification_name=document.getElementById('al_qualification').value.trim();
  const yearRaw=document.getElementById('al_year').value;
- if(!full_name||!qualification_name){toast('أدخل اسم الخريج والمؤهل','err');return;}
+ if(!full_name||!qualification_name){toast('أدخل اسم الخريج والمؤهل','err');return;}\n if(!document.getElementById('al_public').checked){toast('لا يمكن إضافة ملف للبحث العام دون تأكيد موافقة الخريج الصريحة على النشر.','err');return;}
  const{data:profile,error}=await sb.from('alumni_profiles').insert({
   full_name,phone:document.getElementById('al_phone').value.trim()||null,
   email:document.getElementById('al_email').value.trim()||null,
   governorate:document.getElementById('al_governorate').value.trim()||null,
   professional_summary:document.getElementById('al_summary').value.trim()||null,
-  visibility_status:document.getElementById('al_public').checked?'public':'hidden'
+  publication_consent:true,publication_consent_at:new Date().toISOString(),visibility_status:'public'
  }).select('id').single();
  if(error){toast(error.message,'err');return;}
  const{error:qError}=await sb.from('alumni_qualifications').insert({
