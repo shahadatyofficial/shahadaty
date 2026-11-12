@@ -11,6 +11,24 @@
 <body><main class="wrap">
 <header class="panel"><div class="brand">شهادتي العلمية | بوابة الشركات</div><p class="muted">ابحث عن الكفاءات المسجلة واطلب الاطلاع على الملف المهني بموافقة الخريج.</p></header>
 <section class="panel" id="loginPanel"><h2>دخول الشركات المعتمدة</h2><input class="field" id="email" type="email" placeholder="البريد الإلكتروني"><input class="field" id="password" type="password" placeholder="كلمة المرور"><button class="btn" id="loginBtn">تسجيل الدخول</button><p class="muted" id="loginMsg"></p></section>
+<section class="panel" id="joinPanel">
+  <h2>طلب انضمام شركة جديدة</h2>
+  <p class="muted">سجّل بيانات شركتك لإنشاء طلب مراجعة. لن تتمكن الشركة من استخدام البحث أو نشر الوظائف إلا بعد مراجعة الإدارة واعتماد الحساب.</p>
+  <form id="companyJoinForm">
+    <label for="joinCompanyName" class="muted">اسم الشركة / المستشفى *</label>
+    <input class="field" id="joinCompanyName" maxlength="200" required placeholder="الاسم الرسمي للجهة">
+    <div class="row">
+      <div><label for="joinContactName" class="muted">اسم مسؤول التواصل *</label><input class="field" id="joinContactName" maxlength="100" required></div>
+      <div><label for="joinPhone" class="muted">رقم الهاتف *</label><input class="field" id="joinPhone" type="tel" maxlength="32" required dir="ltr"></div>
+    </div>
+    <label for="joinEmail" class="muted">البريد الإلكتروني الرسمي *</label>
+    <input class="field" id="joinEmail" type="email" maxlength="254" required dir="ltr" autocomplete="email">
+    <label for="joinPassword" class="muted">كلمة مرور حساب الشركة *</label>
+    <input class="field" id="joinPassword" type="password" minlength="8" maxlength="72" required autocomplete="new-password" placeholder="8 أحرف على الأقل">
+    <button class="btn" id="companyJoinBtn" type="submit">إرسال طلب الانضمام</button>
+    <p class="muted" id="companyJoinMsg" role="status" aria-live="polite"></p>
+  </form>
+</section>
 <section class="panel hide" id="appPanel"><div class="row" style="align-items:center"><div><h2 id="companyTitle">بوابة التوظيف</h2><p class="muted">البيانات الظاهرة في نتائج البحث: الاسم والمؤهل وسنة التخرج فقط.</p></div><button class="btn alt" id="logoutBtn" style="flex:0 0 auto">تسجيل الخروج</button></div>
 <h3>البحث عن خريج</h3><form id="searchForm" class="row"><input class="field" id="nameQuery" placeholder="اسم الخريج"><input class="field" id="qualQuery" placeholder="المؤهل"><input class="field" id="specializationQuery" placeholder="التخصص"><input class="field" id="governorateQuery" placeholder="المحافظة"><input class="field" id="yearQuery" type="number" min="1950" max="2100" placeholder="سنة التخرج"><input class="field" id="skillQuery" placeholder="المهارة"><button class="btn" type="submit">بحث</button></form><div id="results" class="muted">اكتب المؤهل أو التخصص لبدء البحث.</div>
 <div class="panel"><h3>نشر إعلان وظيفة</h3><p class="muted">كل إعلان جديد يُرسل للإدارة للمراجعة قبل ظهوره للعامة.</p><input class="field" id="jobTitle" placeholder="المسمى الوظيفي"><input class="field" id="jobTeaser" placeholder="نبذة قصيرة للشريط المتحرك"><textarea class="field" id="jobDescription" rows="4" placeholder="تفاصيل الوظيفة والمتطلبات"></textarea><div class="row"><input class="field" id="jobQualification" placeholder="المؤهل المطلوب"><input class="field" id="jobGovernorate" placeholder="المحافظة"></div><div class="row"><input class="field" id="jobExperience" type="number" min="0" placeholder="سنوات الخبرة"><input class="field" id="jobExpiry" type="date"></div><button class="btn" id="publishJobBtn">إرسال الإعلان للمراجعة</button><div id="jobMsg" class="muted"></div><h3>إعلاناتي</h3><div id="myJobs" class="muted">جاري التحميل...</div></div>
@@ -24,6 +42,31 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 const sb=supabase.createClient(SU,SK);let companyId=null;
 const $=id=>document.getElementById(id);
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+$('companyJoinForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const btn=$('companyJoinBtn'),msg=$('companyJoinMsg');
+ const companyName=$('joinCompanyName').value.trim(),contactName=$('joinContactName').value.trim(),phone=$('joinPhone').value.trim(),email=$('joinEmail').value.trim().toLowerCase(),password=$('joinPassword').value;
+ if(!companyName||!contactName||!phone||!email||password.length<8){msg.textContent='راجع البيانات المطلوبة، وكلمة المرور يجب ألا تقل عن 8 أحرف.';return;}
+ btn.disabled=true;btn.textContent='جارٍ إرسال الطلب...';msg.textContent='';
+ try{
+  const{data:authData,error:authError}=await sb.auth.signUp({email,password,options:{data:{full_name:contactName}}});
+  if(authError)throw authError;
+  const authUserId=authData?.session?.user?.id||null;
+  const{error:insertError}=await sb.from('companies').insert({
+   company_name:companyName,contact_name:contactName,contact_email:email,contact_phone:phone,
+   status:'pending',search_credits:0,auth_user_id:authUserId
+  });
+  if(insertError)throw insertError;
+  $('companyJoinForm').reset();
+  msg.textContent=authData?.session
+   ?'تم استلام طلب الانضمام وإنشاء الحساب. سيظل الدخول والبحث معلقين حتى اعتماد الشركة من الإدارة.'
+   :'تم استلام طلب الانضمام. راجع بريدك لتأكيد الحساب، وبعد مراجعة الإدارة وربط الحساب ستتمكن من الدخول.';
+  msg.style.color='#047857';
+ }catch(error){
+  msg.textContent='تعذر إرسال الطلب: '+String(error?.message||error);
+  msg.style.color='#b91c1c';
+ }finally{btn.disabled=false;btn.textContent='إرسال طلب الانضمام';}
+});
 async function init(){
  const{data:{user}}=await sb.auth.getUser();
  if(!user){$('loginPanel').classList.remove('hide');$('appPanel').classList.add('hide');$('requestsPanel').classList.add('hide');return;}
