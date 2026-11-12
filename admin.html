@@ -783,8 +783,8 @@ function openAdminCertificateDetails(id){
   const field=(label,name,value,type='text',attrs='')=>'<label class="form-lbl">'+label+'<input class="form-inp" id="adm_edit_'+name+'" type="'+type+'" value="'+adminEsc(value??'')+'" '+attrs+'></label>';
   const academic=c.record_type==='academic';
   const modal=document.createElement('div');modal.id='adminCertificateModal';modal.className='modal-ov';modal.onclick=e=>{if(e.target===modal)modal.remove();};
-  modal.innerHTML='<div class="modal-box" style="max-width:850px"><div class="modal-head"><div><div class="modal-title">تعديل بيانات السجل</div><div style="font-size:11px;color:var(--muted);margin-top:4px">'+adminEsc(c.cert_number)+' — '+(academic?'مؤهل علمي':'شهادة تدريبية')+'</div></div><button type="button" class="modal-close" onclick="document.getElementById(\\'adminCertificateModal\\').remove()">✕</button></div>'+
-  '<form onsubmit="saveAdminCertificateDetails(event,\\''+c.id+'\\')"><div class="modal-body"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">'+
+  modal.innerHTML='<div class="modal-box" style="max-width:850px"><div class="modal-head"><div><div class="modal-title">تعديل بيانات السجل</div><div style="font-size:11px;color:var(--muted);margin-top:4px">'+adminEsc(c.cert_number)+' — '+(academic?'مؤهل علمي':'شهادة تدريبية')+'</div></div><button type="button" class="modal-close" onclick="document.getElementById(\'adminCertificateModal\').remove()">✕</button></div>'+
+  '<form onsubmit="saveAdminCertificateDetails(event,\''+c.id+'\')"><div class="modal-body"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">'+
   field('اسم صاحب الشهادة *','student_name',c.student_name,'text','required')+field('الاسم بالإنجليزية','student_name_en',c.student_name_en)+
   field(academic?'المؤهل العلمي':'الدورة التدريبية *','course',c.course,'text','required')+field('التخصص','specialization',c.specialization)+
   field('تاريخ الحصول على المؤهل / الدورة *','acquisition_date',c.acquisition_date||c.issue_date,'date','required')+
@@ -795,7 +795,7 @@ function openAdminCertificateDetails(id){
   field('الكلية','academic_faculty',c.academic_faculty)+field('الدرجة العلمية','academic_degree',c.academic_degree)+
   field('سنة التخرج','graduation_year',c.graduation_year,'number','min="1950" max="2100"')+
   '</div><div style="font-size:11px;color:var(--muted);line-height:1.8;margin-top:12px">رقم الشهادة وتاريخ إصدارها الأصلي وحالة السجل وموافقات النشر وإتاحة الشركات لا تتغير من هذه الشاشة.</div></div>'+
-  '<div class="modal-foot"><button type="button" class="btn-cancel" onclick="document.getElementById(\\'adminCertificateModal\\').remove()">إلغاء</button><button class="btn-p" type="submit">حفظ التعديلات</button></div></form></div>';
+  '<div class="modal-foot"><button type="button" class="btn-cancel" onclick="document.getElementById(\'adminCertificateModal\').remove()">إلغاء</button><button class="btn-p" type="submit">حفظ التعديلات</button></div></form></div>';
   document.getElementById('adminCertificateModal')?.remove();document.body.appendChild(modal);
 }
 async function saveAdminCertificateDetails(event,id){
@@ -827,12 +827,12 @@ async function openAdminTraineeProfile(id){
     return x.student_name===c.student_name;
   });
   const modal=document.createElement('div');modal.id='adminTraineeProfileModal';modal.className='modal-ov';modal.onclick=e=>{if(e.target===modal)modal.remove();};
-  modal.innerHTML='<div class="modal-box" style="max-width:850px"><div class="modal-head"><div><div class="modal-title">ملف صاحب الشهادة</div><div style="font-size:11px;color:var(--muted);margin-top:4px">سجل الشهادات والمؤهلات المرتبطة بالبيانات المتاحة</div></div><button class="modal-close" onclick="document.getElementById(\\'adminTraineeProfileModal\\').remove()">✕</button></div><div class="modal-body">'+
+  modal.innerHTML='<div class="modal-box" style="max-width:850px"><div class="modal-head"><div><div class="modal-title">ملف صاحب الشهادة</div><div style="font-size:11px;color:var(--muted);margin-top:4px">سجل الشهادات والمؤهلات المرتبطة بالبيانات المتاحة</div></div><button class="modal-close" onclick="document.getElementById(\'adminTraineeProfileModal\').remove()">✕</button></div><div class="modal-body">'+
   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:18px">'+
   '<div><b>الاسم:</b> '+adminEsc(c.student_name)+'</div><div><b>الهاتف:</b> '+adminEsc(c.student_phone)+'</div><div><b>البريد:</b> '+adminEsc(c.student_email)+'</div>'+
   '<div><b>الرقم القومي:</b> '+adminEsc(c.student_national_id)+'</div><div><b>المحافظة:</b> '+adminEsc(c.governorate)+'</div></div>'+
   '<h3 style="font-size:13px;margin-bottom:10px">السجل التدريبي والعلمي ('+records.length+')</h3><div style="overflow:auto"><table class="tbl"><thead><tr><th>رقم الشهادة</th><th>الدورة / المؤهل</th><th>الجهة</th><th>تاريخ الحصول</th><th>الحالة</th><th></th></tr></thead><tbody>'+
-  (records.length?records.map(r=>'<tr><td>'+adminEsc(r.cert_number)+'</td><td>'+adminEsc(r.record_type==='academic'?[r.academic_degree,r.academic_faculty,r.academic_university].filter(Boolean).join(' - '):r.course)+'</td><td>'+adminEsc(r.institution_name||'إدارة المنصة')+'</td><td>'+adminEsc(r.acquisition_date||r.issue_date)+'</td><td>'+adminEsc(r.status)+'</td><td><button class="btn-s" onclick="document.getElementById(\\'adminTraineeProfileModal\\').remove();openAdminCertificateDetails(\\''+r.id+'\\')">تعديل</button></td></tr>').join(''):'<tr><td colspan="6">لا توجد سجلات أخرى مرتبطة بالبيانات المتاحة.</td></tr>')+
+  (records.length?records.map(r=>'<tr><td>'+adminEsc(r.cert_number)+'</td><td>'+adminEsc(r.record_type==='academic'?[r.academic_degree,r.academic_faculty,r.academic_university].filter(Boolean).join(' - '):r.course)+'</td><td>'+adminEsc(r.institution_name||'إدارة المنصة')+'</td><td>'+adminEsc(r.acquisition_date||r.issue_date)+'</td><td>'+adminEsc(r.status)+'</td><td><button class="btn-s" onclick="document.getElementById(\'adminTraineeProfileModal\').remove();openAdminCertificateDetails(\''+r.id+'\')">تعديل</button></td></tr>').join(''):'<tr><td colspan="6">لا توجد سجلات أخرى مرتبطة بالبيانات المتاحة.</td></tr>')+
   '</tbody></table></div><div style="font-size:10px;color:var(--muted);margin-top:10px">يتم الربط بالرقم القومي أولاً، ثم الهاتف أو البريد الإلكتروني. عند عدم توافر معرف فريد، يُعرض سجل الاسم المطابق فقط لتجنب دمج أشخاص مختلفين.</div></div></div>';
   document.getElementById('adminTraineeProfileModal')?.remove();document.body.appendChild(modal);
 }
