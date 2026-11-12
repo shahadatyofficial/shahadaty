@@ -445,8 +445,8 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       <div class="card">
         <div class="card-head"><span class="card-title">إدارة الباقات</span><button class="btn-p" onclick="openPackageEditor()"><span class="material-symbols-outlined">add</span>إضافة باقة</button></div>
         <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الباقة</th><th>شهريًا (مكافئ)</th><th>سنوي قبل الخصم</th><th>سنوي بعد الخصم</th><th>الكوتا</th><th>المشتركون</th><th>الإجراءات</th></tr></thead><tbody id="pkgTable"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
-        <div class="card-head" style="margin-top:22px"><span class="card-title">الاشتراكات والمدفوعات غير المؤكدة</span><button class="btn-s" onclick="loadPkgs()">تحديث</button></div>
-        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>المؤسسة</th><th>الباقة</th><th>القيمة</th><th>دورة الفوترة</th><th>الحالة</th><th>مرجع الدفع</th><th>إجراء</th></tr></thead><tbody id="subTable"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+        <div class="card-head" style="margin-top:22px"><span class="card-title">الاشتراكات والمدفوعات ومراجعة فروق الأسعار</span><button class="btn-s" onclick="loadPkgs()">تحديث</button></div>
+        <p style="font-size:11px;color:var(--muted);margin:0 0 10px">تظهر هنا المدفوعات المعلقة وأي اشتراك لا يطابق سعر الباقة الحالي. لا يتم تعديل مبالغ الاشتراكات القديمة تلقائيًا.</p><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>المؤسسة</th><th>الباقة</th><th>القيمة المسجلة / المتوقعة</th><th>دورة الفوترة</th><th>الحالة</th><th>مرجع الدفع</th><th>إجراء</th></tr></thead><tbody id="subTable"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
       </div>
     </div>
 
@@ -951,16 +951,21 @@ async function loadPkgs(){
     <td><span style="font-size:13px;font-weight:800;color:var(--blue)">${p.institutions?.length||0}</span></td>
     <td><button class="btn-s" type="button" onclick="editPackage('${p.id}')">تعديل</button> <button class="btn-d" type="button" onclick="deletePackage('${p.id}')">حذف</button></td>
   </tr>`).join('');
-  const unpaid=(subs||[]).filter(s=>Number(s.amount||0)>0&&s.payment_status!=='paid'&&!['cancelled','expired'].includes(s.status));
+  const pendingPayments=(subs||[]).map(s=>{
+    const pkg=(packages||[]).find(p=>p.name_ar===s.package_name||p.name===s.package_name);
+    const expectedAmount=pkg?Number(s.billing_cycle==='yearly'?pkg.price_yearly:pkg.price_monthly):null;
+    const actualAmount=Number(s.amount||0);
+    return {...s,expectedAmount,pricingMismatch:expectedAmount!==null&&Math.abs(actualAmount-expectedAmount)>0.009};
+  }).filter(s=>!['cancelled','expired'].includes(s.status)&&(s.pricingMismatch||(s.expectedAmount>0&&s.payment_status!=='paid')));
   const body=document.getElementById('subTable');
   if(subErr){body.innerHTML='<tr><td colspan="7">تعذر تحميل الاشتراكات: '+adminEsc(subErr.message)+'</td></tr>';return;}
-  body.innerHTML=!unpaid.length?'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">لا توجد مدفوعات معلقة</td></tr>':unpaid.map(s=>`<tr>
+  body.innerHTML=!pendingPayments.length?'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">لا توجد مدفوعات معلقة أو فروق أسعار</td></tr>':pendingPayments.map(s=>`<tr>
     <td>${adminEsc(s.institution_name)}</td><td>${adminEsc(s.package_name)}</td>
-    <td>${Number(s.amount||0).toLocaleString('ar-EG')} ${adminEsc(s.currency||'EGP')}</td>
+    <td>${Number(s.amount||0).toLocaleString('ar-EG')} ${adminEsc(s.currency||'EGP')}${s.pricingMismatch?`<div style="font-size:10px;color:#b45309;margin-top:4px">السعر الحالي للباقة: ${Number(s.expectedAmount).toLocaleString('ar-EG')} ${adminEsc(s.currency||'EGP')}</div>`:''}</td>
     <td>${s.billing_cycle==='yearly'?'سنوي':'شهري'}</td>
-    <td>${adminEsc(s.payment_status)} / ${adminEsc(s.status)}</td>
+    <td>${s.pricingMismatch?'<span style="color:#b45309;font-weight:800">فرق سعر يحتاج مراجعة</span>':adminEsc(s.payment_status)+' / '+adminEsc(s.status)}</td>
     <td>${adminEsc(s.payment_reference)}</td>
-    <td><button class="btn-p" onclick="confirmSubscriptionPayment('${s.id}')">تأكيد السداد</button></td>
+    <td>${s.pricingMismatch?'<span style="font-size:11px;color:#b45309">لا يمكن تأكيد السداد قبل مراجعة المبلغ</span>':s.payment_status==='paid'?'—':`<button class="btn-p" onclick="confirmSubscriptionPayment('${s.id}')">تأكيد السداد</button>`}</td>
   </tr>`).join('');
 }
 function openPackageEditor(pkg=null){
