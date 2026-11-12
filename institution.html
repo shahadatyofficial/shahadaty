@@ -1119,6 +1119,25 @@ async function loadTopCerts(){
   document.getElementById('topCertsList').innerHTML=sorted.length?sorted.map(([name,cnt])=>`<div class="cert-row"><span class="cert-name">${name}</span><div class="cert-bar-wrap"><div class="cert-bar"><div class="cert-bar-fill" style="width:${Math.round(cnt/max*100)}%"></div></div></div><span class="cert-count">${cnt}</span></div>`).join(''):'<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">لا توجد بيانات</div>';
 }
 
+async function submitInstitutionPaymentReference(subscriptionId){
+  const input=document.getElementById('subscriptionPaymentReference');
+  const btn=document.getElementById('subscriptionPaymentReferenceBtn');
+  const reference=(input?.value||'').trim();
+  if(!reference){toast('أدخل رقم مرجع التحويل أولاً','err');input?.focus();return;}
+  if(reference.length>200){toast('رقم المرجع أطول من المسموح','err');return;}
+  if(!confirm('هل أجريت التحويل بالفعل وتريد إرسال رقم المرجع للمراجعة؟'))return;
+  btn.disabled=true;btn.textContent='جارٍ الإرسال...';
+  const{error}=await sb.rpc('institution_submit_subscription_payment_reference',{p_subscription_id:subscriptionId,p_payment_reference:reference});
+  btn.disabled=false;btn.textContent='إرسال للمراجعة';
+  if(error){
+   const messages={PAYMENT_ALREADY_CONFIRMED:'تم تأكيد هذا السداد بالفعل.',PAYMENT_REFERENCE_ALREADY_USED:'رقم المرجع مستخدم في اشتراك آخر.',PAYMENT_NOT_REQUIRED:'هذا الاشتراك لا يتطلب سدادًا.',NOT_ALLOWED:'ليس لديك صلاحية إرسال مرجع الدفع لهذا الاشتراك.'};
+   const code=String(error.message||'').split(':')[0].trim();
+   toast(messages[code]||'تعذر إرسال مرجع الدفع: '+error.message,'err');return;
+  }
+  toast('تم إرسال مرجع الدفع للإدارة. لن يتفعل الاشتراك قبل تأكيد السداد.','ok');
+  await loadQuotaDetails();
+}
+
 async function loadQuotaDetails(){
   if(!inst)return;
   const quotaTotal=Number(inst.quota_total||0),quotaUsed=Number(inst.quota_used||0);
@@ -1137,6 +1156,7 @@ async function loadQuotaDetails(){
       ${sub?'<div style="margin-top:12px;font-size:12px;color:var(--muted)">قيمة الاشتراك: '+Number(sub.amount||0).toLocaleString('ar-EG')+' '+escapeHtml(sub.currency||'EGP')+' · '+(sub.billing_cycle==='yearly'?'سنوي':'شهري')+'</div>':''}
       ${sub?.ends_at?'<div style="margin-top:8px;font-size:11px;color:var(--muted)">ينتهي الاشتراك: '+new Date(sub.ends_at).toLocaleDateString('ar-EG')+'</div>':''}
     </div>
+    ${sub&&Number(sub.amount||0)>0&&sub.payment_status!=='paid'&&['pending','suspended','active'].includes(sub.status)?'<div style="border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px"><div style="font-size:13px;font-weight:800;color:var(--navy);margin-bottom:6px">إرسال مرجع التحويل البنكي</div><p style="font-size:11px;color:var(--muted);line-height:1.8;margin-bottom:10px">بعد إجراء التحويل، أدخل رقم المرجع لإرساله إلى الإدارة. إرسال الرقم لا يفعّل الاشتراك تلقائيًا؛ التفعيل بعد مراجعة الإدارة وتأكيد استلام المبلغ.</p><input id="subscriptionPaymentReference" type="text" maxlength="200" value="'+escapeHtml(sub.payment_reference||'')+'" dir="ltr" placeholder="رقم مرجع التحويل" style="width:100%;padding:11px;border:1px solid var(--border);border-radius:9px;font:13px Cairo,sans-serif;margin-bottom:9px"><button id="subscriptionPaymentReferenceBtn" type="button" onclick="submitInstitutionPaymentReference(\''+sub.id+'\')" style="background:var(--blue);color:#fff;border:0;border-radius:9px;padding:10px 16px;font:700 12px Cairo,sans-serif;cursor:pointer">إرسال للمراجعة</button>'+(sub.payment_reference?'<div style="font-size:11px;color:var(--blue);margin-top:8px">تم إرسال مرجع سابق؛ يمكنك تحديثه إذا لزم الأمر.</div>':'')+'</div>':''}
     <button onclick="location.href='landing.html#packages'" style="display:inline-flex;align-items:center;gap:7px;background:var(--blue);color:#fff;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;padding:11px 22px;border-radius:10px;border:none;cursor:pointer"><span class="material-symbols-outlined" style="font-size:18px">upgrade</span> ترقية الباقة</button>`;
 }
 // ── Issue Certificate ──────────────────────────────────────────
