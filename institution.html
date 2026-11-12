@@ -849,15 +849,26 @@ async function loadInst(){
   if(data.status!=='approved'){
     const statusTitle=data.status==='rejected'?'تم رفض طلب المؤسسة':data.status==='suspended'?'المؤسسة موقوفة':'طلب المؤسسة قيد المراجعة';
     const statusMessage=data.status==='rejected'
-      ?'يرجى التواصل مع إدارة شهادتي العلمية لمعرفة أسباب الرفض والخطوات التالية.'
+      ?(data.rejection_reason
+        ?'سبب رفض الطلب: '+data.rejection_reason+'\n\nيرجى استكمال أو تصحيح البيانات والمستندات المطلوبة ثم التواصل مع إدارة شهادتي العلمية لإعادة المراجعة.'
+        :'لم يتم توضيح سبب الرفض في الطلب. يرجى التواصل مع إدارة شهادتي العلمية لمعرفة الخطوات التالية.')
       :data.status==='suspended'
         ?'تم إيقاف حساب المؤسسة مؤقتًا. يرجى التواصل مع إدارة المنصة.'
-        :'تم استلام طلب الاعتماد بنجاح. تراجع الإدارة بيانات المؤسسة، وبمجرد الموافقة ستتمكن من استخدام لوحة التحكم وإصدار الشهادات.';
+        :'تم استلام طلب الاعتماد بنجاح. تراجع الإدارة بيانات المؤسسة، وبمجرد الموافقة ستتمكن من استخدام لوحة التحكم.';
     const box=document.querySelector('#loginScreen .login-box');
     box.innerHTML='<div style="font-size:46px;margin-bottom:14px">🕒</div><h2 style="font-size:21px;font-weight:900;margin-bottom:10px" id="approvalTitle"></h2><p id="approvalName" style="font-weight:800;margin-bottom:10px"></p><p id="approvalMessage" style="font-size:14px;line-height:2;color:var(--muted);margin-bottom:22px"></p><button class="btn-login" onclick="doLogout()">تسجيل الخروج</button><div class="login-back"><a href="index.html">العودة للرئيسية</a></div>';
     box.querySelector('#approvalTitle').textContent=statusTitle;
     box.querySelector('#approvalName').textContent=data.name||'';
     box.querySelector('#approvalMessage').textContent=statusMessage;
+    box.querySelector('#approvalMessage').style.whiteSpace='pre-line';
+    if(data.status==='rejected'&&data.rejection_reason){
+      box.querySelector('#approvalTitle').textContent='تمت مراجعة طلب المؤسسة';
+      box.querySelector('#approvalMessage').style.background='#fff7ed';
+      box.querySelector('#approvalMessage').style.border='1px solid #fed7aa';
+      box.querySelector('#approvalMessage').style.borderRadius='12px';
+      box.querySelector('#approvalMessage').style.padding='14px';
+      box.querySelector('#approvalMessage').style.color='#9a3412';
+    }
     return;
   }
   const{data:subscription, error:subscriptionError}=await sb.from('subscriptions').select('id,status,payment_status,amount,currency,billing_cycle,starts_at,ends_at,quota_limit,quota_used,packages(name)').eq('institution_id',data.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
