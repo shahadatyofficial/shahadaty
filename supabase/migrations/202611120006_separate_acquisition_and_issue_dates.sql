@@ -174,12 +174,12 @@ returns table(full_name text,qualification_name text,institution_name text,facul
 language sql stable security definer set search_path=public,pg_temp as $function$
 with search_input as (
  select regexp_replace(regexp_replace(translate(lower(trim(coalesce(p_qualification,''))),'أإآٱىةـ','اااايه'),
- '^(ليسانس|بكالوريوس|بكالريوس|بكلوريوس|بكالوريس|دبلوم|ماجستير|دكتوراه)[[:space:]]+','','^[[:space:]]*ال','') search_key
+ '^(ليسانس|بكالوريوس|بكالريوس|بكلوريوس|بكالوريس|دبلوم|ماجستير|دكتوراه)[[:space:]]+',''), '^[[:space:]]*ال','') search_key
 ), candidates as (
  select p.full_name::text full_name,q.qualification_name::text qualification_name,q.institution_name::text institution_name,
  q.faculty_name::text faculty_name,q.graduation_year::integer graduation_year,q.grade::text grade,
  regexp_replace(regexp_replace(translate(lower(trim(coalesce(q.qualification_name,'')||' '||coalesce(p.full_name,''))),'أإآٱىةـ','اااايه'),
- '^(ليسانس|بكالوريوس|بكالريوس|بكلوريوس|بكالوريس|دبلوم|ماجستير|دكتوراه)[[:space:]]+','','^[[:space:]]*ال','') searchable_text
+ '^(ليسانس|بكالوريوس|بكالريوس|بكلوريوس|بكالوريس|دبلوم|ماجستير|دكتوراه)[[:space:]]+',''), '^[[:space:]]*ال','') searchable_text
  from public.alumni_profiles p join public.alumni_qualifications q on q.alumni_id=p.id
  where p.visibility_status='public' and p.publication_consent is true
  union all
@@ -203,3 +203,10 @@ grant execute on function public.verify_certificate(text) to anon,authenticated;
 grant execute on function public.verify_certificate_details(text) to anon,authenticated;
 revoke all on function public.search_public_alumni(text,text,text,integer,text) from public;
 grant execute on function public.search_public_alumni(text,text,text,integer,text) to anon,authenticated;
+
+revoke all on function public.admin_list_certificates(text) from public,anon;
+revoke all on function public.admin_list_certificates_with_consent(text) from public,anon;
+grant execute on function public.admin_list_certificates(text) to authenticated;
+grant execute on function public.admin_list_certificates_with_consent(text) to authenticated;
+revoke all on function public.admin_add_certificate_v2(text,uuid,text,text,text,text,text,date,text,text,text,text,text,integer,boolean) from public,anon;
+grant execute on function public.admin_add_certificate_v2(text,uuid,text,text,text,text,text,date,text,text,text,text,text,integer,boolean) to authenticated;
