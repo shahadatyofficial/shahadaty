@@ -287,6 +287,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 .support-status{display:inline-flex;padding:4px 10px;border-radius:20px;background:#eff6ff;color:var(--blue);font-weight:800;font-size:11px}
 @media(max-width:760px){.support-chat{grid-template-columns:minmax(0,1fr)}.support-thread-box{height:55vh;min-height:300px}.support-compose button{padding:0 13px}}
 
+.stats-row .sc-trend{display:none}
 </style>
 </head>
 <body>
@@ -1056,6 +1057,23 @@ async function deleteCourse(id){
 }
 
 // ── Dashboard ──────────────────────────────────────────────────
+async function countUniqueInstitutionTrainees(){
+  const seen=new Set();let from=0,batch=1000;
+  while(true){
+    const{data,error}=await sb.from('certificates').select('id,student_national_id,student_phone,student_email').eq('institution_id',inst.id).order('id',{ascending:true}).range(from,from+batch-1);
+    if(error)throw error;
+    (data||[]).forEach(c=>{
+      const national=String(c.student_national_id||'').trim();
+      const phone=String(c.student_phone||'').trim();
+      const email=String(c.student_email||'').trim().toLocaleLowerCase('en');
+      const key=national?'nid:'+national:phone?'phone:'+phone:email?'email:'+email:'certificate:'+c.id;
+      seen.add(key);
+    });
+    if(!data||data.length<batch)break;
+    from+=batch;
+  }
+  return seen.size;
+}
 async function loadDashboard(){
   if(!inst)return;
   const [totalR,activeR,revokedR,certR]=await Promise.all([
@@ -1064,11 +1082,13 @@ async function loadDashboard(){
     sb.from('certificates').select('id',{count:'exact',head:true}).eq('institution_id',inst.id).eq('status','revoked'),
     sb.from('certificates').select('created_at').eq('institution_id',inst.id).order('created_at',{ascending:true}).limit(5000)
   ]);
+  let traineeCount;
+  try{traineeCount=await countUniqueInstitutionTrainees();}catch(error){toast('تعذر تحميل عدد المتدربين: '+error.message,'err');return;}
   const queryError=totalR.error||activeR.error||revokedR.error||certR.error;
   if(queryError){toast('تعذر تحميل إحصائيات المؤسسة: '+queryError.message,'err');return;}
   const total=totalR.count||0,active=activeR.count||0,revoked=revokedR.count||0;
   document.getElementById('dashTotal').textContent=total.toLocaleString('ar');
-  document.getElementById('dashStudents').textContent=total.toLocaleString('ar');
+  document.getElementById('dashStudents').textContent=traineeCount.toLocaleString('ar');
   document.getElementById('dashVerified').textContent=active.toLocaleString('ar');
   document.getElementById('donutTotal').textContent=total;
   document.getElementById('legValid').textContent=active; document.getElementById('legExp').textContent=0; document.getElementById('legRev').textContent=revoked; document.getElementById('legRev2').textContent=0;
