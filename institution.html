@@ -525,7 +525,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
             <div style="overflow-x:auto"><table class="tbl" id="bulkTable"></table></div>
             <div id="bulkProgress" style="display:none;margin-top:14px">
               <div class="quota-bar"><div class="quota-fill" id="bulkFill" style="width:0%;transition:width .3s"></div></div>
-              <div style="text-align:center;font-size:12px;font-weight:600;color:var(--blue);margin-top:6px" id="bulkProgressTxt"></div>
+              <div style="text-align:center;font-size:12px;font-weight:600;color:var(--blue);margin-top:6px" id="bulkProgressTxt"></div><div id="bulkResultErrors" style="display:none;margin-top:12px;padding:12px;border:1px solid #fecaca;border-radius:10px;background:#fff7f7;color:#991b1b;font-size:12px;max-height:220px;overflow:auto"></div>
             </div>
           </div>
         </div>
@@ -1091,46 +1091,81 @@ function exportCerts(){const ws=XLSX.utils.json_to_sheet(allCerts.map(c=>({'اس
 // ── Bulk Upload ────────────────────────────────────────────────
 function handleDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('over');const f=e.dataTransfer.files[0];if(f)processFile(f);}
 function handleFile(e){const f=e.target.files[0];if(f)processFile(f);}
-function processFile(f){const r=new FileReader();r.onload=e=>{const wb=XLSX.read(e.target.result,{type:'binary'});const ws=wb.Sheets[wb.SheetNames[0]];bulkData=XLSX.utils.sheet_to_json(ws);showBulkPreview(bulkData);};r.readAsBinaryString(f);}
+function processFile(f){const r=new FileReader();r.onload=e=>{const wb=XLSX.read(e.target.result,{type:'binary',cellDates:true});const ws=wb.Sheets[wb.SheetNames[0]];bulkData=XLSX.utils.sheet_to_json(ws,{defval:'',raw:true});showBulkPreview(bulkData);};r.readAsBinaryString(f);}
+function bulkValue(row,...keys){for(const key of keys){const value=row[key];if(value!==undefined&&value!==null&&String(value).trim()!=='')return value;}return '';}
+function normalizeBulkDate(value){
+  if(value instanceof Date&&!Number.isNaN(value.getTime()))return [value.getFullYear(),String(value.getMonth()+1).padStart(2,'0'),String(value.getDate()).padStart(2,'0')].join('-');
+  if(typeof value==='number'&&Number.isFinite(value)){const d=XLSX.SSF.parse_date_code(value);if(d)return [d.y,String(d.m).padStart(2,'0'),String(d.d).padStart(2,'0')].join('-');}
+  const s=String(value||'').trim();if(!s)return '';
+  let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);if(m){const y=+m[1],mo=+m[2],d=+m[3],dt=new Date(y,mo-1,d);return dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d?[y,String(mo).padStart(2,'0'),String(d).padStart(2,'0')].join('-'):'';}
+  m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);if(m){const d=+m[1],mo=+m[2],y=+m[3],dt=new Date(y,mo-1,d);return dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d?[y,String(mo).padStart(2,'0'),String(d).padStart(2,'0')].join('-'):'';}
+  return '';
+}
+function prepareBulkRow(r,index){
+  const email=String(bulkValue(r,'البريد الإلكتروني','البريد','email','student_email')).trim();
+  const national=String(bulkValue(r,'الرقم القومي','رقم قومي','national_id','student_national_id')).trim();
+  const date=normalizeBulkDate(bulkValue(r,'تاريخ الحصول','التاريخ','تاريخ المؤهل','acquisition_date','issue_date'));
+  const row={
+    _source_row:index+2,
+    student_name:String(bulkValue(r,'اسم الطالب','اسم المتدرب','student_name')).trim(),
+    student_name_en:String(bulkValue(r,'الاسم بالإنجليزية','اسم الطالب بالإنجليزية','student_name_en')).trim(),
+    course:String(bulkValue(r,'الدورة','المؤهل','اسم الدورة','course')).trim(),
+    acquisition_date:date,
+    issue_date:date,
+    specialization:String(bulkValue(r,'التخصص','specialization')).trim(),
+    duration:String(bulkValue(r,'المدة','مدة الدورة','duration')).trim(),
+    grade:String(bulkValue(r,'التقدير','grade')).trim(),
+    student_phone:String(bulkValue(r,'رقم الهاتف','الهاتف','phone','student_phone')).trim(),
+    student_email:email,
+    student_national_id:national,
+    governorate:String(bulkValue(r,'المحافظة','governorate')).trim(),
+    visible_to_companies:false
+  };
+  const errors=[];
+  if(!row.student_name)errors.push('اسم المتدرب مطلوب');
+  if(!row.course)errors.push('اسم الدورة أو المؤهل مطلوب');
+  if(!date)errors.push('تاريخ الحصول مطلوب وبصيغة صحيحة');
+  if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))errors.push('البريد الإلكتروني غير صحيح');
+  if(national&&!/^\d{14}$/.test(national))errors.push('الرقم القومي يجب أن يكون 14 رقمًا');
+  return {row,errors};
+}
 function showBulkPreview(rows){
   document.getElementById('bulkPreview').style.display='block';
-  document.getElementById('bulkCount').textContent=rows.length+' سجل';
-  document.getElementById('bulkTable').innerHTML='<thead><tr><th>الحالة</th><th>اسم الطالب</th><th>الدورة</th><th>التاريخ</th><th>التقدير</th></tr></thead><tbody>'+rows.slice(0,20).map(r=>`<tr><td><span class="badge badge-warn">جاهز</span></td><td>${escapeHtml(r['اسم الطالب']||r['student_name']||'—')}</td><td>${escapeHtml(r['الدورة']||r['course']||'—')}</td><td>${escapeHtml(r['التاريخ']||r['issue_date']||'—')}</td><td>${escapeHtml(r['التقدير']||r['grade']||'—')}</td></tr>`).join('')+'</tbody>';
+  const prepared=rows.map(prepareBulkRow),invalid=prepared.filter(x=>x.errors.length).length;
+  document.getElementById('bulkCount').textContent=rows.length+' سجل · '+(rows.length-invalid)+' صالح · '+invalid+' يحتاج مراجعة';
+  document.getElementById('bulkTable').innerHTML='<thead><tr><th>الحالة</th><th>اسم المتدرب</th><th>الدورة</th><th>تاريخ الحصول</th><th>الهاتف</th><th>البريد</th><th>ملاحظات</th></tr></thead><tbody>'+prepared.slice(0,30).map(x=>`<tr><td><span class="badge ${x.errors.length?'badge-err':'badge-ok'}">${x.errors.length?'مراجعة':'صالح'}</span></td><td>${escapeHtml(x.row.student_name||'—')}</td><td>${escapeHtml(x.row.course||'—')}</td><td>${escapeHtml(x.row.acquisition_date||'—')}</td><td dir="ltr">${escapeHtml(x.row.student_phone||'—')}</td><td>${escapeHtml(x.row.student_email||'—')}</td><td>${escapeHtml(x.errors.join('، ')||'جاهز')}</td></tr>`).join('')+'</tbody>';
+  if(rows.length>30)document.getElementById('bulkTable').innerHTML+='<caption>يتم عرض أول 30 صفًا فقط في المعاينة؛ سيتم فحص جميع الصفوف عند الإصدار.</caption>';
 }
 async function confirmBulk(){
-  const btn=document.querySelector('#bulkPreview .btn-submit'); if(!bulkData.length)return;
-  btn.disabled=true; document.getElementById('bulkProgress').style.display='block';
-  const prepared=bulkData.map((r,index)=>({
-    sourceRow:index+2,
-    student_name:String(r['اسم الطالب']||r['student_name']||'').trim(),
-    course:String(r['الدورة']||r['course']||'').trim(),
-    issue_date:String(r['تاريخ الحصول']||r['التاريخ']||r['issue_date']||new Date().toISOString().slice(0,10)).trim(),
-    grade:String(r['التقدير']||r['grade']||'').trim(),
-    governorate:String(r['المحافظة']||r['governorate']||'').trim(),
-    visible_to_companies:false
-  }));
-  const invalidRows=prepared.filter(r=>!r.student_name||!r.course).map(r=>r.sourceRow);
-  const rows=prepared.filter(r=>r.student_name&&r.course).map(({sourceRow,...row})=>row);
+  const btn=document.querySelector('#bulkPreview .btn-submit');if(!bulkData.length)return;
+  const prepared=bulkData.map(prepareBulkRow),invalid=prepared.filter(x=>x.errors.length);
+  const rows=prepared.filter(x=>!x.errors.length).map(x=>x.row);
+  btn.disabled=true;document.getElementById('bulkProgress').style.display='block';
   if(!rows.length){
-    document.getElementById('bulkProgressTxt').textContent='لم يتم إرسال أي شهادة: أضف اسم الطالب واسم الدورة في كل صف.';
-    toast('لا توجد صفوف مكتملة. راجع أعمدة اسم الطالب والدورة.','err');
-    btn.disabled=false;return;
+    document.getElementById('bulkProgressTxt').textContent='لم يتم إرسال أي شهادة. راجع الاسم والدورة وتاريخ الحصول والبريد والرقم القومي.';
+    toast('كل الصفوف تحتاج إلى تصحيح.','err');btn.disabled=false;return;
   }
   try{
     const {data,error}=await sb.rpc('issue_certificates_bulk',{p_institution_id:inst.id,p_rows:rows});
     if(error)throw error;
     const result=Array.isArray(data)?data[0]||{}:data||{};
     const success=Number(result.success_count||0),failed=Number(result.failed_count||0);
+    const serverErrors=Array.isArray(result.errors)?result.errors:[];
+    const details=[
+      ...invalid.slice(0,12).map(x=>'صف '+x.row._source_row+': '+x.errors.join('، ')),
+      ...serverErrors.slice(0,12).map(x=>'صف '+(x.row?._source_row||'؟')+': '+String(x.error||'تعذر الإصدار'))
+    ];
     document.getElementById('bulkFill').style.width='100%';
-    document.getElementById('bulkProgressTxt').textContent=`نجح إصدار ${success}، وفشل ${failed} من ${rows.length}، وتم تجاوز ${invalidRows.length} صفوف غير مكتملة.`;
-    const hasIssues=failed>0||invalidRows.length>0;
-    const skippedText=invalidRows.length?` — صفوف ناقصة تم تجاوزها: ${invalidRows.slice(0,8).join('، ')}${invalidRows.length>8?'…':''}`:'';
-    toast(`تم إصدار ${success} شهادة؛ فشل ${failed}${skippedText}`,hasIssues?'err':'ok');
-    setTimeout(()=>{cancelBulk();loadInst();},1800);
+    document.getElementById('bulkProgressTxt').textContent='نجح إصدار '+success+'، وفشل '+failed+'، وتم تجاوز '+invalid.length+' صفوف غير صالحة من أصل '+bulkData.length+'.';
+    const report=document.getElementById('bulkResultErrors');
+    if(report){report.style.display=details.length?'block':'none';report.innerHTML=details.length?'<strong>تفاصيل الصفوف التي تحتاج مراجعة:</strong><ul style="margin:8px 0 0;padding-right:20px">'+details.map(x=>'<li>'+escapeHtml(x)+'</li>').join('')+'</ul>':'';}
+    toast('تم إصدار '+success+' شهادة؛ راجع الصفوف غير المكتملة أو المرفوضة.',failed||invalid.length?'err':'ok');
+    btn.disabled=false;
+    if(!failed&&!invalid.length)setTimeout(()=>{cancelBulk();loadInst();},2200);else await loadInst();
   }catch(e){toast(dbErrorMessage(e),'err');btn.disabled=false;}
 }
 function cancelBulk(){document.getElementById('bulkPreview').style.display='none';document.getElementById('fileInput').value='';bulkData=[];}
-function downloadTemplate(){const ws=XLSX.utils.aoa_to_sheet([['اسم الطالب','الدورة','التاريخ','التقدير','المحافظة'],['محمد علي حسن','هندسة الحاسبات','2024-06-01','ممتاز','القاهرة']]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الشهادات');XLSX.writeFile(wb,'نموذج_شهادتي.xlsx');}
+function downloadTemplate(){const ws=XLSX.utils.aoa_to_sheet([['اسم الطالب','الاسم بالإنجليزية','الدورة','التخصص','تاريخ الحصول','المدة','التقدير','رقم الهاتف','البريد الإلكتروني','الرقم القومي','المحافظة'],['محمد علي حسن','Mohamed Ali Hassan','مساعد خدمات صحية','الرعاية الصحية','2024-06-01','3 أشهر','ممتاز','01000000000','student@example.com','29001011234567','القاهرة']]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'الشهادات');XLSX.writeFile(wb,'نموذج_شهادتي.xlsx');}
 
 // ── Verify ─────────────────────────────────────────────────────
 async function doVerify(){
