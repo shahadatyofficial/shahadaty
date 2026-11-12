@@ -1,7 +1,7 @@
 <!DOCTYPE html><html dir="rtl" lang="ar"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>شهادة اعتماد شركة / شريك مؤسسي — منصة شهادتي</title>
+  <title>شهادة اعتماد شريك مؤسسي | شهادتي العلمية</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&amp;family=Tajawal:wght@400;700;800;900&amp;family=Reem+Kufi:wght@600;700&amp;display=swap" rel="stylesheet">
@@ -26,6 +26,57 @@
     .gold-seal-corporate {
       background: linear-gradient(135deg, #b08d48 0%, #dfc37a 40%, #99742a 100%);
       box-shadow: 0 8px 24px rgba(176, 141, 72, 0.35);
+    }
+
+    /* Keep the original A4 landscape artwork intact while fitting phones. */
+    @media screen and (max-width: 640px) {
+      html, body { width: 100%; overflow-x: hidden; }
+      body {
+        min-height: 0 !important;
+        height: auto !important;
+        padding: 12px !important;
+        justify-content: flex-start !important;
+        align-items: center !important;
+        gap: 0 !important;
+      }
+      .no-print {
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 0 12px !important;
+        padding: 10px 12px !important;
+        border-radius: 12px !important;
+        gap: 8px !important;
+        flex-wrap: wrap !important;
+      }
+      .no-print > div:first-child {
+        min-width: 0;
+        flex: 1 1 100%;
+      }
+      .no-print button {
+        min-height: 40px;
+        flex: 1 1 auto;
+        justify-content: center;
+      }
+      .cert-corporate {
+        width: 1024px !important;
+        max-width: none !important;
+        flex: none !important;
+        zoom: calc((100vw - 24px) / 1024);
+        transform-origin: top center;
+        margin: 0 auto !important;
+      }
+    }
+
+    @media print {
+      html, body { background: transparent !important; padding: 0 !important; }
+      .no-print { display: none !important; }
+      .cert-corporate {
+        box-shadow: none !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: none !important;
+        zoom: 1 !important;
+      }
     }
   </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
