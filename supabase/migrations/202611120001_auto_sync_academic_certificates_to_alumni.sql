@@ -17,10 +17,15 @@ begin
   if new.record_type is distinct from 'academic'
      or new.status is distinct from 'active'
      or nullif(trim(new.student_name), '') is null then
-    update public.alumni_profiles
+    update public.alumni_profiles p
        set visibility_status = 'hidden',
            updated_at = now()
-     where profile_number = v_profile_number;
+     where p.profile_number = v_profile_number
+        or p.id in (
+          select q.alumni_id
+            from public.alumni_qualifications q
+           where q.certificate_id = new.id
+        );
     return new;
   end if;
 
