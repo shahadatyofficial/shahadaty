@@ -576,7 +576,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       </div>
       <div class="card">
         <div class="card-head"><span class="card-title">الدورات والبرامج المسجلة</span><button type="button" class="btn-cancel" onclick="loadCourses()">تحديث</button></div>
-        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>اسم الدورة</th><th>التخصص</th><th>المدة</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="coursesTable"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>اسم الدورة</th><th>التخصص</th><th>المدة</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="coursesTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
       </div>
     </div>
 
@@ -585,7 +585,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       <div class="card">
         <div class="card-head"><span class="card-title">سجل المتدربين</span><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="studentSearch" type="search" class="form-inp2" placeholder="ابحث بالاسم أو الهاتف أو الرقم القومي..." oninput="renderStudents()" style="max-width:300px;margin:0"><button type="button" class="btn-cancel" onclick="exportStudents()">تصدير Excel</button><button type="button" class="btn-cancel" onclick="loadStudents()">تحديث</button></div></div>
         <div class="card-body"><div id="studentsSummary" style="font-size:12px;color:var(--muted);margin-bottom:12px">جاري تحميل سجل المتدربين...</div>
-          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>اسم المتدرب</th><th>رقم الهاتف</th><th>عدد الشهادات</th><th>الدورات المسجلة</th><th>آخر شهادة</th><th>الملف</th></tr></thead><tbody id="studentsTable"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>اسم المتدرب</th><th>رقم الهاتف</th><th>عدد الشهادات</th><th>الدورات المسجلة</th><th>آخر شهادة</th><th>الملف</th></tr></thead><tbody id="studentsTable"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
         </div>
       </div>
     </div>
@@ -826,11 +826,11 @@ let allStudents=[];
 async function loadStudents(){
   if(!inst?.id)return;
   const body=document.getElementById('studentsTable');
-  body.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px">جاري تحميل البيانات...</td></tr>';
+  body.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px">جاري تحميل البيانات...</td></tr>';
   let rows=[],from=0,batch=1000;
   while(true){
     const{data,error}=await sb.from('certificates').select('id,student_name,student_name_en,student_phone,student_national_id,student_email,governorate,course,specialization,duration,issue_date,acquisition_date,expiry_date,cert_number,status,grade,record_type,source_type').eq('institution_id',inst.id).order('acquisition_date',{ascending:false}).range(from,from+batch-1);
-    if(error){body.innerHTML='<tr><td colspan="5">تعذر تحميل المتدربين: '+courseEsc(error.message)+'</td></tr>';return;}
+    if(error){body.innerHTML='<tr><td colspan="6">تعذر تحميل المتدربين: '+courseEsc(error.message)+'</td></tr>';return;}
     rows=rows.concat(data||[]);
     if(!data||data.length<batch)break;
     from+=batch;
