@@ -711,11 +711,18 @@ async function loadRequestDocs(instId){
   if(error){el.innerHTML='<span style="color:#dc2626">تعذر تحميل المستندات: '+adminEsc(error.message)+'</span>';return;}
   const docs=data||[];
   if(!docs.length){el.innerHTML='<span style="color:var(--muted)">لا توجد مستندات مرفوعة.</span>';return;}
+  const docLabels={commercial_registration:'السجل التجاري',tax_card:'البطاقة الضريبية',institution_proof:'إثبات المؤسسة',other:'مستند آخر'};
+  const statusLabels={pending:'قيد المراجعة',approved:'معتمد',rejected:'مرفوض'};
   el.innerHTML=docs.map(d=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div><div style="font-weight:800;font-size:12px">${adminEsc(d.document_type||'مستند')}</div><div style="font-size:10px;color:var(--muted)">${adminEsc(d.file_name)} · ${adminEsc(d.status||'pending')}</div></div>
-      <div style="display:flex;gap:6px">
-        <button class="btn-s" style="font-size:10px;padding:5px 8px" onclick="openDoc(decodeURIComponent('${encodeURIComponent(d.file_path||'')}'))">عرض</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="min-width:180px;flex:1">
+        <div style="font-weight:800;font-size:12px">${docLabels[d.document_type]||adminEsc(d.document_type||'مستند')}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px">${adminEsc(d.file_name||'—')} · ${d.uploaded_at?new Date(d.uploaded_at).toLocaleDateString('ar-EG'):'—'}</div>
+        <div style="font-size:11px;font-weight:800;margin-top:5px;color:${d.status==='approved'?'#15803d':d.status==='rejected'?'#b91c1c':'#b45309'}">${statusLabels[d.status]||'قيد المراجعة'}${d.reviewed_at?' · تمت المراجعة '+new Date(d.reviewed_at).toLocaleDateString('ar-EG'):''}</div>
+        ${d.rejection_reason?'<div style="font-size:11px;color:#b91c1c;margin-top:5px">سبب الرفض: '+adminEsc(d.rejection_reason)+'</div>':''}
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn-s" style="font-size:10px;padding:5px 8px" onclick="openDoc(decodeURIComponent('${encodeURIComponent(d.file_path||'')}'))">عرض الملف</button>
         ${d.status==='pending'? `<button class="btn-p" style="font-size:10px;padding:5px 8px" onclick="reviewDoc('${d.id}','approved')">اعتماد</button><button class="btn-d" style="font-size:10px;padding:5px 8px" onclick="reviewDoc('${d.id}','rejected')">رفض</button>` : ''}
       </div>
     </div>`).join('');

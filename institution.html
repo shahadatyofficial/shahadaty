@@ -846,29 +846,43 @@ async function loadInst(){
   if(institutionId)query=query.eq('id',institutionId);else query=query.eq('auth_user_id',user.id);
   const{data,error}=await query.maybeSingle();
   if(error||!data){document.getElementById('loginErr').textContent='لا يوجد حساب مؤسسة نشط مرتبط بهذا المستخدم. تواصل مع مسؤول المؤسسة.';document.getElementById('loginErr').style.display='block';await sb.auth.signOut();return;}
+  if(data.status==='rejected'){
+    const box=document.querySelector('#loginScreen .login-box');
+    box.innerHTML=`
+      <div style="font-size:42px;margin-bottom:10px">📝</div>
+      <h2 style="font-size:21px;font-weight:900;margin-bottom:10px;color:#9a3412">استكمال طلب اعتماد المؤسسة</h2>
+      <p id="rejectedInstitutionName" style="font-weight:800;margin-bottom:12px"></p>
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:14px;text-align:right;margin-bottom:18px">
+        <b style="color:#9a3412">ملاحظات الإدارة</b>
+        <p id="rejectedInstitutionReason" style="font-size:13px;line-height:1.9;margin:7px 0 0;color:#9a3412"></p>
+      </div>
+      <p style="font-size:12px;color:var(--muted);line-height:1.8;margin-bottom:14px">صحح البيانات المطلوبة، ويمكنك إرفاق المستندات المصححة. بعد الإرسال يعود الطلب إلى قائمة المراجعة لدى الإدارة. لن يتم تفعيل أي اشتراك مدفوع تلقائيًا.</p>
+      <div style="display:grid;gap:10px;text-align:right">
+        <label style="font-size:12px;font-weight:700">رقم السجل التجاري<input id="reapplyCommercial" class="form-inp2" value="${escapeHtml(data.commercial_registration_number||data.commercial_reg||'')}" required></label>
+        <label style="font-size:12px;font-weight:700">رقم البطاقة الضريبية<input id="reapplyTax" class="form-inp2" value="${escapeHtml(data.tax_card_number||data.tax_number||'')}" required></label>
+        <label style="font-size:12px;font-weight:700">اسم المالك<input id="reapplyOwner" class="form-inp2" value="${escapeHtml(data.owner_name||'')}" required></label>
+        <label style="font-size:12px;font-weight:700">اسم المدير المسؤول<input id="reapplyManager" class="form-inp2" value="${escapeHtml(data.manager_name||'')}" required></label>
+        <label style="font-size:12px;font-weight:700">السجل التجاري المصحح (اختياري)<input id="reapplyCommercialFile" type="file" class="form-inp2" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"></label>
+        <label style="font-size:12px;font-weight:700">البطاقة الضريبية المصححة (اختياري)<input id="reapplyTaxFile" type="file" class="form-inp2" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"></label>
+        <p id="reapplyError" role="alert" style="display:none;color:#b91c1c;font-size:12px;line-height:1.7"></p>
+        <button id="reapplySubmit" class="btn-login" onclick="resubmitRejectedInstitution('${data.id}')">إرسال الطلب للمراجعة مرة أخرى</button>
+      </div>
+      <button class="btn-login" style="margin-top:10px;background:#64748b" onclick="doLogout()">تسجيل الخروج</button>
+      <div class="login-back"><a href="index.html">العودة للرئيسية</a></div>`;
+    box.querySelector('#rejectedInstitutionName').textContent=data.name||'';
+    box.querySelector('#rejectedInstitutionReason').textContent=data.rejection_reason||'لم يتم توضيح سبب الرفض. يمكنك تحديث البيانات وإرسالها للمراجعة.';
+    return;
+  }
   if(data.status!=='approved'){
-    const statusTitle=data.status==='rejected'?'تم رفض طلب المؤسسة':data.status==='suspended'?'المؤسسة موقوفة':'طلب المؤسسة قيد المراجعة';
-    const statusMessage=data.status==='rejected'
-      ?(data.rejection_reason
-        ?'سبب رفض الطلب: '+data.rejection_reason+'\n\nيرجى استكمال أو تصحيح البيانات والمستندات المطلوبة ثم التواصل مع إدارة شهادتي العلمية لإعادة المراجعة.'
-        :'لم يتم توضيح سبب الرفض في الطلب. يرجى التواصل مع إدارة شهادتي العلمية لمعرفة الخطوات التالية.')
-      :data.status==='suspended'
-        ?'تم إيقاف حساب المؤسسة مؤقتًا. يرجى التواصل مع إدارة المنصة.'
-        :'تم استلام طلب الاعتماد بنجاح. تراجع الإدارة بيانات المؤسسة، وبمجرد الموافقة ستتمكن من استخدام لوحة التحكم.';
+    const statusTitle=data.status==='suspended'?'المؤسسة موقوفة':'طلب المؤسسة قيد المراجعة';
+    const statusMessage=data.status==='suspended'
+      ?'تم إيقاف حساب المؤسسة مؤقتًا. يرجى التواصل مع إدارة المنصة.'
+      :'تم استلام طلب الاعتماد بنجاح. تراجع الإدارة بيانات المؤسسة، وبمجرد الموافقة ستتمكن من استخدام لوحة التحكم.';
     const box=document.querySelector('#loginScreen .login-box');
     box.innerHTML='<div style="font-size:46px;margin-bottom:14px">🕒</div><h2 style="font-size:21px;font-weight:900;margin-bottom:10px" id="approvalTitle"></h2><p id="approvalName" style="font-weight:800;margin-bottom:10px"></p><p id="approvalMessage" style="font-size:14px;line-height:2;color:var(--muted);margin-bottom:22px"></p><button class="btn-login" onclick="doLogout()">تسجيل الخروج</button><div class="login-back"><a href="index.html">العودة للرئيسية</a></div>';
     box.querySelector('#approvalTitle').textContent=statusTitle;
     box.querySelector('#approvalName').textContent=data.name||'';
     box.querySelector('#approvalMessage').textContent=statusMessage;
-    box.querySelector('#approvalMessage').style.whiteSpace='pre-line';
-    if(data.status==='rejected'&&data.rejection_reason){
-      box.querySelector('#approvalTitle').textContent='تمت مراجعة طلب المؤسسة';
-      box.querySelector('#approvalMessage').style.background='#fff7ed';
-      box.querySelector('#approvalMessage').style.border='1px solid #fed7aa';
-      box.querySelector('#approvalMessage').style.borderRadius='12px';
-      box.querySelector('#approvalMessage').style.padding='14px';
-      box.querySelector('#approvalMessage').style.color='#9a3412';
-    }
     return;
   }
   const{data:subscription, error:subscriptionError}=await sb.from('subscriptions').select('id,status,payment_status,amount,currency,billing_cycle,starts_at,ends_at,quota_limit,quota_used,packages(name)').eq('institution_id',data.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
@@ -895,6 +909,50 @@ async function loadInst(){
   document.getElementById('set_email').value=data.contact_email||'';
   document.getElementById('set_phone').value=data.contact_phone||'';
   loadDashboard();loadCourses();
+}
+async function resubmitRejectedInstitution(institutionId){
+  const btn=document.getElementById('reapplySubmit'),errBox=document.getElementById('reapplyError');
+  const fields={
+    p_institution_id:institutionId,
+    p_commercial_registration_number:document.getElementById('reapplyCommercial').value.trim(),
+    p_tax_card_number:document.getElementById('reapplyTax').value.trim(),
+    p_owner_name:document.getElementById('reapplyOwner').value.trim(),
+    p_manager_name:document.getElementById('reapplyManager').value.trim()
+  };
+  if(!fields.p_commercial_registration_number||!fields.p_tax_card_number||!fields.p_owner_name||!fields.p_manager_name){
+    errBox.textContent='يرجى استكمال جميع البيانات القانونية قبل الإرسال.';errBox.style.display='block';return;
+  }
+  const files=[
+    {input:'reapplyCommercialFile',type:'commercial_registration'},
+    {input:'reapplyTaxFile',type:'tax_card'}
+  ];
+  btn.disabled=true;btn.textContent='جارٍ تجهيز الطلب...';errBox.style.display='none';
+  try{
+    const{data:{user}}=await sb.auth.getUser();
+    if(!user)throw new Error('انتهت جلسة الدخول. سجل الدخول مرة أخرى.');
+    for(const item of files){
+      const file=document.getElementById(item.input).files?.[0];
+      if(!file)continue;
+      const allowed=['application/pdf','image/jpeg','image/png','image/webp'];
+      if(!allowed.includes(file.type)||file.size>5*1024*1024)throw new Error('المستندات يجب أن تكون PDF أو صورة JPG/PNG/WEBP وبحجم لا يتجاوز 5MB.');
+      const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_').slice(-100)||'document';
+      const path=institutionId+'/'+item.type+'/'+Date.now()+'_'+crypto.randomUUID()+'_'+safeName;
+      const{error:uploadError}=await sb.storage.from('institution-documents').upload(path,file,{upsert:false,contentType:file.type});
+      if(uploadError)throw uploadError;
+      const{error:rowError}=await sb.from('institution_documents').insert({institution_id:institutionId,document_type:item.type,file_name:file.name,file_path:path,status:'pending',uploaded_by:user.id});
+      if(rowError){await sb.storage.from('institution-documents').remove([path]);throw rowError;}
+    }
+    const{error}=await sb.rpc('institution_resubmit_rejected_application',fields);
+    if(error)throw error;
+    btn.textContent='تم إرسال الطلب';
+    toast('تم إرسال طلبك للمراجعة مرة أخرى بنجاح.','ok');
+    location.reload();
+  }catch(error){
+    const code=String(error?.message||error);
+    const messages={NOT_ALLOWED:'لا تملك صلاحية إعادة إرسال هذا الطلب.',INSTITUTION_NOT_REJECTED:'هذا الطلب ليس في حالة رفض.',REQUIRED_LEGAL_DATA_MISSING:'استكمل البيانات القانونية المطلوبة.',AUTH_REQUIRED:'انتهت جلسة الدخول. سجل الدخول مرة أخرى.'};
+    errBox.textContent=messages[code]||('تعذر إرسال الطلب: '+code);
+    errBox.style.display='block';btn.disabled=false;btn.textContent='إرسال الطلب للمراجعة مرة أخرى';
+  }
 }
 async function doLogout(){await sb.auth.signOut();location.reload();}
 
