@@ -71,10 +71,54 @@
       box-shadow: 0 6px 20px rgba(184, 149, 67, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.6);
     }
 
+    /* Mobile viewing: scale the original A4 landscape canvas as one unit.
+       This preserves every original position, ornament and font proportion. */
+    @media screen and (max-width: 640px) {
+      html, body { width: 100%; overflow-x: hidden; }
+      body {
+        min-height: 0 !important;
+        height: auto !important;
+        padding: 12px !important;
+        justify-content: flex-start !important;
+        align-items: center !important;
+      }
+      .no-print {
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 0 12px !important;
+        padding: 10px 12px !important;
+        border-radius: 12px !important;
+        gap: 8px !important;
+        flex-wrap: wrap !important;
+      }
+      .no-print > div:first-child {
+        min-width: 0;
+        flex: 1 1 100%;
+      }
+      .no-print > div:first-child span:last-child {
+        white-space: normal;
+        line-height: 1.5;
+        font-size: 11px;
+      }
+      .no-print button {
+        min-height: 40px;
+        flex: 1 1 auto;
+        justify-content: center;
+      }
+      .cert-container {
+        width: 1024px !important;
+        max-width: none !important;
+        flex: none !important;
+        zoom: calc((100vw - 24px) / 1024);
+        transform-origin: top center;
+        margin: 0 auto !important;
+      }
+    }
+
     @media print {
       body { background: transparent !important; padding: 0 !important; }
       .no-print { display: none !important; }
-      .cert-container { box-shadow: none !important; margin: 0 !important; width: 100% !important; }
+      .cert-container { box-shadow: none !important; margin: 0 !important; width: 100% !important; max-width: none !important; zoom: 1 !important; }
     }
   </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
