@@ -54,6 +54,20 @@
  .student{font-size:clamp(22px,2.8vw,38px)!important}
 }
 
+
+/* Refined certificate alignment and long-content safeguards */
+.inner{gap:9px;padding:22px 30px 18px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.inner:before{content:"SHAHADATY VERIFIED";position:absolute;z-index:0;left:50%;top:52%;transform:translate(-50%,-50%) rotate(-20deg);font:900 54px Tajawal,sans-serif;letter-spacing:4px;color:rgba(3,105,161,.035);white-space:nowrap;pointer-events:none}
+.inner>*{position:relative;z-index:1}
+.student{width:min(100%,850px);min-height:1.3em;margin:10px auto 5px;padding:0 12px 7px;line-height:1.25;overflow-wrap:anywhere;text-wrap:balance}
+.course{max-width:95%;margin:5px auto 12px;line-height:1.4;overflow-wrap:anywhere}
+.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.box{min-width:0;padding:8px 10px}
+.val{overflow-wrap:anywhere;line-height:1.5}
+.verify{border-top:1px solid #e8dfcc;padding-top:9px;margin-top:5px}
+@media(max-width:700px){.inner{padding:22px 14px;gap:12px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.student{font-size:clamp(20px,6vw,30px)}}
+@media print{.inner{padding:11mm 13mm 8mm!important;gap:6px!important}.student{font-size:clamp(22px,2.8vw,38px)!important}.grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+
 </style>
 </head>
 <body>
@@ -75,21 +89,33 @@ async function load(){
   const academic=c.record_type==='academic';
   const recordTitle=academic?'سجل مؤهل علمي':'شهادة تدريبية';
   document.getElementById('app').innerHTML=`<section class="certificate"><div class="inner">
-    <div style="margin-bottom:18px"><img src="logo.png" alt="شعار منصة شهادتي العلمية" style="width:82px;height:82px;object-fit:contain;border-radius:50%" onerror="this.style.display=\'none\'"></div><div class="seal">✓</div><div class="eyebrow">${recordTitle}</div><div class="title">${academic?'مؤهل علمي':'شهادة تدريبية'}</div><div class="subtitle">منصة شهادتي تتيح عرض البيانات المسجلة فقط، ولا تصدّق على صحة المؤهل أو تعتمده؛ وصحة البيانات على مسؤولية صاحبها</div>
-    <div class="student">${esc(c.student_name)}</div>${c.student_name_en?`<div style="font-size:17px;font-weight:700;color:#64748b;direction:ltr;margin:-5px 0 14px">${esc(c.student_name_en)}</div>`:""}<div class="course">${esc(academic?(c.academic_degree||c.course):c.course)}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px">
+      <div style="display:flex;align-items:center;gap:10px"><img src="logo.png" alt="شعار شهادتي العلمية" style="width:66px;height:66px;object-fit:contain" onerror="this.style.display='none'"><div style="text-align:right"><strong style="font:900 22px Tajawal;color:#0c2d4e">شهادتي العلمية</strong><div style="font-size:8px;letter-spacing:1px;color:#b08d48;font-weight:800">SHAHADATY VERIFICATION PLATFORM</div></div></div>
+      <div style="text-align:left;border:1px solid #e6dcc8;border-radius:9px;padding:7px 10px;background:#fff"><div style="font-size:9px;color:#64748b">رقم القيد المسجل</div><strong style="font:900 13px monospace;direction:ltr">${esc(c.cert_number)}</strong></div>
+    </div>
+    <div class="seal">✓</div><div class="eyebrow">${academic?'ACADEMIC QUALIFICATION RECORD':'DIGITAL TRAINING CERTIFICATE'}</div>
+    <div class="title">${academic?'شهادة تسجيل مؤهل علمي':'شهادة تسجيل دورة تدريبية'}</div>
+    <div class="subtitle">سجل رقمي للبيانات المقدمة من الجهة المسجلة على منصة شهادتي العلمية</div>
+    <div style="max-width:850px;margin:0 auto;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:6px 12px;font-size:9px;color:#536579;line-height:1.7">تتيح منصة شهادتي عرض البيانات المسجلة والتحقق من وجودها فقط، ولا تصدّق على صحة المؤهل أو تمنح اعتماداً أكاديمياً أو مهنياً؛ وتظل مسؤولية صحة البيانات على الجهة المقدمة لها.</div>
+    <p style="font:700 16px Amiri,serif;color:#536579;margin:0">تشهد منصة شهادتي وبناءً على البيانات المسجلة لديها بأن المتدرب / صاحب المؤهل:</p>
+    <div class="student">${esc(c.student_name)}</div>${c.student_name_en?`<div style="font-size:14px;font-weight:700;color:#64748b;direction:ltr;margin:-3px 0 7px;overflow-wrap:anywhere">${esc(c.student_name_en)}</div>`:""}
+    <div class="course">${esc(academic?(c.academic_degree||c.course):c.course)}</div>
     <div class="grid">
       <div class="box"><div class="lbl">${academic?'الجامعة':'جهة التسجيل'}</div><div class="val">${esc(academic?c.academic_university:c.institution_name)}</div></div>
       <div class="box"><div class="lbl">${academic?'الكلية':'نوع الجهة'}</div><div class="val">${esc(academic?c.academic_faculty:c.institution_type)}</div></div>
       <div class="box"><div class="lbl">${academic?'الدرجة العلمية':'التخصص'}</div><div class="val">${esc(academic?(c.academic_degree||c.course):c.specialization)}</div></div>
-      <div class="box"><div class="lbl">${academic?'سنة التخرج':'تاريخ الحصول على الدورة'}</div><div class="val">${esc(academic?c.graduation_year:date)}</div></div>
+      <div class="box"><div class="lbl">${academic?'سنة الحصول على المؤهل':'تاريخ الحصول على الدورة'}</div><div class="val">${esc(academic?c.graduation_year:date)}</div></div>
       <div class="box"><div class="lbl">التقدير</div><div class="val">${esc(c.grade||'غير محدد')}</div></div>
       <div class="box"><div class="lbl">${academic?'جهة تسجيل البيانات':'مدة البرنامج'}</div><div class="val">${esc(academic?(c.source_type==='admin'?'إدارة منصة شهادتي':c.institution_name):c.duration)}</div></div>
     </div>
-    <div class="verify"><div id="qrcode" class="qr"></div><div><div class="number">${esc(c.cert_number)}</div><div class="valid">${active?'✓ شهادة سارية ومسجلة':'⚠️ الشهادة موجودة ولكنها غير سارية'}</div><div class="foot">للتحقق من هذه الشهادة استخدم رقمها في منصة شهادتي.</div></div></div>
+    <div class="verify"><div id="qrcode" class="qr"></div><div><div class="number">${esc(c.cert_number)}</div><div class="valid">${active?'✓ سجل نشط ومسجل':'⚠️ السجل غير نشط'}</div><div class="foot">امسح رمز QR أو أدخل رقم القيد للتحقق من بيانات السجل.</div></div><div style="margin-right:auto;text-align:left;font-size:9px;color:#b08d48;font-weight:800">نصنع المعرفة...<br>نبني الحاضر...<br>ونوثق المستقبل.</div></div>
   </div></section>`;
-  fitCertificateName();\n  window.addEventListener('resize',fitCertificateName);\n  window.addEventListener('beforeprint',fitCertificateName);\n  new QRCode(document.getElementById('qrcode'),{text:location.href,width:105,height:105,colorDark:'#0c2d4e',colorLight:'#ffffff'});
+  fitCertificateName();
+  window.addEventListener('resize',fitCertificateName);
+  window.addEventListener('beforeprint',fitCertificateName);
+  new QRCode(document.getElementById('qrcode'),{text:location.href,width:88,height:88,colorDark:'#0c2d4e',colorLight:'#ffffff'});
 }
-function fitCertificateName(){const el=document.querySelector('.student');if(!el)return;let size=40;el.style.fontSize=size+'px';while((el.scrollWidth>el.clientWidth||el.scrollHeight>el.clientHeight+2)&&size>18){size--;el.style.fontSize=size+'px';}}
+function fitCertificateName(){const fit=(el,max,min)=>{if(!el)return;let size=max;el.style.fontSize=size+'px';while(size>min&&(el.scrollWidth>el.clientWidth+1||el.scrollHeight>el.clientHeight+2)){size-=0.5;el.style.fontSize=size+'px';}};fit(document.querySelector('.student'),40,18);fit(document.querySelector('.course'),22,13);fit(document.querySelector('.title'),38,24);document.querySelectorAll('.val').forEach(el=>fit(el,12,8));}
 function showError(msg){document.getElementById('app').innerHTML=`<div class="error"><div style="font-size:45px">❌</div><h2>تعذر عرض الشهادة</h2><p>${esc(msg)}</p><a href="verify.html" style="color:var(--blue);font-weight:800">العودة لصفحة التحقق</a></div>`}
 load();
 </script>
