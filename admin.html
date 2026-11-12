@@ -444,7 +444,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="page" id="page-packages">
       <div class="card">
         <div class="card-head"><span class="card-title">إدارة الباقات</span><button class="btn-p" onclick="openPackageEditor()"><span class="material-symbols-outlined">add</span>إضافة باقة</button></div>
-        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الباقة</th><th>السعر الشهري</th><th>السعر السنوي</th><th>الكوتا</th><th>المشتركون</th><th>الإجراءات</th></tr></thead><tbody id="pkgTable"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الباقة</th><th>شهريًا (مكافئ)</th><th>سنوي قبل الخصم</th><th>سنوي بعد الخصم</th><th>الكوتا</th><th>المشتركون</th><th>الإجراءات</th></tr></thead><tbody id="pkgTable"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
         <div class="card-head" style="margin-top:22px"><span class="card-title">الاشتراكات والمدفوعات غير المؤكدة</span><button class="btn-s" onclick="loadPkgs()">تحديث</button></div>
         <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>المؤسسة</th><th>الباقة</th><th>القيمة</th><th>دورة الفوترة</th><th>الحالة</th><th>مرجع الدفع</th><th>إجراء</th></tr></thead><tbody id="subTable"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
       </div>
@@ -532,8 +532,9 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
         <input type="hidden" id="packageId">
         <label class="form-lbl" for="packageName">المعرف البرمجي (بالإنجليزية)</label><input class="form-inp" id="packageName" required maxlength="60" pattern="[a-zA-Z0-9_-]+" placeholder="professional" dir="ltr">
         <label class="form-lbl" for="packageNameAr">اسم الباقة بالعربية</label><input class="form-inp" id="packageNameAr" required maxlength="100" placeholder="احترافية">
-        <label class="form-lbl" for="packageMonthly">السعر الشهري بالجنيه</label><input class="form-inp" id="packageMonthly" type="number" min="0" step="1" required>
-        <label class="form-lbl" for="packageYearly">السعر السنوي بالجنيه</label><input class="form-inp" id="packageYearly" type="number" min="0" step="1" required>
+        <label class="form-lbl" for="packageMonthly">السعر الشهري المحسوب (السنوي قبل الخصم ÷ 12)</label><input class="form-inp" id="packageMonthly" type="number" min="0" step="0.01" readonly>
+        <label class="form-lbl" for="packageYearlyRegular">السعر السنوي قبل الخصم بالجنيه</label><input class="form-inp" id="packageYearlyRegular" type="number" min="0" step="0.01" required oninput="updatePackageMonthlyPreview()">
+        <label class="form-lbl" for="packageYearly">السعر السنوي بعد الخصم بالجنيه</label><input class="form-inp" id="packageYearly" type="number" min="0" step="0.01" required>
         <label class="form-lbl" for="packageQuota">عدد الشهادات المسموح</label><input class="form-inp" id="packageQuota" type="number" min="0" step="1" required>
         <label class="form-lbl" for="packageOrder">ترتيب العرض</label><input class="form-inp" id="packageOrder" type="number" min="0" step="1" value="10" required>
         <div id="packageFormError" class="login-err" role="alert"></div>
@@ -936,9 +937,11 @@ async function loadPkgs(){
   ]);
   if(pkgErr){toast(pkgErr.message,'err');return;}
   const pkgBody=document.getElementById('pkgTable');
-  pkgBody.innerHTML=!(packages||[]).length?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">لا توجد باقات</td></tr>':packages.map(p=>`<tr>
+  pkgBody.innerHTML=!(packages||[]).length?'<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">لا توجد باقات</td></tr>':packages.map(p=>`<tr>
     <td><span style="font-weight:800">${adminEsc(p.name_ar||p.name)}</span><div style="font-size:10px;color:var(--muted)" dir="ltr">${adminEsc(p.name)}</div></td>
-    <td>${Number(p.price_monthly||0).toLocaleString('ar-EG')} ج</td><td>${Number(p.price_yearly||0).toLocaleString('ar-EG')} ج</td>
+    <td>${Number(p.price_monthly||0).toLocaleString('ar-EG',{maximumFractionDigits:2})} ج</td>
+    <td>${Number(p.price_yearly_regular||0).toLocaleString('ar-EG',{maximumFractionDigits:2})} ج</td>
+    <td>${Number(p.price_yearly||0).toLocaleString('ar-EG',{maximumFractionDigits:2})} ج</td>
     <td>${Number(p.quota_limit||0).toLocaleString('ar-EG')} شهادة</td>
     <td><span style="font-size:13px;font-weight:800;color:var(--blue)">${p.institutions?.length||0}</span></td>
     <td><button class="btn-s" type="button" onclick="editPackage('${p.id}')">تعديل</button> <button class="btn-d" type="button" onclick="deletePackage('${p.id}')">حذف</button></td>
@@ -962,12 +965,17 @@ function openPackageEditor(pkg=null){
   document.getElementById('packageName').value=pkg?.name||'';
   document.getElementById('packageName').readOnly=!!pkg;
   document.getElementById('packageNameAr').value=pkg?.name_ar||'';
-  document.getElementById('packageMonthly').value=pkg?.price_monthly??0;
+  document.getElementById('packageYearlyRegular').value=pkg?.price_yearly_regular??pkg?.price_yearly??0;
   document.getElementById('packageYearly').value=pkg?.price_yearly??0;
+  updatePackageMonthlyPreview();
   document.getElementById('packageQuota').value=pkg?.quota_limit??10;
   document.getElementById('packageOrder').value=pkg?.sort_order??10;
   document.getElementById('packageModalTitle').textContent=pkg?'تعديل الباقة':'إضافة باقة جديدة';
   document.getElementById('packageModal').style.display='flex';
+}
+function updatePackageMonthlyPreview(){
+  const regular=Number(document.getElementById('packageYearlyRegular').value||0);
+  document.getElementById('packageMonthly').value=(regular/12).toFixed(2);
 }
 function closePackageEditor(){document.getElementById('packageModal').style.display='none';}
 async function editPackage(id){
@@ -982,13 +990,15 @@ async function savePackage(event){
   const payload={
     p_package_id:packageId,p_name:document.getElementById('packageName').value.trim(),
     p_name_ar:document.getElementById('packageNameAr').value.trim(),
-    p_price_monthly:Number(document.getElementById('packageMonthly').value),
+    p_price_yearly_regular:Number(document.getElementById('packageYearlyRegular').value),
     p_price_yearly:Number(document.getElementById('packageYearly').value),
     p_quota_limit:Number(document.getElementById('packageQuota').value),
     p_sort_order:Number(document.getElementById('packageOrder').value)
   };
-  if(!payload.p_name||!payload.p_name_ar||Object.values(payload).some((v,i)=>i>1&&(!Number.isInteger(v)||v<0))){
-    errorBox.textContent='راجع البيانات: الأسعار والكوتا والترتيب يجب أن تكون أرقاماً صحيحة غير سالبة.';errorBox.style.display='block';return;
+  const pricesValid=Number.isFinite(payload.p_price_yearly_regular)&&Number.isFinite(payload.p_price_yearly)&&payload.p_price_yearly_regular>=0&&payload.p_price_yearly>=0&&payload.p_price_yearly<=payload.p_price_yearly_regular;
+  const limitsValid=Number.isInteger(payload.p_quota_limit)&&payload.p_quota_limit>=0&&Number.isInteger(payload.p_sort_order)&&payload.p_sort_order>=0;
+  if(!payload.p_name||!payload.p_name_ar||!pricesValid||!limitsValid){
+    errorBox.textContent='راجع البيانات: السعران يجب أن يكونا صحيحين، وسعر ما بعد الخصم لا يتجاوز السعر الأصلي، والكوتا والترتيب أعداد صحيحة غير سالبة.';errorBox.style.display='block';return;
   }
   btn.disabled=true;btn.textContent='جارٍ الحفظ...';errorBox.style.display='none';
   const{error}=await sb.rpc('admin_save_package',payload);
