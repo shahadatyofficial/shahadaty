@@ -749,7 +749,7 @@ async function loadAdminCerts(){
     <td>${adminEsc(c.institutions?.name||'—')}</td><td>${new Date(c.acquisition_date||c.issue_date).toLocaleDateString('ar-EG')}</td>
     <td><span class="badge ${c.status==='active'?'bok':c.status==='suspended'?'bwarn':'berr'}">${c.status==='active'?'نشط':c.status==='suspended'?'موقوف مؤقتاً':'ملغي'}</span></td>
     <td><div style="display:flex;gap:6px">
-      <a href="certificate.html?id=${encodeURIComponent(c.cert_number||'')}" target="_blank" class="btn-s" style="font-size:10px;padding:5px 10px">عرض</a>
+      <a href="certificate.html?id=${encodeURIComponent(c.cert_number||'')}&template=uploaded-2-html" target="_blank" class="btn-s" style="font-size:10px;padding:5px 10px">عرض</a>
       ${c.status==='active'?`<button onclick="revokeCert('${c.id}')" class="btn-d" style="font-size:10px;padding:5px 10px">إلغاء</button>`:''}
     </div></td>
   </tr>`).join('');
@@ -806,7 +806,7 @@ async function submitAdminCertificate(event){
  if(error){showAdminCertMessage(error.message||'تعذر تسجيل البيانات.','error');return;}
  const no=data?.cert_number||'';showAdminCertMessage('تم تسجيل السجل بنجاح. الرقم المرجعي: '+no,'success');form.reset();toggleAdminCertSource();toggleAdminQualificationFields();
  const now=new Date();document.getElementById('adminCertIssueDate').value=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);await loadAdminCerts();
- const link=document.createElement('a');link.href='certificate.html?id='+encodeURIComponent(no);link.target='_blank';link.rel='noopener';link.textContent='عرض السجل المسجل';link.style.cssText='display:inline-block;margin-top:8px;color:#0369a1;font-weight:800';document.getElementById('adminCertFormMessage').appendChild(document.createElement('br'));document.getElementById('adminCertFormMessage').appendChild(link);
+ const link=document.createElement('a');link.href='certificate.html?id='+encodeURIComponent(no)+'&template=uploaded-2-html;link.target='_blank';link.rel='noopener';link.textContent='عرض السجل المسجل';link.style.cssText='display:inline-block;margin-top:8px;color:#0369a1;font-weight:800';document.getElementById('adminCertFormMessage').appendChild(document.createElement('br'));document.getElementById('adminCertFormMessage').appendChild(link);
 }
 
 // ── ACADEMIC REFERENCE LIST MANAGEMENT ─────────────────────────
