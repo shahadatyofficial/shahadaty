@@ -639,11 +639,20 @@ function renderInst(rows){
     <td><div style="display:flex;gap:6px">
       ${r.status==='pending'||r.status==='rejected'?`<button onclick="setInstSt('${r.id}','approved')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button>`:''}
       ${r.status==='approved'?`<button onclick="setInstSt('${r.id}','suspended')" class="btn-d" style="font-size:10px;padding:5px 10px">إيقاف</button><button onclick="printInstitutionCertificate('${r.id}')" class="btn-s" style="font-size:10px;padding:5px 10px">طباعة شهادة الشريك</button>`:''}
+      ${r.status==='suspended'?`<button onclick="reactivateInstitution('${r.id}')" class="btn-p" style="font-size:10px;padding:5px 10px">إعادة تفعيل</button>`:''}
       <button onclick="editQuota('${r.id}',${r.quota_total||0})" class="btn-s" style="font-size:10px;padding:5px 10px">كوتا</button>
     </div></td>
   </tr>`).join('');
 }
-function filterInst(){const q=document.getElementById('instSearch').value.toLowerCase();renderInst(allInstitutions.filter(r=>r.name.toLowerCase().includes(q)||r.contact_email.toLowerCase().includes(q)));}
+function filterInst(){const q=(document.getElementById('instSearch').value||'').trim().toLowerCase();renderInst(allInstitutions.filter(r=>String(r.name||'').toLowerCase().includes(q)||String(r.contact_email||'').toLowerCase().includes(q)||String(r.contact_phone||'').toLowerCase().includes(q)||String(r.request_number||'').toLowerCase().includes(q)));}
+async function reactivateInstitution(id){
+  if(!confirm('سيتم إعادة تفعيل المؤسسة فقط إذا كان لديها اشتراك مدفوع وساري، أو تجربة مجانية سارية. هل تريد المتابعة؟'))return;
+  const {data,error}=await sb.rpc('admin_reactivate_institution',{p_institution_id:id});
+  if(error){toast(error.message==='PAYMENT_REQUIRED'?'لا يمكن إعادة التفعيل قبل تأكيد السداد.':error.message==='SUBSCRIPTION_EXPIRED'?'انتهت مدة الاشتراك؛ يجب تجديده أولاً.':error.message,'err');return;}
+  toast('تمت إعادة تفعيل المؤسسة والاشتراك بنجاح','ok');
+  loadInstitutions();loadBadges();loadReqs();loadOverview();loadSubscriptions?.();
+}
+
 async function setInstSt(id,status){
   if(status==='approved'){
     const cycleChoice=(prompt('اختر دورة الاشتراك للمؤسسة:\\n1 - سنوي (السعر المخفض)\\n2 - شهري','1')||'').trim();
