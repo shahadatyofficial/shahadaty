@@ -1234,7 +1234,7 @@ function renderTs(){
   document.getElementById('tsGrid').innerHTML=slice.map((t,i)=>`<div class="ts-card ${t.f&&tsPage===0&&i===0?'feat':''}"><span class="qm">"</span><div class="ts-stars">★★★★★</div><div class="ts-quote">${t.q}</div><div class="ts-sep"></div><div class="ts-author"><div class="ts-av" style="background:${t.c}">${tsInits(t.n)}</div><div><div class="ts-name">${t.n}</div><div class="ts-role">${t.r}</div><span class="ts-type" style="background:${tsTypes[t.t].bg};color:${tsTypes[t.t].c}">${tsTypes[t.t].l}</span></div></div></div>`).join('');
   const pages=Math.ceil(tsCur.length/tsPerPage);
   const pg=document.getElementById('tsPg');
-  if(pages<=1){pg.innerHTML='';return;}
+  if(pages<=1){pg.innerHTML='';if(currentLang==='en')applyLanguage('en');return;}
   let h=`<button class="pg-btn" onclick="tsGo(${tsPage-1})" ${tsPage===0?'style="opacity:.3;pointer-events:none"':''}>›</button>`;
   for(let i=0;i<pages;i++)h+=`<div class="pg-dot ${i===tsPage?'active':''}" onclick="tsGo(${i})"></div>`;
   h+=`<button class="pg-btn" onclick="tsGo(${tsPage+1})" ${tsPage===pages-1?'style="opacity:.3;pointer-events:none"':''}>‹</button>`;
@@ -1396,7 +1396,13 @@ function applyLanguage(lang){
   document.getElementById('btnAr').classList.toggle('active',lang==='ar'); document.getElementById('btnEn').classList.toggle('active',lang==='en');
   document.title=lang==='ar'?'شهادتي — الثقة تبدأ من شهادتك':'Shahadaty — Trust Begins with Your Certificate';
 }
-function setLang(lang){applyLanguage(lang);if(typeof renderTs==='function')renderTs();if(typeof renderFaq==='function')renderFaq();if(lang==='en')applyLanguage('en');}
+function setLang(lang){
+  applyLanguage(lang);
+  if(typeof renderTs==='function')renderTs();
+  if(typeof renderFaq==='function')renderFaq();
+  // Re-apply after dynamic sections re-render so both directions stay in sync.
+  applyLanguage(lang);
+}
 
 window.addEventListener('load',()=>{
   renderTs();renderFaq();
