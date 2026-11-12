@@ -272,6 +272,21 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
   .content{padding-inline:9px}
 }
 
+
+.support-chat{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px}
+.support-thread-box{height:420px;overflow:auto;background:#f4f7fb;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.support-bubble{max-width:85%;padding:10px 13px;border-radius:13px;font-size:13px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}
+.support-bubble.visitor{align-self:flex-end;background:#dceeff;color:#173b5c;border-bottom-left-radius:4px}
+.support-bubble.admin{align-self:flex-start;background:#fff;color:#20344d;border:1px solid #dce6f0;border-bottom-right-radius:4px}
+.support-bubble small{display:block;font-size:10px;opacity:.65;margin-top:4px}
+.support-compose{display:flex;gap:9px;margin-top:12px}
+.support-compose input{flex:1;min-width:0;padding:12px;border:1px solid var(--border);border-radius:10px;font:14px 'Cairo',sans-serif}
+.support-compose button{background:var(--blue);color:#fff;border:0;border-radius:10px;padding:0 20px;font:700 13px 'Cairo',sans-serif;cursor:pointer}
+.support-compose button:disabled{opacity:.55;cursor:wait}
+.support-info{background:#f8fbff;border:1px solid var(--border);border-radius:12px;padding:16px;font-size:12px;line-height:1.9;color:var(--muted)}
+.support-status{display:inline-flex;padding:4px 10px;border-radius:20px;background:#eff6ff;color:var(--blue);font-weight:800;font-size:11px}
+@media(max-width:760px){.support-chat{grid-template-columns:minmax(0,1fr)}.support-thread-box{height:55vh;min-height:300px}.support-compose button{padding:0 13px}}
+
 </style>
 </head>
 <body>
@@ -349,7 +364,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="sb-item" onclick="showPage('settings',this)">
       <span class="material-symbols-outlined">settings</span> الإعدادات
     </div>
-    <div class="sb-item">
+    <div class="sb-item" onclick="showPage('support',this)">
       <span class="material-symbols-outlined">headset_mic</span> الدعم والمساعدة
     </div>
   </nav>
@@ -680,6 +695,26 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       <div class="card">
         <div class="card-head"><span class="card-title">المستندات المرفوعة وحالة المراجعة</span><button type="button" class="btn-cancel" onclick="loadInstitutionDocuments()">تحديث</button></div>
         <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>نوع المستند</th><th>اسم الملف</th><th>تاريخ الرفع</th><th>الحالة</th><th>ملاحظات الإدارة</th><th>عرض</th></tr></thead><tbody id="institutionDocumentsTable"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+
+    <div class="page" id="page-support">
+      <div class="card">
+        <div class="card-head"><span class="card-title">محادثة الدعم الفني</span><span id="institutionSupportStatus" class="support-status">جاري تحميل مواعيد الدعم...</span></div>
+        <div class="card-body"><div class="support-chat">
+          <div>
+            <div class="support-thread-box" id="institutionSupportMessages" aria-live="polite"><div style="text-align:center;color:var(--muted);margin:auto">ابدأ رسالتك لفريق شهادتي العلمية</div></div>
+            <form class="support-compose" onsubmit="sendInstitutionSupportMessage(event)"><input id="institutionSupportInput" maxlength="2000" required placeholder="اكتب رسالتك لفريق الدعم..." aria-label="رسالة الدعم"><button id="institutionSupportSend" type="submit">إرسال ↗</button></form>
+            <div id="institutionSupportNotice" role="status" style="font-size:12px;color:var(--muted);margin-top:9px"></div>
+          </div>
+          <aside class="support-info"><div style="font-size:15px;font-weight:900;color:var(--navy);margin-bottom:8px">فريق دعم شهادتي العلمية</div>
+            <div id="institutionSupportWelcome">أهلاً بك، يسعدنا مساعدتك.</div><hr style="border:0;border-top:1px solid var(--border);margin:12px 0">
+            <b style="color:var(--navy)">مواعيد العمل</b><br>من الأحد إلى الخميس<br>من 9 صباحًا إلى 5 مساءً
+            <hr style="border:0;border-top:1px solid var(--border);margin:12px 0"><div id="institutionSupportOffline"></div>
+            <a href="https://wa.me/201233380085" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:12px;color:var(--blue);font-weight:800">التواصل عبر واتساب ↗</a>
+          </aside>
+        </div></div>
       </div>
     </div>
 
