@@ -103,5 +103,31 @@
 
 **Release rule:** do not release until all critical tests pass and no unresolved critical/high security issue remains.
 
-## Immediate blocker
-The Supabase project was requested to be restored, but the latest observed status was `COMING_UP`, and PostgreSQL introspection was unavailable. Continue with repository-only, read-only work until the database becomes reachable. Do not guess the live schema or apply SQL based only on old scripts.
+## Historical baseline note
+The database unavailability recorded in the 2026-11-06 baseline was temporary. PostgreSQL has since been reached and production schema changes have been applied and verified. Use current database introspection and verified migrations for ongoing work.
+
+
+## Verified delivery update — 2026-11-12
+
+The live project is now reachable and has moved beyond the original Phase 0 baseline. The earlier note that PostgreSQL was unavailable is historical and must not be treated as the current blocker.
+
+### Verified production work
+- Institution registration, legal data/document review, rejection feedback, and rejected-application resubmission are implemented.
+- Certificate issuance, verification, mobile certificate presentation, bulk import, trainee search/profile, and admin certificate editing are implemented.
+- Annual/monthly package pricing, paid-subscription gating, payment-reference submission, and admin payment confirmation are implemented.
+- Graduate publication consent is explicit; public visibility is not inferred from employer visibility.
+- Institution support chat and mobile dashboard refinements are implemented.
+- The existing institution's annual Diamond subscription was recorded as paid for EGP 15,000 with the payment reference supplied by the owner; subscription term: 2026-11-12 through 2027-11-12.
+- Latest production deployment for PR #70 completed successfully; inline JavaScript validation also passed.
+
+### Remaining acceptance work (not yet claimed complete)
+1. Execute real browser/device end-to-end tests for institution registration, login, approval, payment, certificate issue, mobile viewing, QR verification, revocation, and employer lookup.
+2. Exercise pending/rejected/suspended institution states with safe test accounts, not fabricated production rows.
+3. Validate the support inbox end-to-end across visitor, institution, and admin roles.
+4. Test bilingual navigation and all RTL/LTR pages on current mobile browsers.
+5. Verify backup/restore procedure and document operational recovery steps.
+6. Review payment reconciliation and ensure the displayed paid amount, billing cycle, and dates remain consistent in all admin/institution views.
+7. Complete remaining permission-isolation tests for every institution-scoped RPC and storage path.
+
+### Current release posture
+Core production workflows are implemented and the latest changes are deployed. Full acceptance testing is still pending; do not describe the platform as fully certified or all device/browser scenarios as tested until the checks above pass.
