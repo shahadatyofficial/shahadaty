@@ -52,11 +52,11 @@ $('companyJoinForm').addEventListener('submit',async e=>{
   const{data:authData,error:authError}=await sb.auth.signUp({email,password,options:{data:{full_name:contactName}}});
   if(authError)throw authError;
   const authUserId=authData?.session?.user?.id||null;
-  const{error:insertError}=await sb.from('companies').insert({
-   company_name:companyName,contact_name:contactName,contact_email:email,contact_phone:phone,
-   status:'pending',search_credits:0,auth_user_id:authUserId
+  const{data:requestId,error:insertError}=await sb.rpc('submit_company_registration',{
+   p_company_name:companyName,p_contact_name:contactName,p_contact_email:email,p_contact_phone:phone
   });
   if(insertError)throw insertError;
+  if(!requestId)throw new Error('لم يتم إنشاء رقم طلب الانضمام.');
   $('companyJoinForm').reset();
   msg.textContent=authData?.session
    ?'تم استلام طلب الانضمام وإنشاء الحساب. سيظل الدخول والبحث معلقين حتى اعتماد الشركة من الإدارة.'
