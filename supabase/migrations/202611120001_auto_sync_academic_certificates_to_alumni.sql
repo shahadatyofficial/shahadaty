@@ -97,3 +97,12 @@ execute function public.sync_academic_certificate_to_alumni();
 
 comment on function public.sync_academic_certificate_to_alumni() is
   'Synchronizes active academic certificate records into hidden alumni directory profiles; public visibility remains an explicit admin action.';
+
+
+-- Backfill existing active academic certificate records through the same trigger logic.
+-- This is idempotent: existing certificate/profile links are updated, not duplicated.
+update public.certificates
+   set academic_degree = academic_degree
+ where record_type = 'academic'
+   and status = 'active'
+   and nullif(trim(student_name), '') is not null;
