@@ -829,25 +829,59 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 
 <!-- PUBLIC ALUMNI SEARCH — placed directly after verification statistics -->
 <section id="alumni-search" class="alumni-search-section" aria-labelledby="alumniSearchTitle">
- <div class="alumni-search-shell">
-  <div class="alumni-search-card">
-   <div class="alumni-search-heading">
-    <span class="alumni-search-icon" aria-hidden="true">⌕</span>
-    <div><span class="alumni-eyebrow">دليل الكفاءات والخريجين</span><h2 id="alumniSearchTitle">ابحث عن دورة أو مؤهل أو خريج</h2><p>ابحث في سجلات الدورات التدريبية والمؤهلات العلمية المسجلة بموافقة أصحابها على النشر.</p></div>
-   </div>
-   <form id="publicAlumniForm" class="alumni-search-form" onsubmit="searchPublicAlumni(event)">
-    <label class="alumni-field alumni-field-primary"><span>اسم الدورة أو المؤهل أو الخريج <b aria-hidden="true">*</b></span><input id="publicAlumniQualification" aria-label="اسم الدورة أو المؤهل أو الخريج مطلوب" placeholder="مثال: مساعد خدمات صحية، تمريض، حقوق، أو اسم الخريج..." required maxlength="120" autocomplete="off"><small>ابحث باسم الدورة التدريبية أو المؤهل العلمي أو اسم صاحب الشهادة.</small></label>
-    <label class="alumni-field"><span>الجهة المانحة <i>اختياري</i></span><input id="publicAlumniUniversity" placeholder="اسم المؤسسة أو الجامعة" maxlength="120" autocomplete="organization"></label>
-    <label class="alumni-field"><span>التخصص <i>اختياري</i></span><input id="publicAlumniCollege" placeholder="اسم التخصص" maxlength="120"></label>
-    <label class="alumni-field"><span>سنة الحصول على المؤهل / الدورة <i>اختياري</i></span><input id="publicAlumniYear" type="number" min="1950" max="2100" inputmode="numeric" placeholder="مثال: 2024"></label>
-    <label class="alumni-field"><span>التقدير <i>اختياري</i></span><select id="publicAlumniGrade"><option value="">كل التقديرات</option><option>امتياز</option><option>امتياز مع مرتبة الشرف</option><option>جيد جداً</option><option>جيد</option><option>مقبول</option></select></label>
-    <div class="alumni-search-actions"><button id="publicAlumniSubmit" class="alumni-search-submit" type="submit"><span aria-hidden="true">⌕</span> بحث في السجلات</button><button class="alumni-search-reset" type="reset" onclick="resetPublicAlumniSearch()">مسح الفلاتر</button></div>
+ <style>
+ .career-switch{display:flex;gap:10px;margin:0 0 20px}.career-switch button{flex:1;border:1px solid #dbe5ef;border-radius:12px;padding:13px;background:#f7fafc;color:#496176;font:800 14px Cairo;cursor:pointer}.career-switch button.active{background:#0c2d4e;color:#fff;border-color:#0c2d4e;box-shadow:0 6px 18px #0c2d4e22}
+ .career-panel{display:none}.career-panel.active{display:block}.career-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.career-fields label{display:grid;gap:6px;font-size:12px;font-weight:800;color:#29445c}.career-fields input,.career-fields select,.career-fields textarea{width:100%;min-width:0;border:1px solid #dce5ee;border-radius:10px;padding:12px;background:#fff;font:13px Cairo;color:#18344f}.career-fields .wide{grid-column:1/-1}.career-action{margin-top:13px;border:0;border-radius:10px;background:linear-gradient(110deg,#0b4774,#087fb5);color:#fff;padding:12px 24px;font:800 13px Cairo;cursor:pointer}.career-job{border:1px solid #e0e8ef;border-radius:14px;padding:16px;background:#fff}.career-job h3{margin:0 0 7px;font-size:15px;color:#123b5d}.career-job p{font-size:12px;color:#647789;line-height:1.8;margin:7px 0}.career-job-meta{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#496176}.career-job-meta span{background:#f0f6fa;padding:5px 8px;border-radius:7px}.career-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}.career-result-actions{margin-top:12px}.career-modal{display:none;position:fixed;inset:0;z-index:12000;background:#071b34b8;padding:18px;align-items:center;justify-content:center}.career-modal.open{display:flex}.career-modal-box{width:min(620px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:18px;padding:22px;box-shadow:0 24px 80px #0004}.career-modal-box h3{margin:0 0 6px;color:#0c2d4e}.career-modal-box p{font-size:12px;color:#68798a;line-height:1.8}.career-modal-actions{display:flex;gap:9px;justify-content:flex-start;margin-top:14px}.career-modal-actions button{border:0;border-radius:9px;padding:11px 18px;font:800 12px Cairo;cursor:pointer}.career-submit{background:#0b6595;color:#fff}.career-cancel{background:#edf2f6;color:#53677b}.career-notice{margin-top:12px;font-size:12px;color:#52677b;line-height:1.8}.career-results-state{grid-column:1/-1;text-align:center;padding:22px;border:1px dashed #d8e3ed;border-radius:12px;color:#6e8091;font-size:13px}
+ @media(max-width:650px){.career-fields{grid-template-columns:1fr 1fr}.career-results{grid-template-columns:1fr}.career-fields .wide{grid-column:1/-1}.career-switch button{font-size:12px;padding:11px 7px}}
+ @media(max-width:430px){.career-fields{grid-template-columns:1fr}}
+ </style>
+ <div class="alumni-search-shell"><div class="alumni-search-card">
+  <div class="alumni-search-heading"><span class="alumni-search-icon" aria-hidden="true">⌕</span><div><span class="alumni-eyebrow">فرص العمل والكفاءات</span><h2 id="alumniSearchTitle">بوابة التوظيف والتواصل المهني</h2><p>ابحث عن الكفاءات أو استكشف الوظائف، وفريق شهادتي يتولى التنسيق بين الطرفين ويحافظ على سرية بيانات التواصل.</p></div></div>
+  <div class="career-switch" role="tablist"><button type="button" class="active" id="careerTabEmployees" onclick="switchCareerPanel('employees')">🏢 ابحث عن موظف</button><button type="button" id="careerTabJobs" onclick="switchCareerPanel('jobs')">💼 ابحث عن وظيفة</button></div>
+  <div id="careerEmployeesPanel" class="career-panel active">
+   <form id="careerEmployeeForm" onsubmit="searchCareerEmployees(event)">
+    <div class="career-fields">
+     <label class="wide">المؤهل العلمي أو الدورة التدريبية <b style="color:#b08d43">أساسي</b><input id="careerQualification" required maxlength="120" placeholder="مثال: مساعد خدمات صحية، تمريض، محاسبة"></label>
+     <label>اسم الخريج (اختياري)<input id="careerGraduateName" maxlength="120" placeholder="اسم الخريج"></label>
+     <label>التخصص<input id="careerSpecialization" maxlength="120" placeholder="التخصص"></label>
+     <label>الجهة المانحة<input id="careerInstitution" maxlength="120" placeholder="الجامعة أو المركز"></label>
+     <label>سنة التخرج<input id="careerGradYear" type="number" min="1950" max="2100" placeholder="2025"></label>
+     <label>التقدير<select id="careerGrade"><option value="">كل التقديرات</option><option>امتياز</option><option>امتياز مع مرتبة الشرف</option><option>جيد جداً</option><option>جيد</option><option>مقبول</option></select></label>
+    </div><button class="career-action" id="careerEmployeeSearch" type="submit">بحث عن الكفاءات</button>
    </form>
-   <div id="publicAlumniResults" class="alumni-results" aria-live="polite" aria-busy="false"></div>
+   <div id="careerEmployeeResults" class="career-results" aria-live="polite"></div>
+   <p class="career-notice">تظهر فقط المؤهلات والسجلات التي وافق أصحابها على نشرها. طلب التواصل لا يكشف رقم هاتف الخريج أو بريده للشركة؛ إدارة شهادتي تتولى التنسيق أولاً.</p>
   </div>
- </div>
+  <div id="careerJobsPanel" class="career-panel">
+   <form id="careerJobForm" onsubmit="searchCareerJobs(event)">
+    <div class="career-fields">
+     <label class="wide">المسمى الوظيفي أو كلمات البحث<input id="careerJobQuery" maxlength="120" placeholder="مثال: محاسب، سكرتارية، إدخال بيانات، مساعد خدمات صحية"></label>
+     <label>المحافظة<input id="careerJobGovernorate" maxlength="80" placeholder="المحافظة"></label>
+     <label>نوع الوظيفة<select id="careerJobType"><option value="">كل الأنواع</option><option>دوام كامل</option><option>دوام جزئي</option><option>تعاقد</option><option>تدريب</option><option>عن بُعد</option></select></label>
+    </div><button class="career-action" type="submit" id="careerJobSearch">عرض الوظائف المتاحة</button>
+   </form>
+   <div id="careerJobResults" class="career-results" aria-live="polite"></div>
+   <p class="career-notice">طلب التواصل مع الشركة يصل إلى إدارة شهادتي فقط، ولن يتم تبادل بيانات التواصل مباشرة بين الخريج والشركة.</p>
+  </div>
+ </div></div>
 </section>
-
+<div class="career-modal" id="careerContactModal" role="dialog" aria-modal="true" aria-labelledby="careerContactTitle">
+ <div class="career-modal-box"><h3 id="careerContactTitle">طلب التواصل عبر شهادتي</h3><p id="careerContactContext"></p>
+  <form id="careerContactForm" onsubmit="submitCareerContact(event)">
+   <div class="career-fields">
+    <label id="careerCompanyNameWrap">اسم الشركة أو جهة العمل<input id="careerCompanyName" maxlength="160" placeholder="اسم الشركة"></label>
+    <label>اسم مقدم الطلب<input id="careerContactName" required maxlength="120" placeholder="الاسم الكامل"></label>
+    <label>رقم الهاتف<input id="careerContactPhone" required maxlength="30" inputmode="tel" placeholder="رقم للتواصل"></label>
+    <label>البريد الإلكتروني<input id="careerContactEmail" type="email" maxlength="254" placeholder="name@example.com"></label>
+    <label class="wide" id="careerTargetRoleWrap">المسمى الوظيفي المطلوب<input id="careerTargetRole" maxlength="160" placeholder="الوظيفة أو الدور المطلوب"></label>
+    <label class="wide">ملاحظات إضافية<textarea id="careerContactNotes" rows="3" maxlength="3000" placeholder="اكتب أي تفاصيل تساعد فريق شهادتي في التنسيق"></textarea></label>
+   </div>
+   <div class="career-notice">بإرسال الطلب، أنت توافق على أن تتواصل معك إدارة شهادتي بخصوص هذا الطلب. لا يتم عرض بيانات الاتصال للطرف الآخر تلقائياً.</div>
+   <div class="career-modal-actions"><button class="career-submit" id="careerContactSubmit" type="submit">إرسال الطلب</button><button class="career-cancel" type="button" onclick="closeCareerContact()">إلغاء</button></div>
+   <div id="careerContactMessage" class="career-notice" aria-live="polite"></div>
+  </form>
+ </div>
+</div>
 <!-- WHY -->
 <section class="sec bg" id="why">
   <div style="text-align:center">
@@ -1141,24 +1175,59 @@ async function loadCareerTicker(){
  const items=[...(jobs||[]).map(x=>'فرصة وظيفية #'+x.announcement_number+' — '+x.company_display_name+': '+x.title),...(courses||[]).map(x=>'إعلان دورة #'+x.announcement_number+' — '+x.title)];
  if(items.length)el.innerHTML=items.map(x=>'<span>✦ '+publicEsc(x)+'</span>').join('');
 }
-function resetPublicAlumniSearch(){const el=document.getElementById('publicAlumniResults');if(el){el.innerHTML='';el.setAttribute('aria-busy','false');}}
-async function searchPublicAlumni(event){
- event.preventDefault();const form=document.getElementById('publicAlumniForm'),el=document.getElementById('publicAlumniResults'),btn=document.getElementById('publicAlumniSubmit');
- const qualification=document.getElementById('publicAlumniQualification').value.trim();
- if(!qualification){document.getElementById('publicAlumniQualification').focus();el.innerHTML='<div class="alumni-results-state">من فضلك أدخل اسم الدورة أو المؤهل أو الخريج لإتمام البحث.</div>';return;}
- const yearValue=document.getElementById('publicAlumniYear').value.trim(),year=yearValue?Number(yearValue):null;
- if(yearValue&&(!Number.isInteger(year)||year<1950||year>2100)){el.innerHTML='<div class="alumni-results-state">يرجى إدخال سنة صحيحة.</div>';return;}
- const params={p_qualification:qualification,p_university:document.getElementById('publicAlumniUniversity').value.trim()||null,p_college:document.getElementById('publicAlumniCollege').value.trim()||null,p_graduation_year:year,p_grade:document.getElementById('publicAlumniGrade').value||null};
- btn.disabled=true;btn.textContent='جارٍ البحث...';el.setAttribute('aria-busy','true');el.innerHTML='<div class="alumni-results-state">جارٍ البحث عن السجلات المطابقة...</div>';
- try{
-  const{data,error}=await sb.rpc('search_public_alumni',params);
-  if(error)throw error;
-  if(!data?.length){el.innerHTML='<div class="alumni-results-state"><strong>لم نعثر على نتائج مطابقة</strong><br>جرّب تعديل عبارة البحث أو إزالة أحد الفلاتر الاختيارية.<small style="display:block;margin-top:8px;opacity:.8">لا تظهر السجلات في البحث العام إلا بعد موافقة صاحب الشهادة على النشر.</small></div>';return;}
-  el.innerHTML='<div class="alumni-results-count">تم العثور على '+data.length+' نتيجة'+(data.length===100?' أو أكثر':'')+'</div><div class="alumni-results-grid">'+data.map(x=>'<article class="alumni-result-card"><div class="alumni-result-name">'+publicEsc(x.full_name)+'</div><div class="alumni-result-qualification">'+publicEsc(x.qualification_name)+'</div><div class="alumni-result-meta"><div><b>الجهة المانحة</b>'+publicEsc(x.institution_name||'غير محدد')+'</div><div><b>التخصص</b>'+publicEsc(x.faculty_name||'غير محدد')+'</div><div><b>سنة الحصول على المؤهل / الدورة</b>'+publicEsc(x.graduation_year||'غير محدد')+'</div><div><b>التقدير</b>'+publicEsc(x.grade||'غير محدد')+'</div></div></article>').join('')+'</div>';
- }catch(error){console.error('Public alumni search failed',error);el.innerHTML='<div class="alumni-results-state">تعذر تنفيذ البحث حاليًا. حاول مرة أخرى بعد قليل.</div>';}
- finally{btn.disabled=false;btn.innerHTML='<span aria-hidden="true">⌕</span> بحث في السجلات';el.setAttribute('aria-busy','false');if(currentLang==='en')applyLanguage('en');}
+let careerContactContext=null;
+function switchCareerPanel(which){
+ document.getElementById('careerEmployeesPanel').classList.toggle('active',which==='employees');
+ document.getElementById('careerJobsPanel').classList.toggle('active',which==='jobs');
+ document.getElementById('careerTabEmployees').classList.toggle('active',which==='employees');
+ document.getElementById('careerTabJobs').classList.toggle('active',which==='jobs');
 }
-
+async function searchCareerEmployees(event){
+ event.preventDefault();const el=document.getElementById('careerEmployeeResults'),btn=document.getElementById('careerEmployeeSearch');
+ const qualification=document.getElementById('careerQualification').value.trim();
+ const y=document.getElementById('careerGradYear').value.trim(),year=y?Number(y):null;
+ if(y&&(!Number.isInteger(year)||year<1950||year>2100)){el.innerHTML='<div class="career-results-state">أدخل سنة تخرج صحيحة.</div>';return;}
+ btn.disabled=true;el.innerHTML='<div class="career-results-state">جارٍ البحث في السجلات المسموح بنشرها...</div>';
+ try{
+  const{data,error}=await sb.rpc('search_public_alumni',{p_qualification:qualification,p_university:document.getElementById('careerInstitution').value.trim()||null,p_college:document.getElementById('careerSpecialization').value.trim()||null,p_graduation_year:year,p_grade:document.getElementById('careerGrade').value||null});
+  if(error)throw error;
+  const nameFilter=document.getElementById('careerGraduateName').value.trim().toLowerCase();
+  const rows=(data||[]).filter(x=>!nameFilter||String(x.full_name||'').toLowerCase().includes(nameFilter));
+  if(!rows.length){el.innerHTML='<div class="career-results-state">لا توجد نتائج مطابقة. جرّب مؤهلاً أو تخصصاً آخر.</div>';return;}
+  el.innerHTML=rows.map(x=>'<article class="alumni-result-card"><div class="alumni-result-name">'+publicEsc(x.full_name)+'</div><div class="alumni-result-qualification">'+publicEsc(x.qualification_name)+'</div><div class="alumni-result-meta"><div><b>الجهة المانحة</b>'+publicEsc(x.institution_name||'غير محدد')+'</div><div><b>التخصص</b>'+publicEsc(x.faculty_name||'غير محدد')+'</div><div><b>سنة الحصول</b>'+publicEsc(x.graduation_year||'غير محدد')+'</div><div><b>التقدير</b>'+publicEsc(x.grade||'غير محدد')+'</div></div><div class="career-result-actions"><button type="button" class="career-action" onclick="openCareerContact('+JSON.stringify({type:'company_to_graduate',candidate:x.full_name,qualification:x.qualification_name,specialization:x.faculty_name||''}).replace(/</g,'\\u003c')+')">طلب التواصل مع الموظف</button></div></article>').join('');
+ }catch(err){console.error(err);el.innerHTML='<div class="career-results-state">تعذر البحث حالياً. حاول مرة أخرى.</div>';}
+ finally{btn.disabled=false;}
+}
+async function searchCareerJobs(event){
+ event.preventDefault();const el=document.getElementById('careerJobResults'),btn=document.getElementById('careerJobSearch');btn.disabled=true;el.innerHTML='<div class="career-results-state">جارٍ تحميل الوظائف المتاحة...</div>';
+ try{
+  const{data,error}=await sb.rpc('get_public_job_listings',{p_query:document.getElementById('careerJobQuery').value.trim()||null,p_governorate:document.getElementById('careerJobGovernorate').value.trim()||null,p_employment_type:document.getElementById('careerJobType').value||null});
+  if(error)throw error;if(!data?.length){el.innerHTML='<div class="career-results-state">لا توجد وظائف مطابقة منشورة حالياً.</div>';return;}
+  el.innerHTML=data.map(j=>'<article class="career-job"><h3>'+publicEsc(j.title)+'</h3><b>'+publicEsc(j.company_display_name)+'</b><p>'+publicEsc(j.description||j.teaser||'')+'</p><div class="career-job-meta">'+[j.governorate,j.work_mode,j.employment_type,j.qualification_required,j.specialization_required,j.salary_text?'الراتب: '+j.salary_text:null].filter(Boolean).map(v=>'<span>'+publicEsc(v)+'</span>').join('')+'</div><p>الخبرة المطلوبة: '+publicEsc(j.experience_years??'غير محددة')+' · عدد الشواغر: '+publicEsc(j.positions_count||1)+'</p><button type="button" class="career-action" onclick="openCareerContact('+JSON.stringify({type:'graduate_to_company',jobId:j.id,jobTitle:j.title,company:j.company_display_name}).replace(/</g,'\\u003c')+')">طلب التواصل مع الشركة</button></article>').join('');
+ }catch(err){console.error(err);el.innerHTML='<div class="career-results-state">تعذر تحميل الوظائف حالياً. حاول مرة أخرى.</div>';}
+ finally{btn.disabled=false;}
+}
+function openCareerContact(context){
+ careerContactContext=context;document.getElementById('careerContactTitle').textContent=context.type==='company_to_graduate'?'طلب التواصل مع الموظف':'طلب التواصل مع الشركة';
+ document.getElementById('careerContactContext').textContent=context.type==='company_to_graduate'?'طلب بخصوص '+context.candidate+' — '+context.qualification:'طلب بخصوص وظيفة '+context.jobTitle+' لدى '+context.company;
+ document.getElementById('careerCompanyNameWrap').style.display=context.type==='company_to_graduate'?'grid':'none';
+ document.getElementById('careerTargetRoleWrap').style.display=context.type==='company_to_graduate'?'grid':'none';
+ document.getElementById('careerCompanyName').required=context.type==='company_to_graduate';
+ document.getElementById('careerTargetRole').required=context.type==='company_to_graduate';
+ document.getElementById('careerContactForm').reset();document.getElementById('careerContactMessage').textContent='';
+ document.getElementById('careerContactModal').classList.add('open');document.body.style.overflow='hidden';
+}
+function closeCareerContact(){document.getElementById('careerContactModal').classList.remove('open');document.body.style.overflow='';}
+async function submitCareerContact(event){
+ event.preventDefault();if(!careerContactContext)return;
+ const btn=document.getElementById('careerContactSubmit'),msg=document.getElementById('careerContactMessage');btn.disabled=true;msg.textContent='جارٍ إرسال الطلب...';
+ const c=careerContactContext,type=c.type;
+ const payload={request_type:type,alumni_id:null,job_id:type==='graduate_to_company'?c.jobId:null,candidate_name:type==='company_to_graduate'?c.candidate:document.getElementById('careerContactName').value.trim(),qualification:type==='company_to_graduate'?c.qualification:null,specialization:type==='company_to_graduate'?c.specialization:null,company_name:type==='company_to_graduate'?document.getElementById('careerCompanyName').value.trim():c.company,contact_name:document.getElementById('careerContactName').value.trim(),contact_phone:document.getElementById('careerContactPhone').value.trim(),contact_email:document.getElementById('careerContactEmail').value.trim()||null,target_job_title:type==='company_to_graduate'?document.getElementById('careerTargetRole').value.trim():c.jobTitle,request_notes:document.getElementById('careerContactNotes').value.trim()||null,status:'new'};
+ try{const{data,error}=await sb.from('employment_contact_requests').insert(payload).select('request_number').single();if(error)throw error;msg.textContent='تم استلام طلبك بنجاح. رقم الطلب: SHD-EMP-'+String(data.request_number).padStart(6,'0')+'. سيتواصل معك فريق شهادتي لمتابعة الطلب.';document.getElementById('careerContactForm').reset();careerContactContext=null;}
+ catch(err){console.error(err);msg.textContent='تعذر إرسال الطلب حالياً. تأكد من البيانات وحاول مرة أخرى.';}
+ finally{btn.disabled=false;}
+}
+document.getElementById('careerContactModal')?.addEventListener('click',e=>{if(e.target.id==='careerContactModal')closeCareerContact();});
 let camStream=null;
 
 async function doSearch(){
