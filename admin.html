@@ -182,6 +182,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="sb-sec">الرئيسية</div>
     <div class="sb-item active" onclick="sp('overview',this)"><span class="material-symbols-outlined">dashboard</span>نظرة عامة</div>
     <div class="sb-sec">الخريجون والتوظيف</div>
+    <div class="sb-item" onclick="sp('employment-requests',this)"><span class="material-symbols-outlined">handshake</span>طلبات التواصل والتوظيف</div>
     <div class="sb-item" onclick="sp('alumni',this)"><span class="material-symbols-outlined">school</span>إدارة الخريجين</div>
     <div class="sb-item" onclick="sp('job-ads',this)"><span class="material-symbols-outlined">campaign</span>إعلانات الوظائف</div>
     <div class="sb-item" onclick="sp('training-ads',this)"><span class="material-symbols-outlined">notifications_active</span>إعلانات الدورات</div>
@@ -261,7 +262,20 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
         <div class="card-body" style="overflow:auto"><table class="tbl"><thead><tr><th>الاسم</th><th>المؤهل</th><th>سنة التخرج</th><th>المحافظة</th><th>الظهور العام</th></tr></thead><tbody id="alumniRows"><tr><td colspan="5">جاري التحميل...</td></tr></tbody></table></div>
       </div>
     </div>
-    <!-- JOB ADS -->
+    
+    <!-- MEDIATED EMPLOYMENT CONTACT REQUESTS -->
+    <div class="page" id="page-employment-requests">
+      <div class="card"><div class="card-head"><span class="card-title">طلبات التواصل والتوظيف</span><button class="btn-p" onclick="loadEmploymentContactRequests()">تحديث الطلبات</button></div>
+       <div class="card-body">
+        <p style="font-size:12px;color:#64748b;line-height:1.8;margin-bottom:14px">كل الطلبات تصل إلى إدارة شهادتي فقط. بيانات التواصل التالية داخل لوحة الإدارة ولا تظهر للطرف الآخر. حدّث حالة الطلب وسجّل كل خطوة تمت مع الشركة أو الخريج.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+         <select class="form-inp" id="employmentRequestTypeFilter" onchange="loadEmploymentContactRequests()" style="max-width:230px"><option value="">كل أنواع الطلبات</option><option value="company_to_graduate">شركة تبحث عن موظف</option><option value="graduate_to_company">خريج يبحث عن وظيفة</option></select>
+         <select class="form-inp" id="employmentRequestStatusFilter" onchange="loadEmploymentContactRequests()" style="max-width:230px"><option value="">كل الحالات</option><option value="new">طلب جديد</option><option value="reviewing">قيد المراجعة</option><option value="contacted_company">تم التواصل مع الشركة</option><option value="contacted_graduate">تم التواصل مع الخريج</option><option value="interview_coordination">جارٍ تنسيق المقابلة</option><option value="interviewed">تمت المقابلة</option><option value="hired">تم التوظيف</option><option value="closed_no_agreement">لم يتم الاتفاق / مغلق</option><option value="cancelled">ملغي</option></select>
+        </div>
+        <div id="employmentContactRequestsList"><div style="padding:20px;text-align:center;color:#64748b">جاري تحميل الطلبات...</div></div>
+       </div></div>
+    </div>
+<!-- JOB ADS -->
     <div class="page" id="page-job-ads">
       <div class="card"><div class="card-head"><span class="card-title">إضافة إعلان وظيفة</span></div><div class="card-body">
         <label>اسم الشركة<input class="form-inp" id="job_company"></label>
@@ -552,7 +566,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
-const ptitles={alumni:'إدارة الخريجين','job-ads':'إعلانات الوظائف','training-ads':'إعلانات الدورات',overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات','publication-consents':'موافقات النشر','add-cert':'إضافة شهادة',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام','academic-refs':'قوائم المؤهلات العلمية'};
+const ptitles={'employment-requests':'طلبات التواصل والتوظيف',alumni:'إدارة الخريجين','job-ads':'إعلانات الوظائف','training-ads':'إعلانات الدورات',overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات','publication-consents':'موافقات النشر','add-cert':'إضافة شهادة',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام','academic-refs':'قوائم المؤهلات العلمية'};
 let allInstitutions=[], allAdminCerts=[], allPublicationRows=[];
 const pendingPublicationConsents={};
 function adminEsc(v){return String(v??'—').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}
@@ -582,7 +596,7 @@ function sp(name,el){
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('pageTitle').textContent=ptitles[name]||name;
   if(el)el.classList.add('active');
-  const loaders={alumni:loadAlumniProfiles,'job-ads':loadJobAnnouncements,'training-ads':loadTrainingAnnouncements,institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'publication-consents':loadPublicationConsents,'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
+  const loaders={'employment-requests':loadEmploymentContactRequests,alumni:loadAlumniProfiles,'job-ads':loadJobAnnouncements,'training-ads':loadTrainingAnnouncements,institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'publication-consents':loadPublicationConsents,'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
   if(loaders[name])loaders[name]();
 }
 
@@ -1312,6 +1326,37 @@ async function uploadAlumniDocument(){
  if(dbError){await sb.storage.from('alumni-private').remove([path]);toast(dbError.message,'err');return;}
  document.getElementById('al_document_title').value='';document.getElementById('al_document_file').value='';
  toast('تم رفع المستند في مساحة خاصة','ok');
+}
+
+const employmentRequestStatuses=[['new','طلب جديد'],['reviewing','قيد المراجعة'],['contacted_company','تم التواصل مع الشركة'],['contacted_graduate','تم التواصل مع الخريج'],['interview_coordination','جارٍ تنسيق المقابلة'],['interviewed','تمت المقابلة'],['hired','تم التوظيف'],['closed_no_agreement','لم يتم الاتفاق / مغلق'],['cancelled','ملغي']];
+async function loadEmploymentContactRequests(){
+ const box=document.getElementById('employmentContactRequestsList');if(!box)return;
+ const type=document.getElementById('employmentRequestTypeFilter')?.value||'',status=document.getElementById('employmentRequestStatusFilter')?.value||'';
+ box.innerHTML='<div style="padding:18px;text-align:center;color:#64748b">جاري تحميل الطلبات...</div>';
+ let q=sb.from('employment_contact_requests').select('*').order('created_at',{ascending:false}).limit(300);
+ if(type)q=q.eq('request_type',type);if(status)q=q.eq('status',status);
+ const{data,error}=await q;if(error){box.innerHTML='<div class="card" style="padding:16px;color:#b91c1c">تعذر تحميل الطلبات: '+adminEsc(error.message)+'</div>';return;}
+ if(!data?.length){box.innerHTML='<div style="padding:25px;text-align:center;color:#64748b">لا توجد طلبات مطابقة حالياً.</div>';return;}
+ box.innerHTML=data.map(r=>{
+  const isCompany=r.request_type==='company_to_graduate',code='SHD-EMP-'+String(r.request_number).padStart(6,'0');
+  const opts=employmentRequestStatuses.map(([v,l])=>'<option value="'+v+'" '+(r.status===v?'selected':'')+'>'+l+'</option>').join('');
+  return '<article class="card" style="margin:0 0 14px;border:1px solid #dbe5ee"><div class="card-head"><span class="card-title">'+adminEsc(code)+' · '+(isCompany?'شركة تبحث عن موظف':'خريج يبحث عن وظيفة')+'</span></div><div class="card-body"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;font-size:12px;line-height:1.8"><div><b>المرشح / مقدم الطلب</b><br>'+adminEsc(r.candidate_name||r.contact_name)+'</div><div><b>المؤهل</b><br>'+adminEsc(r.qualification||'—')+'</div><div><b>التخصص</b><br>'+adminEsc(r.specialization||'—')+'</div><div><b>الشركة</b><br>'+adminEsc(r.company_name||'—')+'</div><div><b>الوظيفة</b><br>'+adminEsc(r.target_job_title||'—')+'</div><div><b>اسم مسؤول التواصل</b><br>'+adminEsc(r.contact_name)+'</div><div><b>الهاتف</b><br><a dir="ltr" href="tel:'+adminEsc(r.contact_phone)+'">'+adminEsc(r.contact_phone)+'</a></div><div><b>البريد</b><br>'+adminEsc(r.contact_email||'—')+'</div><div><b>تاريخ الطلب</b><br>'+new Date(r.created_at).toLocaleString('ar-EG')+'</div></div><div style="margin-top:10px;padding:10px;background:#f7fafc;border-radius:9px;font-size:12px"><b>ملاحظات مقدم الطلب:</b> '+adminEsc(r.request_notes||'لا توجد')+'</div><div style="display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,2fr);gap:10px;margin-top:12px"><label>حالة الطلب<select class="form-inp" id="employmentStatus_'+r.id+'">'+opts+'</select></label><label>ملاحظات داخلية للإدارة<textarea class="form-inp" id="employmentNote_'+r.id+'" rows="2" placeholder="سجّل نتيجة الاتصال أو الخطوة التالية">'+adminEsc(r.admin_notes||'')+'</textarea></label></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn-p" onclick="saveEmploymentContactRequest(\''+r.id+'\',\''+r.status+'\')">حفظ التحديث</button><button class="btn-s" onclick="loadEmploymentRequestEvents(\''+r.id+'\')">سجل المتابعة</button></div><div id="employmentEvents_'+r.id+'" style="margin-top:10px"></div></div></article>';
+ }).join('');
+}
+async function saveEmploymentContactRequest(id,oldStatus){
+ const status=document.getElementById('employmentStatus_'+id)?.value,note=document.getElementById('employmentNote_'+id)?.value.trim()||null;
+ const{data:{user}}=await sb.auth.getUser();
+ const{error}=await sb.from('employment_contact_requests').update({status,admin_notes:note,updated_at:new Date().toISOString(),last_action_at:new Date().toISOString()}).eq('id',id);
+ if(error){toast('تعذر حفظ التحديث: '+error.message,'err');return;}
+ const{error:eventError}=await sb.from('employment_contact_request_events').insert({request_id:id,actor_id:user?.id||null,event_type:'admin_update',old_status:oldStatus,new_status:status,note});
+ if(eventError)toast('تم تحديث الطلب لكن تعذر تسجيل حدث المتابعة: '+eventError.message,'err');else toast('تم حفظ تحديث الطلب وسجل المتابعة','ok');
+ loadEmploymentContactRequests();
+}
+async function loadEmploymentRequestEvents(id){
+ const box=document.getElementById('employmentEvents_'+id);if(!box)return;box.textContent='جاري تحميل سجل المتابعة...';
+ const{data,error}=await sb.from('employment_contact_request_events').select('event_type,old_status,new_status,note,created_at').eq('request_id',id).order('created_at',{ascending:false});
+ if(error){box.textContent='تعذر تحميل السجل: '+error.message;return;}
+ box.innerHTML=(data||[]).map(e=>'<div style="border-right:3px solid #c6a15b;padding:7px 10px;margin:7px 0;background:#fbfdff;font-size:11px"><b>'+adminEsc(e.new_status||e.event_type)+'</b> · '+new Date(e.created_at).toLocaleString('ar-EG')+'<br>'+adminEsc(e.note||'لا توجد ملاحظات')+'</div>').join('')||'لا توجد أحداث متابعة مسجلة بعد.';
 }
 async function loadAlumniAccessRequests(){
  const body=document.getElementById('alumniAccessRows');if(!body)return;
