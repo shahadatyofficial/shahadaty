@@ -1207,7 +1207,7 @@ async function searchCareerJobs(event){
  }catch(err){console.error(err);el.innerHTML='<div class="career-results-state">تعذر تحميل الوظائف حالياً. حاول مرة أخرى.</div>';}
  finally{btn.disabled=false;}
 }
-function careerContactHandler(context){return 'openCareerContact(JSON.parse(decodeURIComponent(\\''+encodeURIComponent(JSON.stringify(context))+ '\\')))';}
+function careerContactHandler(context){return "openCareerContact(JSON.parse(decodeURIComponent('"+encodeURIComponent(JSON.stringify(context))+"')))";}
 function openCareerContact(context){
  careerContactContext=context;document.getElementById('careerContactTitle').textContent=context.type==='company_to_graduate'?'طلب التواصل مع الموظف':'طلب التواصل مع الشركة';
  document.getElementById('careerContactContext').textContent=context.type==='company_to_graduate'?'طلب بخصوص '+context.candidate+' — '+context.qualification:'طلب بخصوص وظيفة '+context.jobTitle+' لدى '+context.company;
