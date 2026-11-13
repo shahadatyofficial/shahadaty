@@ -1218,6 +1218,7 @@ function openCareerContact(context){
  document.getElementById('careerGraduateSpecializationWrap').style.display=context.type==='graduate_to_company'?'grid':'none';
  document.getElementById('careerCompanyName').required=context.type==='company_to_graduate';
  document.getElementById('careerTargetRole').required=context.type==='company_to_graduate';
+ document.getElementById('careerGraduateQualification').required=context.type==='graduate_to_company';
  document.getElementById('careerContactForm').reset();document.getElementById('careerContactMessage').textContent='';
  document.getElementById('careerContactModal').classList.add('open');document.body.style.overflow='hidden';
 }
