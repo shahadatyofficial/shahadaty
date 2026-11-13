@@ -1162,10 +1162,12 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
   </div>
 </footer>
 
+<script src="egypt-locations.js"></script>
 <script>
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
+window.initEgyptLocationSelects([{governorateId:'careerJobGovernorate',centerId:'careerJobCenter'}]);
 async function loadPublicStats(){const{data}=await sb.rpc('public_platform_stats');const r=Array.isArray(data)?data[0]:data;if(!r)return;document.getElementById('publicInstCount').textContent='+'+Number(r.institutions_count||0).toLocaleString('ar-EG');document.getElementById('publicCertCount').textContent='+'+Number(r.certificates_count||0).toLocaleString('ar-EG');document.getElementById('publicVerifyCount').textContent='+'+Number(r.verifications_count||0).toLocaleString('ar-EG');}
 loadPublicStats();
 loadCareerTicker();
@@ -1202,9 +1204,9 @@ async function searchCareerEmployees(event){
 async function searchCareerJobs(event){
  event.preventDefault();const el=document.getElementById('careerJobResults'),btn=document.getElementById('careerJobSearch');btn.disabled=true;el.innerHTML='<div class="career-results-state">جارٍ تحميل الوظائف المتاحة...</div>';
  try{
-  const{data,error}=await sb.rpc('get_public_job_listings',{p_query:document.getElementById('careerJobQuery').value.trim()||null,p_governorate:document.getElementById('careerJobGovernorate').value.trim()||null,p_employment_type:document.getElementById('careerJobType').value||null});
+  const{data,error}=await sb.rpc('get_public_job_listings',{p_query:document.getElementById('careerJobQuery').value.trim()||null,p_governorate:document.getElementById('careerJobGovernorate').value.trim()||null,p_employment_type:document.getElementById('careerJobType').value||null,p_center:document.getElementById('careerJobCenter').value||null});
   if(error)throw error;if(!data?.length){el.innerHTML='<div class="career-results-state">لا توجد وظائف مطابقة منشورة حالياً.</div>';return;}
-  el.innerHTML=data.map(j=>'<article class="career-job"><h3>'+publicEsc(j.title)+'</h3><b>'+publicEsc(j.company_display_name)+'</b><p>'+publicEsc(j.description||j.teaser||'')+'</p><div class="career-job-meta">'+[j.governorate,j.work_mode,j.employment_type,j.work_schedule,j.work_hours,j.qualification_required,j.specialization_required,j.experience_years!==null&&j.experience_years!==undefined?'الخبرة: '+j.experience_years+' سنة':null,j.salary_text?'الراتب: '+j.salary_text:null].filter(Boolean).map(v=>'<span>'+publicEsc(v)+'</span>').join('')+'</div><p>عدد الشواغر: '+publicEsc(j.positions_count||1)+' · طريقة التقديم: '+publicEsc(j.application_method||'طلب التواصل عبر منصة شهادتي')+'</p>'+(j.skills_required?.length?'<p>المهارات: '+publicEsc(j.skills_required.join('، '))+'</p>':'')+'<button type="button" class="career-action" onclick="'+careerContactHandler({type:'graduate_to_company',jobId:j.id,jobTitle:j.title,company:j.company_display_name})+'">طلب التواصل مع الشركة</button></article>').join('');
+  el.innerHTML=data.map(j=>'<article class="career-job"><h3>'+publicEsc(j.title)+'</h3><b>'+publicEsc(j.company_display_name)+'</b><p>'+publicEsc(j.description||j.teaser||'')+'</p><div class="career-job-meta">'+[j.governorate,j.center,j.work_mode,j.employment_type,j.work_schedule,j.work_hours,j.qualification_required,j.specialization_required,j.experience_years!==null&&j.experience_years!==undefined?'الخبرة: '+j.experience_years+' سنة':null,j.salary_text?'الراتب: '+j.salary_text:null].filter(Boolean).map(v=>'<span>'+publicEsc(v)+'</span>').join('')+'</div><p>عدد الشواغر: '+publicEsc(j.positions_count||1)+' · طريقة التقديم: '+publicEsc(j.application_method||'طلب التواصل عبر منصة شهادتي')+'</p>'+(j.skills_required?.length?'<p>المهارات: '+publicEsc(j.skills_required.join('، '))+'</p>':'')+'<button type="button" class="career-action" onclick="'+careerContactHandler({type:'graduate_to_company',jobId:j.id,jobTitle:j.title,company:j.company_display_name})+'">طلب التواصل مع الشركة</button></article>').join('');
  }catch(err){console.error(err);el.innerHTML='<div class="career-results-state">تعذر تحميل الوظائف حالياً. حاول مرة أخرى.</div>';}
  finally{btn.disabled=false;}
 }
