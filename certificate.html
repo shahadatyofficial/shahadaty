@@ -74,7 +74,8 @@
       box-shadow: 0 6px 20px rgba(184, 149, 67, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.6);
     }
 
-    /* Scale the complete A4 landscape certificate to the actual embedded viewport. */
+    /* Scale the complete A4 landscape certificate to the actual embedded viewport.
+       The iframe may use a wider layout viewport than its visible width, so cover both. */
     @media screen and (max-width: 1100px) {
       html, body { width:100% !important; overflow-x:hidden !important; }
       body { min-height:0 !important; height:auto !important; padding:12px !important; justify-content:flex-start !important; align-items:center !important; }
@@ -82,7 +83,10 @@
       .no-print > div:first-child { min-width:0; flex:1 1 100%; }
       .no-print > div:first-child span:last-child { white-space:normal; line-height:1.5; font-size:11px; }
       .no-print button { min-height:40px; flex:1 1 auto; justify-content:center; }
-      .cert-container { width:1024px !important; max-width:none !important; min-height:724px !important; flex:none !important; zoom:calc((100vw - 24px) / 1024); transform:none !important; transform-origin:top center; margin:0 auto !important; }
+      .cert-container { width:1024px !important; max-width:none !important; min-height:724px !important; flex:none !important; zoom: calc((100vw - 24px) / 1024); transform:none !important; transform-origin:top center; margin:0 auto !important; }
+    }
+    @media screen and (max-width: 640px) {
+      .cert-container { zoom: calc((100vw - 24px) / 1024); }
     }
 
     @media print {
