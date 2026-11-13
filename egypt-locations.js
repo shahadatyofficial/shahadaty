@@ -16,9 +16,9 @@ Source dataset: mo7amed-said-223/egypt-cities (center_govs.json), supplemented w
    select.value=oldGov;
    let center=document.getElementById(pair.centerId);
    if(!center){const label=document.createElement("label");label.className=pair.labelClass||"egypt-center-field";label.style.display="block";label.style.marginTop="8px";label.textContent="المركز / المدينة / القسم";center=document.createElement("select");center.id=pair.centerId;center.className=pair.centerClass||select.className;label.appendChild(center);const host=pair.insertAfter?document.getElementById(pair.insertAfter):select.parentElement;if(host&&host.parentElement)host.parentElement.insertBefore(label,host.nextSibling);else select.parentElement.appendChild(label);}
-   const oldCenter=center.value||"";
+   let oldCenter=center.value||"";
    function fill(){const list=AREAS[select.value]||[];center.innerHTML='<option value="">اختر المركز / المدينة / القسم</option>'+list.map(x=>'<option value="'+x.name.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">'+x.name+' · '+x.kind+'</option>').join('');if(oldCenter&&!list.some(x=>x.name===oldCenter)){const o=document.createElement("option");o.value=oldCenter;o.textContent=oldCenter+" · قيمة محفوظة";center.appendChild(o);}if(oldCenter)center.value=oldCenter;center.disabled=!select.value;}
-   select.addEventListener("change",function(){center.value="";fill();});fill();
+   select.addEventListener("change",function(){oldCenter="";center.value="";fill();});fill();
   });
  };
 })();
