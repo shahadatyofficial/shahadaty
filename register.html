@@ -289,6 +289,7 @@ function renderStep1(){
     </div>
   </div>`;
   window.initEgyptLocationSelects([{governorateId:'governorate',centerId:'center'}]);
+  document.getElementById('center').value=formData.center||'';
 }
 
 function submitStep1(){
