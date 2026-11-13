@@ -97,8 +97,8 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);min-heigh
 .certificate-preview{background:#eef4fa;border:1px solid var(--border);border-radius:16px;padding:12px;margin:22px 0;overflow:hidden;box-shadow:0 10px 28px rgba(12,45,78,.08);}
 .certificate-preview-title{display:flex;align-items:center;gap:8px;color:var(--navy);font-size:14px;font-weight:900;margin:2px 4px 12px;}
 .certificate-preview-title .material-symbols-outlined{color:var(--gold);font-size:22px;}
-.certificate-preview iframe{display:block;width:100%;height:1040px;border:0;border-radius:10px;background:#fff;}
-@media(max-width:600px){.certificate-preview{padding:5px;margin:16px -8px;}.certificate-preview-title{font-size:12px;margin:7px 5px 9px}.certificate-preview iframe{height:790px;border-radius:7px;}}
+.certificate-preview iframe{display:block;width:100%;height:900px;min-height:700px;border:0;border-radius:10px;background:#fff;overflow:hidden;}
+@media(max-width:600px){.certificate-preview{padding:5px;margin:16px -8px;}.certificate-preview-title{font-size:12px;margin:7px 5px 9px}.certificate-preview iframe{min-height:360px;border-radius:7px;}}
 .search-btn:disabled{cursor:wait;}
 
 .footer{background:#0f2942;padding:24px;text-align:center;}
@@ -182,6 +182,31 @@ const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
 
+function resizeCertificateFrame(frame){
+  const measure=()=>{
+    try{
+      const doc=frame.contentDocument;
+      if(!doc)return;
+      const body=doc.body,root=doc.documentElement;
+      const height=Math.max(body.scrollHeight,body.offsetHeight,root.scrollHeight,root.offsetHeight);
+      if(height>0)frame.style.height=(height+24)+'px';
+    }catch(e){console.warn('Certificate preview sizing:',e);}
+  };
+  measure();
+  try{
+    const win=frame.contentWindow;
+    if(win&&!frame.dataset.resizeBound){
+      win.addEventListener('load',measure);
+      win.addEventListener('resize',measure);
+      frame.dataset.resizeBound='1';
+      if(frame.contentDocument.fonts&&frame.contentDocument.fonts.ready)frame.contentDocument.fonts.ready.then(measure);
+    }
+    requestAnimationFrame(measure);
+    setTimeout(measure,250);
+    setTimeout(measure,900);
+  }catch(e){console.warn('Certificate preview sizing:',e);}
+}
+
 async function doSearch(){
   const q=document.getElementById('searchInp').value.trim().toUpperCase();
   if(!q)return;
@@ -219,7 +244,7 @@ async function doSearch(){
     if(!academic)html+='<div class="info-box"><div class="info-lbl">المؤسسة المصدِرة</div><div class="info-val">'+esc(data.institution_name)+'</div></div>';
     html+='<div class="info-box"><div class="info-lbl">رقم الشهادة</div><div class="info-val" style="font-family:monospace;font-size:12px">'+esc(data.cert_number)+'</div></div>';
     html+='</div><div class="result-actions"><a href="'+certUrl+'" class="btn-view" target="_blank" rel="noopener"><span class="material-symbols-outlined" style="font-size:18px">open_in_new</span> فتح الشهادة كاملة</a><button class="btn-share" id="shareResultBtn"><span class="material-symbols-outlined">share</span> مشاركة رابط التحقق</button><button class="btn-share" onclick="reset()"><span class="material-symbols-outlined">search</span> بحث جديد</button></div></div></div>';
-    html+='<section class="certificate-preview"><div class="certificate-preview-title"><span class="material-symbols-outlined">workspace_premium</span> الشهادة الرقمية الأصلية ورمز QR</div><iframe title="الشهادة الرقمية الموثقة" src="'+certUrl+'" loading="eager" referrerpolicy="strict-origin-when-cross-origin"></iframe></section></div>';
+    html+='<section class="certificate-preview"><div class="certificate-preview-title"><span class="material-symbols-outlined">workspace_premium</span> الشهادة الرقمية الأصلية ورمز QR</div><iframe title="الشهادة الرقمية الموثقة" src="'+certUrl+'" loading="eager" onload="resizeCertificateFrame(this)" referrerpolicy="strict-origin-when-cross-origin"></iframe></section></div>';
     ra.innerHTML=html;
     const shareButton=document.getElementById('shareResultBtn');
     if(shareButton)shareButton.addEventListener('click',()=>share(data.cert_number));

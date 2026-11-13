@@ -21,6 +21,9 @@
 
     /* Luxury Certificate Ornamental Styles */
     .cert-container {
+      height: auto;
+      min-height: 724px;
+      overflow: visible;
       background: radial-gradient(circle at 50% 50%, #ffffff 0%, #fbfcfe 60%, #f4f8fc 100%);
       box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
       position: relative;
@@ -140,7 +143,7 @@
   </div>
 
   <!-- Certificate Canvas / Paper Frame (A4 Landscape aspect ratio 1.414:1) -->
-  <div class="cert-container w-full max-w-5xl aspect-[1.414/1] rounded-2xl p-6 sm:p-9 text-[#0c2d4e] relative overflow-hidden flex flex-col justify-between">
+  <div class="cert-container w-full max-w-5xl min-h-[724px] rounded-2xl p-6 sm:p-9 text-[#0c2d4e] relative overflow-visible flex flex-col justify-between">
     
     <!-- Outer Frame & Insets -->
     <div class="cert-frame-outer absolute inset-3 rounded-xl pointer-events-none">
