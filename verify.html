@@ -240,7 +240,9 @@ function reset(){
 }
 
 function share(certNum){
-  const url=`${location.origin}/verify.html?cert=${certNum}`;
+  const target=new URL('verify.html',location.href);
+  target.searchParams.set('cert',certNum);
+  const url=target.toString();
   if(navigator.share){navigator.share({title:'شهادة موثقة - شهادتي',url});}
   else{navigator.clipboard.writeText(url);alert('تم نسخ الرابط!');}
 }
