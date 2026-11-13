@@ -870,6 +870,8 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
   <form id="careerContactForm" onsubmit="submitCareerContact(event)">
    <div class="career-fields">
     <label id="careerCompanyNameWrap">اسم الشركة أو جهة العمل<input id="careerCompanyName" maxlength="160" placeholder="اسم الشركة"></label>
+    <label id="careerGraduateQualificationWrap" style="display:none">المؤهل العلمي<input id="careerGraduateQualification" maxlength="160" placeholder="المؤهل العلمي"></label>
+    <label id="careerGraduateSpecializationWrap" style="display:none">التخصص<input id="careerGraduateSpecialization" maxlength="160" placeholder="التخصص"></label>
     <label>اسم مقدم الطلب<input id="careerContactName" required maxlength="120" placeholder="الاسم الكامل"></label>
     <label>رقم الهاتف<input id="careerContactPhone" required maxlength="30" inputmode="tel" placeholder="رقم للتواصل"></label>
     <label>البريد الإلكتروني<input id="careerContactEmail" type="email" maxlength="254" placeholder="name@example.com"></label>
@@ -1212,6 +1214,8 @@ function openCareerContact(context){
  document.getElementById('careerContactContext').textContent=context.type==='company_to_graduate'?'طلب بخصوص '+context.candidate+' — '+context.qualification:'طلب بخصوص وظيفة '+context.jobTitle+' لدى '+context.company;
  document.getElementById('careerCompanyNameWrap').style.display=context.type==='company_to_graduate'?'grid':'none';
  document.getElementById('careerTargetRoleWrap').style.display=context.type==='company_to_graduate'?'grid':'none';
+ document.getElementById('careerGraduateQualificationWrap').style.display=context.type==='graduate_to_company'?'grid':'none';
+ document.getElementById('careerGraduateSpecializationWrap').style.display=context.type==='graduate_to_company'?'grid':'none';
  document.getElementById('careerCompanyName').required=context.type==='company_to_graduate';
  document.getElementById('careerTargetRole').required=context.type==='company_to_graduate';
  document.getElementById('careerContactForm').reset();document.getElementById('careerContactMessage').textContent='';
@@ -1222,7 +1226,7 @@ async function submitCareerContact(event){
  event.preventDefault();if(!careerContactContext)return;
  const btn=document.getElementById('careerContactSubmit'),msg=document.getElementById('careerContactMessage');btn.disabled=true;msg.textContent='جارٍ إرسال الطلب...';
  const c=careerContactContext,type=c.type;
- const args={p_request_type:type,p_candidate_name:type==='company_to_graduate'?c.candidate:document.getElementById('careerContactName').value.trim(),p_qualification:type==='company_to_graduate'?c.qualification:null,p_specialization:type==='company_to_graduate'?c.specialization:null,p_company_name:type==='company_to_graduate'?document.getElementById('careerCompanyName').value.trim():c.company,p_contact_name:document.getElementById('careerContactName').value.trim(),p_contact_phone:document.getElementById('careerContactPhone').value.trim(),p_contact_email:document.getElementById('careerContactEmail').value.trim()||null,p_target_job_title:type==='company_to_graduate'?document.getElementById('careerTargetRole').value.trim():c.jobTitle,p_request_notes:document.getElementById('careerContactNotes').value.trim()||null,p_job_id:type==='graduate_to_company'?c.jobId:null};
+ const args={p_request_type:type,p_candidate_name:type==='company_to_graduate'?c.candidate:document.getElementById('careerContactName').value.trim(),p_qualification:type==='company_to_graduate'?c.qualification:(document.getElementById('careerGraduateQualification').value.trim()||null),p_specialization:type==='company_to_graduate'?c.specialization:(document.getElementById('careerGraduateSpecialization').value.trim()||null),p_company_name:type==='company_to_graduate'?document.getElementById('careerCompanyName').value.trim():c.company,p_contact_name:document.getElementById('careerContactName').value.trim(),p_contact_phone:document.getElementById('careerContactPhone').value.trim(),p_contact_email:document.getElementById('careerContactEmail').value.trim()||null,p_target_job_title:type==='company_to_graduate'?document.getElementById('careerTargetRole').value.trim():c.jobTitle,p_request_notes:document.getElementById('careerContactNotes').value.trim()||null,p_job_id:type==='graduate_to_company'?c.jobId:null};
  try{const{data,error}=await sb.rpc('submit_employment_contact_request',args);if(error)throw error;msg.textContent='تم استلام طلبك بنجاح. رقم الطلب: SHD-EMP-'+String(data).padStart(6,'0')+'. سيتواصل معك فريق شهادتي لمتابعة الطلب.';document.getElementById('careerContactForm').reset();careerContactContext=null;}
  catch(err){console.error(err);msg.textContent='تعذر إرسال الطلب حالياً. تأكد من البيانات وحاول مرة أخرى.';}
  finally{btn.disabled=false;}
