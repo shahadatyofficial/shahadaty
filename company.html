@@ -21,6 +21,7 @@
       <div><label for="joinContactName" class="muted">اسم مسؤول التواصل *</label><input class="field" id="joinContactName" maxlength="100" required></div>
       <div><label for="joinPhone" class="muted">رقم الهاتف *</label><input class="field" id="joinPhone" type="tel" maxlength="32" required dir="ltr"></div>
     </div>
+    <div class="row"><div><label for="joinGovernorate" class="muted">المحافظة *</label><input class="field" id="joinGovernorate" required placeholder="اختر المحافظة"></div><div><label for="joinCenter" class="muted">المركز / المدينة / القسم</label><input class="field" id="joinCenter" placeholder="اختر المركز أو المدينة"></div></div>
     <label for="joinEmail" class="muted">البريد الإلكتروني الرسمي *</label>
     <input class="field" id="joinEmail" type="email" maxlength="254" required dir="ltr" autocomplete="email">
     <label for="joinPassword" class="muted">كلمة مرور حساب الشركة *</label>
@@ -41,7 +42,7 @@
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);let companyId=null;
-window.initEgyptLocationSelects([{governorateId:'governorateQuery',centerId:'centerQuery'},{governorateId:'jobGovernorate',centerId:'jobCenter'}]);
+window.initEgyptLocationSelects([{governorateId:'governorateQuery',centerId:'centerQuery'},{governorateId:'jobGovernorate',centerId:'jobCenter'},{governorateId:'joinGovernorate',centerId:'joinCenter'}]);
 const $=id=>document.getElementById(id);
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 $('companyJoinForm').addEventListener('submit',async e=>{
@@ -63,7 +64,7 @@ $('companyJoinForm').addEventListener('submit',async e=>{
   }else authData=signup.data;
   const authUserId=authData?.session?.user?.id||null;
   const{error:insertError}=await sb.from('companies').insert({
-   company_name:companyName,contact_name:contactName,contact_email:email,contact_phone:phone,
+   company_name:companyName,contact_name:contactName,contact_email:email,contact_phone:phone,governorate:$('joinGovernorate').value,center:$('joinCenter').value||null,
    status:'pending',search_credits:0,auth_user_id:authUserId
   });
   if(insertError)throw insertError;
