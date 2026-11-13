@@ -845,6 +845,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
      <label>اسم الخريج (اختياري)<input id="careerGraduateName" maxlength="120" placeholder="اسم الخريج"></label>
      <label>التخصص<input id="careerSpecialization" maxlength="120" placeholder="التخصص"></label>
      <label>الجهة المانحة<input id="careerInstitution" maxlength="120" placeholder="الجامعة أو المركز"></label>
+     <label>المحافظة<input id="careerEmployeeGovernorate" maxlength="80" placeholder="المحافظة"></label>
      <label>سنة التخرج<input id="careerGradYear" type="number" min="1950" max="2100" placeholder="2025"></label>
      <label>التقدير<select id="careerGrade"><option value="">كل التقديرات</option><option>امتياز</option><option>امتياز مع مرتبة الشرف</option><option>جيد جداً</option><option>جيد</option><option>مقبول</option></select></label>
     </div><button class="career-action" id="careerEmployeeSearch" type="submit">بحث عن الكفاءات</button>
@@ -1167,7 +1168,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
-window.initEgyptLocationSelects([{governorateId:'careerJobGovernorate',centerId:'careerJobCenter'}]);
+window.initEgyptLocationSelects([{governorateId:'careerJobGovernorate',centerId:'careerJobCenter'},{governorateId:'careerEmployeeGovernorate',centerId:'careerEmployeeCenter'}]);
 async function loadPublicStats(){const{data}=await sb.rpc('public_platform_stats');const r=Array.isArray(data)?data[0]:data;if(!r)return;document.getElementById('publicInstCount').textContent='+'+Number(r.institutions_count||0).toLocaleString('ar-EG');document.getElementById('publicCertCount').textContent='+'+Number(r.certificates_count||0).toLocaleString('ar-EG');document.getElementById('publicVerifyCount').textContent='+'+Number(r.verifications_count||0).toLocaleString('ar-EG');}
 loadPublicStats();
 loadCareerTicker();
@@ -1193,7 +1194,7 @@ async function searchCareerEmployees(event){
  if(y&&(!Number.isInteger(year)||year<1950||year>2100)){el.innerHTML='<div class="career-results-state">أدخل سنة تخرج صحيحة.</div>';return;}
  btn.disabled=true;el.innerHTML='<div class="career-results-state">جارٍ البحث في السجلات المسموح بنشرها...</div>';
  try{
-  const{data,error}=await sb.rpc('search_public_alumni_directory',{p_qualification:qualification,p_name:document.getElementById('careerGraduateName').value.trim()||null,p_university:document.getElementById('careerInstitution').value.trim()||null,p_college:document.getElementById('careerSpecialization').value.trim()||null,p_graduation_year:year,p_grade:document.getElementById('careerGrade').value||null});
+  const{data,error}=await sb.rpc('search_public_alumni_directory',{p_qualification:qualification,p_name:document.getElementById('careerGraduateName').value.trim()||null,p_university:document.getElementById('careerInstitution').value.trim()||null,p_college:document.getElementById('careerSpecialization').value.trim()||null,p_graduation_year:year,p_grade:document.getElementById('careerGrade').value||null,p_governorate:document.getElementById('careerEmployeeGovernorate').value||null,p_center:document.getElementById('careerEmployeeCenter').value||null});
   if(error)throw error;
   const rows=data||[];
   if(!rows.length){el.innerHTML='<div class="career-results-state">لا توجد نتائج مطابقة. جرّب مؤهلاً أو تخصصاً آخر.</div>';return;}
