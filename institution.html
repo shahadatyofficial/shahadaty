@@ -799,10 +799,12 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 
 <div id="toast" class="toast" style="display:none"></div>
 
+<script src="egypt-locations.js"></script>
 <script>
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
+window.initEgyptLocationSelects([{governorateId:'fi_gov',centerId:'fi_center'},{governorateId:'mi_gov',centerId:'mi_center'}]);
 let inst=null, allCerts=[], bulkData=[], lineChart=null, donutChart=null;
 
 // ── Auth ──────────────────────────────────────────────────────
@@ -1248,7 +1250,7 @@ async function issueCertModal(){
   const res=document.getElementById('mi_result');
   if(!student||!course||!date){showRes(res,'يرجى تعبئة الحقول المطلوبة *','err');return;}
   try{
-    const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('mi_grade').value,student_phone:document.getElementById('mi_phone').value,governorate:document.getElementById('mi_gov').value,visible_to_companies:document.getElementById('mi_consent').checked});
+    const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('mi_grade').value,student_phone:document.getElementById('mi_phone').value,governorate:document.getElementById('mi_gov').value,center:document.getElementById('mi_center')?.value||null,visible_to_companies:document.getElementById('mi_consent').checked});
     showRes(res,`✓ تم الإصدار — رقم الشهادة: <b>${row.cert_number}</b><br><a href="certificate.html?id=${encodeURIComponent(row.cert_number)}" target="_blank" style="color:var(--blue)">عرض الشهادة</a>`,'ok');
     await loadInst(); toast('✓ تم إصدار الشهادة بنجاح','ok'); setTimeout(closeIssueModal,1800);
   }catch(e){showRes(res,dbErrorMessage(e),'err');}
@@ -1260,7 +1262,7 @@ async function issueFullCert(){
     const email=document.getElementById('fi_email').value.trim(),national=document.getElementById('fi_national').value.trim();
   if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showRes(res,'صيغة البريد الإلكتروني غير صحيحة.','err');return;}
   if(national&&!/^\d{14}$/.test(national)){showRes(res,'الرقم القومي يجب أن يتكون من 14 رقمًا.','err');return;}
-  const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,acquisition_date:date,grade:document.getElementById('fi_grade').value,specialization:document.getElementById('fi_spec').value,duration:document.getElementById('fi_duration')?.value||'',student_phone:document.getElementById('fi_phone').value,student_email:email,student_national_id:national,governorate:document.getElementById('fi_gov').value,visible_to_companies:document.getElementById('fi_consent').checked});
+  const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,acquisition_date:date,grade:document.getElementById('fi_grade').value,specialization:document.getElementById('fi_spec').value,duration:document.getElementById('fi_duration')?.value||'',student_phone:document.getElementById('fi_phone').value,student_email:email,student_national_id:national,governorate:document.getElementById('fi_gov').value,center:document.getElementById('fi_center')?.value||null,visible_to_companies:document.getElementById('fi_consent').checked});
     showRes(res,`✓ تم الإصدار بنجاح — رقم الشهادة: <strong>${row.cert_number}</strong> — <a href="certificate.html?id=${encodeURIComponent(row.cert_number)}" target="_blank" style="color:var(--blue)">عرض الشهادة ↗</a>`,'ok');
     clearIssueForm(); await loadInst();
   }catch(e){showRes(res,dbErrorMessage(e),'err');}
@@ -1329,6 +1331,7 @@ function prepareBulkRow(r,index){
     student_email:email,
     student_national_id:national,
     governorate:String(bulkValue(r,'المحافظة','governorate')).trim(),
+    center:String(bulkValue(r,'المركز','center')).trim(),
     visible_to_companies:false
   };
   const errors=[];
