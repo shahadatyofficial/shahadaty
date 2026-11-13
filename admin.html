@@ -284,6 +284,16 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
         <label>تفاصيل الوظيفة<textarea class="form-inp" id="job_description" rows="4"></textarea></label>
         <label>المحافظة<input class="form-inp" id="job_governorate"></label>
         <label>المؤهل المطلوب<input class="form-inp" id="job_qualification"></label>
+        <label>التخصص المطلوب<input class="form-inp" id="job_specialization"></label>
+        <label>نوع الوظيفة<select class="form-inp" id="job_employment_type"><option value="">غير محدد</option><option>دوام كامل</option><option>دوام جزئي</option><option>تعاقد</option><option>تدريب</option></select></label>
+        <label>نظام العمل<select class="form-inp" id="job_work_mode"><option value="">غير محدد</option><option>حضوري</option><option>عن بُعد</option><option>هجين</option></select></label>
+        <label>مواعيد العمل<select class="form-inp" id="job_work_schedule"><option value="">غير محدد</option><option>صباحي</option><option>مسائي</option><option>ورديات</option><option>متغير</option></select></label>
+        <label>ساعات العمل<input class="form-inp" id="job_work_hours" placeholder="مثال: من 9 صباحاً إلى 5 مساءً"></label>
+        <label>سنوات الخبرة المطلوبة<input class="form-inp" id="job_experience" type="number" min="0" max="60"></label>
+        <label>عدد الوظائف المتاحة<input class="form-inp" id="job_positions" type="number" min="1" max="1000" value="1"></label>
+        <label>المهارات المطلوبة (افصل بينها بفاصلة)<input class="form-inp" id="job_skills" placeholder="التواصل، Excel، خدمة العملاء"></label>
+        <label>الراتب أو نطاق الراتب<input class="form-inp" id="job_salary" placeholder="يُعرض إذا حددته الشركة"></label>
+        <label>طريقة التقديم<input class="form-inp" id="job_application_method" value="طلب التواصل عبر منصة شهادتي"></label>
         <label>آخر موعد للتقديم<input class="form-inp" id="job_expiry" type="date"></label>
         <button class="btn-p" onclick="saveJobAnnouncement()">حفظ الإعلان للمراجعة</button>
       </div></div>
@@ -1268,7 +1278,8 @@ async function setAlumniVisibility(id,currentStatus){
 async function saveJobAnnouncement(){
  const company_display_name=document.getElementById('job_company').value.trim(),title=document.getElementById('job_title').value.trim(),description=document.getElementById('job_description').value.trim();
  if(!company_display_name||!title||!description){toast('أدخل الشركة والمسمى والتفاصيل','err');return;}
- const{error}=await sb.from('job_announcements').insert({company_display_name,title,description,teaser:document.getElementById('job_teaser').value.trim()||null,governorate:document.getElementById('job_governorate').value.trim()||null,qualification_required:document.getElementById('job_qualification').value.trim()||null,expires_at:document.getElementById('job_expiry').value||null,status:'pending'});
+ const skills=document.getElementById('job_skills').value.split(/[،,]/).map(x=>x.trim()).filter(Boolean);
+ const{error}=await sb.from('job_announcements').insert({company_display_name,title,description,teaser:document.getElementById('job_teaser').value.trim()||null,governorate:document.getElementById('job_governorate').value.trim()||null,qualification_required:document.getElementById('job_qualification').value.trim()||null,specialization_required:document.getElementById('job_specialization').value.trim()||null,employment_type:document.getElementById('job_employment_type').value||null,work_mode:document.getElementById('job_work_mode').value||null,work_schedule:document.getElementById('job_work_schedule').value||null,work_hours:document.getElementById('job_work_hours').value.trim()||null,experience_years:document.getElementById('job_experience').value?Number(document.getElementById('job_experience').value):null,positions_count:Math.max(1,Number(document.getElementById('job_positions').value)||1),skills_required:skills,salary_text:document.getElementById('job_salary').value.trim()||null,application_method:document.getElementById('job_application_method').value.trim()||'طلب التواصل عبر منصة شهادتي',expires_at:document.getElementById('job_expiry').value||null,status:'pending'});
  if(error){toast(error.message,'err');return;}toast('تم حفظ الإعلان وإرساله للمراجعة','ok');loadJobAnnouncements();
 }
 async function loadJobAnnouncements(){
