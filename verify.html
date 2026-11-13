@@ -94,6 +94,13 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);min-heigh
 .stat-lbl{font-size:11px;color:var(--muted);margin-top:4px;}
 
 /* FOOTER */
+.certificate-preview{background:#eef4fa;border:1px solid var(--border);border-radius:16px;padding:12px;margin:22px 0;overflow:hidden;box-shadow:0 10px 28px rgba(12,45,78,.08);}
+.certificate-preview-title{display:flex;align-items:center;gap:8px;color:var(--navy);font-size:14px;font-weight:900;margin:2px 4px 12px;}
+.certificate-preview-title .material-symbols-outlined{color:var(--gold);font-size:22px;}
+.certificate-preview iframe{display:block;width:100%;height:1040px;border:0;border-radius:10px;background:#fff;}
+@media(max-width:600px){.certificate-preview{padding:5px;margin:16px -8px;}.certificate-preview-title{font-size:12px;margin:7px 5px 9px}.certificate-preview iframe{height:790px;border-radius:7px;}}
+.search-btn:disabled{cursor:wait;}
+
 .footer{background:#0f2942;padding:24px;text-align:center;}
 .footer-copy{font-size:11px;color:rgba(255,255,255,0.25);}
 </style>
@@ -180,57 +187,53 @@ async function doSearch(){
   if(!q)return;
   const ra=document.getElementById('resultArea');
   const ds=document.getElementById('defaultState');
+  const btn=document.querySelector('.search-btn');
   ds.style.display='none';
-  ra.innerHTML=`<div class="loading"><div class="spin"></div><p>جاري التحقق من الشهادة...</p></div>`;
-  const{data:rows,error}=await sb.rpc('verify_certificate_details',{p_cert_number:q});
-  const data=Array.isArray(rows)?rows[0]:rows;
-  if(error||!data){
-    ra.innerHTML=`<div class="result-err result-wrap">
-      <span class="material-symbols-outlined">cancel</span>
-      <h3>لم يتم العثور على الشهادة</h3>
-      <p>لا توجد شهادة بهذا الرقم في قاعدة بياناتنا، أو أنها تم إلغاؤها.<br>يرجى التحقق من الرقم والمحاولة مجدداً.</p>
-      <code>${q}</code>
-      <div style="margin-top:20px;display:flex;gap:10px;justify-content:center">
-        <button onclick="reset()" style="background:var(--bg);color:var(--navy);font-family:Cairo,sans-serif;font-size:13px;font-weight:700;padding:10px 20px;border-radius:10px;border:1.5px solid var(--border);cursor:pointer">← بحث جديد</button>
-      </div>
-    </div>`;
-    return;
+  if(btn){btn.disabled=true;btn.style.opacity='.7';}
+  ra.innerHTML='<div class="loading"><div class="spin"></div><p>جاري التحقق من الشهادة...</p></div>';
+  try{
+    const {data:rows,error}=await sb.rpc('verify_certificate_details',{p_cert_number:q});
+    const data=Array.isArray(rows)?rows[0]:rows;
+    if(error)throw error;
+    if(!data){
+      ra.innerHTML='<div class="result-err result-wrap"><span class="material-symbols-outlined">cancel</span><h3>لم يتم العثور على الشهادة</h3><p>لا توجد شهادة بهذا الرقم في قاعدة بياناتنا، أو أنها غير متاحة للتحقق.<br>يرجى مراجعة الرقم والمحاولة مجدداً.</p><code>'+esc(q)+'</code><div style="margin-top:20px"><button onclick="reset()" class="btn-share">بحث جديد</button></div></div>';
+      return;
+    }
+    const dateValue=data.acquisition_date||data.issue_date;
+    const date=dateValue?new Date(dateValue+'T00:00:00').toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'}):'غير محدد';
+    const certUrl='certificate.html?id='+encodeURIComponent(data.cert_number)+'&template=uploaded-2-html';
+    const academic=data.record_type==='academic';
+    let html='<div class="result-wrap"><div class="result-ok">';
+    html+='<div class="result-ok-head"><div class="result-ok-icon"><span class="material-symbols-outlined">verified</span></div><div><div class="result-ok-title">'+(data.status==='active'?'✓ شهادة موثقة وصالحة':'⚠️ السجل موجود ولكنه غير سارٍ')+'</div><div class="result-ok-num">'+esc(data.cert_number)+'</div></div></div>';
+    html+='<div class="result-ok-body"><div class="info-grid">';
+    html+='<div class="info-box"><div class="info-lbl">اسم الطالب</div><div class="info-val">'+esc(data.student_name)+'</div></div>';
+    if(data.student_name_en)html+='<div class="info-box"><div class="info-lbl">الاسم بالإنجليزية</div><div class="info-val" dir="ltr">'+esc(data.student_name_en)+'</div></div>';
+    html+='<div class="info-box"><div class="info-lbl">'+(academic?'المؤهل العلمي':'الدورة / البرنامج')+'</div><div class="info-val">'+esc(academic?(data.academic_degree||data.course):data.course)+'</div></div>';
+    if(academic){
+      html+='<div class="info-box"><div class="info-lbl">الجامعة</div><div class="info-val">'+esc(data.academic_university)+'</div></div>';
+      html+='<div class="info-box"><div class="info-lbl">الكلية</div><div class="info-val">'+esc(data.academic_faculty)+'</div></div>';
+      html+='<div class="info-box"><div class="info-lbl">سنة التخرج</div><div class="info-val">'+esc(data.graduation_year)+'</div></div>';
+    }
+    html+='<div class="info-box"><div class="info-lbl">التقدير</div><div class="info-val">'+esc(data.grade||'غير محدد')+'</div></div>';
+    html+='<div class="info-box"><div class="info-lbl">'+(academic?'جهة تسجيل البيانات':'تاريخ الحصول على الدورة')+'</div><div class="info-val">'+(academic?esc(data.source_type==='admin'?'إدارة منصة شهادتي':data.institution_name):esc(date))+'</div></div>';
+    if(!academic)html+='<div class="info-box"><div class="info-lbl">المؤسسة المصدِرة</div><div class="info-val">'+esc(data.institution_name)+'</div></div>';
+    html+='<div class="info-box"><div class="info-lbl">رقم الشهادة</div><div class="info-val" style="font-family:monospace;font-size:12px">'+esc(data.cert_number)+'</div></div>';
+    html+='</div><div class="result-actions"><a href="'+certUrl+'" class="btn-view" target="_blank" rel="noopener"><span class="material-symbols-outlined" style="font-size:18px">open_in_new</span> فتح الشهادة كاملة</a><button class="btn-share" id="shareResultBtn"><span class="material-symbols-outlined">share</span> مشاركة رابط التحقق</button><button class="btn-share" onclick="reset()"><span class="material-symbols-outlined">search</span> بحث جديد</button></div></div></div>';
+    html+='<section class="certificate-preview"><div class="certificate-preview-title"><span class="material-symbols-outlined">workspace_premium</span> الشهادة الرقمية الأصلية ورمز QR</div><iframe title="الشهادة الرقمية الموثقة" src="'+certUrl+'" loading="eager" referrerpolicy="strict-origin-when-cross-origin"></iframe></section></div>';
+    ra.innerHTML=html;
+    const shareButton=document.getElementById('shareResultBtn');
+    if(shareButton)shareButton.addEventListener('click',()=>share(data.cert_number));
+  }catch(error){
+    console.error('Certificate verification failed:',error);
+    ra.innerHTML='<div class="result-err result-wrap"><span class="material-symbols-outlined">error</span><h3>تعذر إتمام التحقق حالياً</h3><p>حدث خطأ أثناء الاتصال بخدمة التحقق. حاول مرة أخرى بعد لحظات.</p><code>'+esc(error&&error.message?error.message:'VERIFY_ERROR')+'</code><div style="margin-top:20px"><button onclick="reset()" class="btn-share">إعادة المحاولة</button></div></div>';
+  }finally{
+    if(btn){btn.disabled=false;btn.style.opacity='1';}
   }
-  const date=new Date(data.acquisition_date||data.issue_date).toLocaleDateString('ar-EG',{year:'numeric',month:'long',day:'numeric'});
-  ra.innerHTML=`<div class="result-ok result-wrap">
-    <div class="result-ok-head">
-      <div class="result-ok-icon"><span class="material-symbols-outlined">verified</span></div>
-      <div>
-        <div class="result-ok-title">${data.status==='active'?(data.record_type==='academic'?'✓ مؤهل مسجل وساري':'✓ شهادة موثقة وصالحة'):'⚠️ السجل موجود ولكنه غير سارٍ'}</div>
-        <div class="result-ok-num">${esc(data.cert_number)}</div>
-      </div>
-    </div>
-    <div class="result-ok-body">
-      <div class="info-grid">
-        <div class="info-box"><div class="info-lbl">اسم الطالب</div><div class="info-val">${esc(data.student_name)}</div></div>
-        ${data.student_name_en ? '<div class="info-box"><div class="info-lbl">الاسم بالإنجليزية</div><div class="info-val" dir="ltr">' + esc(data.student_name_en) + '</div></div>' : ''}
-        <div class="info-box"><div class="info-lbl">${data.record_type==='academic'?'المؤهل العلمي':'الدورة / البرنامج'}</div><div class="info-val">${esc(data.record_type==='academic'?(data.academic_degree||data.course):data.course)}</div></div>
-        ${data.record_type==='academic'?'<div class="info-box"><div class="info-lbl">الجامعة</div><div class="info-val">'+esc(data.academic_university)+'</div></div><div class="info-box"><div class="info-lbl">الكلية</div><div class="info-val">'+esc(data.academic_faculty)+'</div></div><div class="info-box"><div class="info-lbl">سنة التخرج</div><div class="info-val">'+esc(data.graduation_year)+'</div></div>':''}
-        <div class="info-box"><div class="info-lbl">التقدير</div><div class="info-val">${esc(data.grade||'غير محدد')}</div></div>
-        <div class="info-box"><div class="info-lbl">${data.record_type==='academic'?'جهة تسجيل البيانات':'تاريخ الحصول على الدورة'}</div><div class="info-val">${data.record_type==='academic'?esc(data.source_type==='admin'?'إدارة منصة شهادتي':data.institution_name):esc(date)}</div></div>
-        ${data.record_type!=='academic'?'<div class="info-box"><div class="info-lbl">المؤسسة المصدِرة</div><div class="info-val">'+esc(data.institution_name)+'</div></div>':''}
-        <div class="info-box"><div class="info-lbl">رقم الشهادة</div><div class="info-val" style="font-family:monospace;font-size:12px">${esc(data.cert_number)}</div></div>
-      </div>
-      <div class="result-actions">
-        <a href="certificate.html?id=${encodeURIComponent(data.cert_number)}&template=uploaded-2-html" class="btn-view" target="_blank">
-          <span class="material-symbols-outlined" style="font-size:18px">open_in_new</span> عرض الشهادة الرقمية
-        </a>
-        <button class="btn-share" onclick="share('${String(data.cert_number).replace(/'/g, "\\'")}')">
-          <span class="material-symbols-outlined">share</span> مشاركة
-        </button>
-        <button class="btn-share" onclick="reset()">
-          <span class="material-symbols-outlined">search</span> بحث جديد
-        </button>
-      </div>
-    </div>
-  </div>`;
 }
 
+function esc(value){
+  return String(value==null?'':value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+}
 function reset(){
   document.getElementById('resultArea').innerHTML='';
   document.getElementById('defaultState').style.display='block';
@@ -239,7 +242,9 @@ function reset(){
 }
 
 function share(certNum){
-  const url=`${location.origin}/verify.html?cert=${certNum}`;
+  const target=new URL('verify.html',location.href);
+  target.searchParams.set('cert',certNum);
+  const url=target.toString();
   if(navigator.share){navigator.share({title:'شهادة موثقة - شهادتي',url});}
   else{navigator.clipboard.writeText(url);alert('تم نسخ الرابط!');}
 }
