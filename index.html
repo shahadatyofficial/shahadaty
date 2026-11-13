@@ -670,6 +670,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
       <button class="lang-btn" id="btnEn" onclick="setLang('en')">🇬🇧 English</button>
     </div>
     <button class="btn-portal" onclick="location.href='institution.html'">بوابة المؤسسات</button>
+    <a class="btn-portal recruitment-nav-link" href="#alumni-search">بوابة التوظيف</a>
     <button class="btn-cta" onclick="location.href='register.html'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
       ابدأ مجاناً
@@ -690,6 +691,16 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 .career-ticker-window{overflow:hidden;flex:1;min-width:0}
 #careerTicker{display:flex;gap:34px;white-space:nowrap;width:max-content;animation:careerTickerMove 32s linear infinite;font-size:13px}
 #careerTicker:hover{animation-play-state:paused}
+.portal-shortcuts{max-width:1200px;margin:0 auto;padding:0 24px 22px;display:flex;justify-content:flex-end}
+.portal-shortcut{display:flex;align-items:center;gap:14px;width:min(430px,100%);padding:15px 18px;border:1px solid #dbe7f0;border-radius:17px;background:linear-gradient(120deg,#fff 0%,#f3f8fc 100%);box-shadow:0 9px 26px rgba(7,37,64,.07);text-decoration:none;transition:transform .2s,border-color .2s,box-shadow .2s}
+.portal-shortcut:hover{transform:translateY(-3px);border-color:#1687bd;box-shadow:0 14px 32px rgba(7,75,115,.13)}
+.portal-shortcut-icon{width:48px;height:48px;display:grid;place-items:center;flex:none;border-radius:14px;background:linear-gradient(145deg,#0b4774,#1687bd);font-size:23px}
+.portal-shortcut-copy{display:grid;gap:3px;min-width:0}
+.portal-shortcut-copy strong{color:#102f4d;font-size:15px;font-weight:900}
+.portal-shortcut-copy small{color:#687d90;font-size:11px;line-height:1.6}
+.portal-shortcut-arrow{margin-inline-start:auto;color:#b08a43;font-size:22px;font-weight:900}
+@media(max-width:650px){.portal-shortcuts{padding:0 16px 18px}.portal-shortcut{width:100%;padding:13px 14px}.portal-shortcut-copy strong{font-size:14px}.portal-shortcut-copy small{font-size:10px}}
+.recruitment-nav-link{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
 .alumni-search-card{position:relative;overflow:hidden;background:#fff;border:1px solid #e2eaf3;border-radius:22px;padding:clamp(18px,3vw,32px);box-shadow:0 16px 45px #102e4b0d}
 .alumni-search-card:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#0b4774,#1687bd,#d2ad62)}
 .alumni-search-heading{display:flex;align-items:center;gap:15px;margin-bottom:24px}
@@ -825,6 +836,15 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
     <div class="stat"><span class="sn">99.9<span>%</span></span><span class="sl">دقة التحقق</span></div>
     <div class="stat"><span class="sn"><span>&lt;</span>3ث</span><span class="sl">وقت التحقق</span></div>
   </div>
+</section>
+
+<!-- QUICK ACCESS: RECRUITMENT PORTAL -->
+<section class="portal-shortcuts" aria-label="بوابات وخدمات المنصة">
+ <a class="portal-shortcut recruitment-shortcut" href="#alumni-search">
+  <span class="portal-shortcut-icon" aria-hidden="true">💼</span>
+  <span class="portal-shortcut-copy"><strong>بوابة التوظيف</strong><small>ابحث عن موظف أو فرصة عمل وتواصل من خلال شهادتي</small></span>
+  <span class="portal-shortcut-arrow" aria-hidden="true">←</span>
+ </a>
 </section>
 
 <!-- PUBLIC ALUMNI SEARCH — placed directly after verification statistics -->
