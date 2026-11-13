@@ -159,6 +159,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);min-heigh
 <!-- MAIN -->
 <div class="main" id="mainContent"></div>
 
+<script src="egypt-locations.js"></script>
 <script>
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
@@ -181,7 +182,7 @@ let registrationSubmitting=false;
 let registrationFinishing=false;
 const formData={
   // Step 1
-  inst_name:'',inst_type:'',governorate:'',address:'',
+  inst_name:'',inst_type:'',governorate:'',center:'',address:'',
   // Step 2
   commercial_reg:'',tax_num:'',owner_name:'',manager_name:'',
   doc_commercial:null,doc_tax:null,doc_other:null,
@@ -227,7 +228,7 @@ async function loadPackages(){
 }
 
 
-const GOVERNORATES=['القاهرة','الإسكندرية','الجيزة','الأقصر','أسوان','أسيوط','البحيرة','بني سويف','بورسعيد','الدقهلية','دمياط','الفيوم','الغربية','الإسماعيلية','كفر الشيخ','مطروح','المنيا','المنوفية','الوادي الجديد','شمال سيناء','جنوب سيناء','القليوبية','قنا','البحر الأحمر','الشرقية','سوهاج','السويس'];
+const GOVERNORATES=window.SHAHADATY_EGYPT_LOCATIONS.governorates;
 const INST_TYPES=['مركز تدريب','جامعة','كلية','معهد','مستشفى','عيادة','مدرسة','نادي رياضي','شركة','جمعية / مؤسسة','أخرى'];
 
 // ── PROGRESS ──
@@ -287,6 +288,8 @@ function renderStep1(){
       </div>
     </div>
   </div>`;
+  window.initEgyptLocationSelects([{governorateId:'governorate',centerId:'center'}]);
+  document.getElementById('center').value=formData.center||'';
 }
 
 function submitStep1(){
@@ -298,7 +301,7 @@ function submitStep1(){
     if(!v){err.classList.add('show');document.getElementById(f).classList.add('err');valid=false;}
     else{err.classList.remove('show');document.getElementById(f).classList.remove('err');formData[f]=v;}
   });
-  if(valid){currentStep=1;renderProgress();renderStep2();}
+  if(valid){formData.center=document.getElementById('center')?.value||'';currentStep=1;renderProgress();renderStep2();}
 }
 
 // ── STEP 2 ──
@@ -649,8 +652,8 @@ async function createInstitutionAndDocuments(selectedPackage){
   registrationFinishing=true;
   try{
     if(!pendingInstitutionId){
-      const {data:regData,error:regErr}=await sb.rpc('register_institution',{
-        p_name:formData.inst_name,p_institution_type:formData.inst_type,p_governorate:formData.governorate,
+      const {data:regData,error:regErr}=await sb.rpc('register_institution_with_center',{
+        p_name:formData.inst_name,p_institution_type:formData.inst_type,p_governorate:formData.governorate,p_center:formData.center||null,
         p_address:formData.address,p_commercial_registration_number:formData.commercial_reg,
         p_tax_card_number:formData.tax_num,p_owner_name:formData.owner_name,p_manager_name:formData.manager_name,
         p_contact_phone:formData.phone,p_package_id:selectedPackage.dbId
