@@ -743,7 +743,7 @@ async function loadGraduateMembershipRequests(){
   const label=r.status==='pending'?'بانتظار المراجعة':r.status==='approved'?'معتمد':'مرفوض';
   let actions='';
   if(r.status==='pending')actions='<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-p" onclick="approveGraduateMembership(\''+r.id+'\')">اعتماد السداد وتفعيل سنة</button><button class="btn-d" onclick="rejectGraduateMembership(\''+r.id+'\')">رفض الطلب</button></div>';
-  const accountAction=r.auth_user_id?'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn-s" id="graduateConfirmBtn_'+adminEsc(r.id)+'" onclick="confirmGraduateAccount(\''+r.auth_user_id+'\',\''+r.id+'\')">تأكيد البريد والحساب من الإدارة</button></div>':'<p style="font-size:11px;color:#b45309;margin-top:8px">لا يوجد حساب دخول مرتبط بهذا الطلب.</p>';
+  const accountAction='';
   let activeDates=r.status==='approved'?'<p style="font-size:11px;color:#16845b">ساري من '+new Date(r.starts_at).toLocaleDateString('ar-EG')+' حتى '+new Date(r.ends_at).toLocaleDateString('ar-EG')+'</p>':'';
   let goldFiles='';
   if(p.premium_photo_path){const{data:file}=await sb.storage.from('graduate-gold-private').createSignedUrl(p.premium_photo_path,600);if(file?.signedUrl)goldFiles+='<a target="_blank" rel="noopener" href="'+adminEsc(file.signedUrl)+'" style="display:inline-block;margin:6px;padding:7px 10px;border-radius:8px;background:#fff5d9;color:#805d16">عرض الصورة الشخصية</a>';}
@@ -766,21 +766,6 @@ async function approveGraduateMembership(id){
   if(!existing){const{error:alumniError}=await sb.from('alumni_profiles').insert({full_name:gp.full_name,phone:gp.phone,email:gp.email,governorate:gp.governorate,center:gp.center,professional_summary:gp.bio,legacy_graduate_profile_id:gp.id,created_by:gp.auth_user_id,updated_by:gp.auth_user_id,publication_consent:gp.publication_consent===true,publication_consent_at:gp.publication_consent_at,visibility_status:'hidden'});if(alumniError)toast('تم اعتماد الاشتراك، لكن تعذر إنشاء ملف الخريج المرتبط: '+alumniError.message,'err');}
  }
  toast('تم اعتماد العضوية لمدة سنة وتفعيل بوابة الخريج','ok');loadGraduateMembershipRequests();loadAlumniProfiles();
-}
-async function confirmGraduateAccount(userId,requestId){
- const button=document.getElementById('graduateConfirmBtn_'+requestId);
- if(!userId||!confirm('تأكيد البريد الإلكتروني لهذا الحساب إداريًا؟ سيتم تسجيل أن التأكيد تم بواسطة إدارة المنصة.'))return;
- if(button){button.disabled=true;button.textContent='جارٍ تأكيد الحساب...';}
- try{
-  const{data,error}=await sb.functions.invoke('graduate-admin-confirm-email',{body:{user_id:userId}});
-  if(error)throw error;
-  if(!data?.success)throw new Error(data?.error||'تعذر تأكيد الحساب.');
-  if(button){button.textContent=data.already_confirmed?'البريد مؤكد بالفعل':'تم تأكيد البريد والحساب';button.disabled=true;button.style.color='#15803d';}
-  toast(data.already_confirmed?'البريد الإلكتروني مؤكد بالفعل':'تم تأكيد البريد الإلكتروني والحساب بنجاح','ok');
- }catch(error){
-  if(button){button.disabled=false;button.textContent='تأكيد البريد والحساب من الإدارة';}
-  toast('تعذر تأكيد الحساب: '+String(error?.message||error),'err');
- }
 }
 async function rejectGraduateMembership(id){
  const reason=prompt('اكتب سبب رفض طلب الاشتراك حتى يظهر للخريج:','');if(reason===null)return;if(!reason.trim()){toast('سبب الرفض مطلوب','err');return;}
