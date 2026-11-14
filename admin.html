@@ -694,12 +694,36 @@ async function loadGraduateAccessRequests(){
   const wa='https://wa.me/'+waPhone+'?text='+encodeURIComponent(textMsg);
   const actions=r.status==='pending'?'<button class="btn-p" onclick="reviewGraduateAccess(\''+r.id+'\',\'approve\')">موافقة وتفعيل الحساب</button><button class="btn-d" onclick="reviewGraduateAccess(\''+r.id+'\',\'reject\')">رفض الطلب</button>':'';
   const waButton=r.status==='approved'?'<a class="btn-s" style="display:inline-block;text-decoration:none;margin:6px;padding:8px 12px" target="_blank" rel="noopener" href="'+adminEsc(wa)+'">فتح واتساب وإرسال رسالة الموافقة</a>':'';
-  return '<div class="card" style="border:1px solid var(--border);margin:12px 0;padding:16px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b>'+adminEsc(r.full_name)+'</b><b style="color:'+color+'">'+state+'</b></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:12px 0;font-size:12px"><div><b>البريد الإلكتروني:</b> '+adminEsc(r.email)+'</div><div><b>الهاتف:</b> <span dir="ltr">'+adminEsc(r.phone)+'</span></div><div><b>المحافظة:</b> '+adminEsc(r.governorate||'—')+'</div><div><b>المركز / المدينة:</b> '+adminEsc(r.center||'—')+'</div><div><b>تاريخ الطلب:</b> '+new Date(r.created_at).toLocaleString('ar-EG')+'</div></div>'+(r.admin_note?'<p style="font-size:12px;color:#9a3412">ملاحظة الإدارة: '+adminEsc(r.admin_note)+'</p>':'')+actions+waButton+'</div>';
+  const accountTools=r.status==='approved'?'<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px"><button class="btn-s" onclick="editGraduateAccess(\''+r.auth_user_id+'\',\''+r.id+'\')">تعديل الحساب</button><button class="btn-s" onclick="resetGraduatePassword(\''+r.auth_user_id+'\',\''+r.phone+'\',\''+adminEsc(r.full_name)+'\')">إعادة تعيين كلمة المرور</button><button class="btn-d" onclick="deleteGraduateAccount(\''+r.auth_user_id+'\')">حذف الحساب</button></div>':'';
+  return '<div class="card" style="border:1px solid var(--border);margin:12px 0;padding:16px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b>'+adminEsc(r.full_name)+'</b><b style="color:'+color+'">'+state+'</b></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:12px 0;font-size:12px"><div><b>البريد الإلكتروني:</b> '+adminEsc(r.email)+'</div><div><b>الهاتف:</b> <span dir="ltr">'+adminEsc(r.phone)+'</span></div><div><b>المحافظة:</b> '+adminEsc(r.governorate||'—')+'</div><div><b>المركز / المدينة:</b> '+adminEsc(r.center||'—')+'</div><div><b>تاريخ الطلب:</b> '+new Date(r.created_at).toLocaleString('ar-EG')+'</div></div>'+(r.admin_note?'<p style="font-size:12px;color:#9a3412">ملاحظة الإدارة: '+adminEsc(r.admin_note)+'</p>':'')+actions+waButton+accountTools+'</div>';
  }).join('');
 }
 async function reviewGraduateAccess(id,action){
  let note='';if(action==='reject'){const v=prompt('اكتب سبب رفض طلب الخريج:','');if(v===null)return;note=v.trim();if(!note){toast('سبب الرفض مطلوب','err');return;}}else if(!confirm('هل تؤكد الموافقة على طلب الخريج وتفعيل حسابه المجاني؟'))return;
  try{const{data,error}=await sb.functions.invoke('graduate-application-review',{body:{request_id:id,action,admin_note:note}});if(error)throw error;if(!data?.success)throw new Error(data?.message||data?.error||'تعذر تنفيذ القرار.');toast(action==='approve'?'تمت الموافقة وتفعيل حساب الخريج وإنشاء ملف Basic.':'تم رفض الطلب.','ok');const filter=document.getElementById('graduateAccessFilter');if(action==='approve'&&filter)filter.value='approved';await loadGraduateAccessRequests();}catch(e){toast('تعذر معالجة الطلب: '+String(e?.message||e),'err');}
+}
+async function editGraduateAccess(userId,requestId){
+ const{data:r,error}=await sb.from('graduate_access_requests').select('*').eq('id',requestId).maybeSingle();if(error||!r)return toast('تعذر تحميل بيانات الحساب','err');
+ const full_name=prompt('الاسم الكامل:',r.full_name);if(full_name===null)return;
+ const email=prompt('البريد الإلكتروني:',r.email);if(email===null)return;
+ const phone=prompt('رقم الهاتف:',r.phone);if(phone===null)return;
+ const governorate=prompt('المحافظة:',r.governorate||'');if(governorate===null)return;
+ const center=prompt('المركز / المدينة:',r.center||'');if(center===null)return;
+ try{const{data,error}=await sb.functions.invoke('graduate-account-admin',{body:{action:'update',user_id:userId,full_name,email,phone,governorate,center}});if(error)throw error;if(!data?.success)throw new Error(data?.message||data?.error||'تعذر التعديل');toast('تم تحديث بيانات الحساب','ok');loadGraduateAccessRequests();}catch(e){toast('تعذر تعديل الحساب: '+String(e?.message||e),'err');}
+}
+async function resetGraduatePassword(userId,phone,name){
+ if(!confirm('إنشاء كلمة مرور مؤقتة جديدة لهذا الخريج؟'))return;
+ try{const{data,error}=await sb.functions.invoke('graduate-account-admin',{body:{action:'reset_password',user_id:userId}});if(error)throw error;if(!data?.success||!data.temporary_password)throw new Error(data?.error||'تعذر إعادة تعيين كلمة المرور');
+ const waPhone=String(data.phone||phone||'').replace(/^0/,'20');
+ const textMsg='مرحبًا '+(data.full_name||name)+'، تم إعادة تعيين كلمة المرور لحسابك في بوابة خريجي شهادتي العلمية. كلمة المرور المؤقتة: '+data.temporary_password+' . يُرجى تسجيل الدخول وتغيير كلمة المرور بعد الدخول. رابط الدخول: https://shahadatyofficial.github.io/shahadaty/graduate-v2.html';
+ const url='https://wa.me/'+waPhone+'?text='+encodeURIComponent(textMsg);
+ window.open(url,'_blank','noopener');
+ toast('تم إنشاء كلمة مرور مؤقتة وفتح واتساب لإرسالها.','ok');
+ }catch(e){toast('تعذر إعادة تعيين كلمة المرور: '+String(e?.message||e),'err');}
+}
+async function deleteGraduateAccount(userId){
+ if(!confirm('تأكيد حذف حساب الخريج نهائيًا؟ سيُحذف حساب الدخول والملف المرتبط به.'))return;
+ try{const{data,error}=await sb.functions.invoke('graduate-account-admin',{body:{action:'delete',user_id:userId}});if(error)throw error;if(!data?.success)throw new Error(data?.error||'تعذر حذف الحساب');toast('تم حذف حساب الخريج.','ok');loadGraduateAccessRequests();}catch(e){toast('تعذر حذف الحساب: '+String(e?.message||e),'err');}
 }
 // ── GRADUATE MEMBERSHIPS ──────────────────────────────────────
 async function loadGraduateMembershipRequests(){
