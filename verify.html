@@ -97,7 +97,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);min-heigh
 .certificate-preview{background:#eef4fa;border:1px solid var(--border);border-radius:16px;padding:12px;margin:22px 0;overflow:hidden;box-shadow:0 10px 28px rgba(12,45,78,.08);}
 .certificate-preview-title{display:flex;align-items:center;gap:8px;color:var(--navy);font-size:14px;font-weight:900;margin:2px 4px 12px;}
 .certificate-preview-title .material-symbols-outlined{color:var(--gold);font-size:22px;}
-.certificate-preview iframe{display:block;width:100%;height:900px;min-height:700px;border:0;border-radius:10px;background:#fff;overflow:hidden;}
+.certificate-preview iframe{display:block;width:1024px;max-width:none;height:724px;border:0;border-radius:10px;background:#fff;overflow:hidden;transform-origin:top right;}
 @media(max-width:600px){.certificate-preview{padding:5px;margin:16px -8px;}.certificate-preview-title{font-size:12px;margin:7px 5px 9px}.certificate-preview iframe{min-height:360px;border-radius:7px;}}
 .search-btn:disabled{cursor:wait;}
 
@@ -188,8 +188,19 @@ function resizeCertificateFrame(frame){
       const doc=frame.contentDocument;
       if(!doc)return;
       const body=doc.body,root=doc.documentElement;
-      const height=Math.max(body.scrollHeight,body.offsetHeight,root.scrollHeight,root.offsetHeight);
-      if(height>0)frame.style.height=(height+24)+'px';
+      const naturalWidth=1024;
+      const naturalHeight=Math.max(body.scrollHeight,body.offsetHeight,root.scrollHeight,root.offsetHeight,724);
+      const host=frame.parentElement;
+      const availableWidth=Math.max(280,host.clientWidth-24);
+      const scale=Math.min(1,availableWidth/naturalWidth);
+      frame.style.width=naturalWidth+'px';
+      frame.style.maxWidth='none';
+      frame.style.height=naturalHeight+'px';
+      frame.style.transformOrigin='top right';
+      frame.style.transform='scale('+scale+')';
+      frame.style.marginBottom=(-(naturalHeight*(1-scale)))+'px';
+      host.style.height=(naturalHeight*scale+54)+'px';
+      host.style.overflow='hidden';
     }catch(e){console.warn('Certificate preview sizing:',e);}
   };
   measure();
@@ -200,6 +211,11 @@ function resizeCertificateFrame(frame){
       win.addEventListener('resize',measure);
       frame.dataset.resizeBound='1';
       if(frame.contentDocument.fonts&&frame.contentDocument.fonts.ready)frame.contentDocument.fonts.ready.then(measure);
+    }
+    if(window.ResizeObserver&&!frame.dataset.hostObserver){
+      const observer=new ResizeObserver(measure);
+      observer.observe(frame.parentElement);
+      frame.dataset.hostObserver='1';
     }
     requestAnimationFrame(measure);
     setTimeout(measure,250);
