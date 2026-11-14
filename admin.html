@@ -183,7 +183,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="sb-item active" onclick="sp('overview',this)"><span class="material-symbols-outlined">dashboard</span>نظرة عامة</div>
     <div class="sb-sec">الخريجون والتوظيف</div>
     <div class="sb-item" onclick="sp('employment-requests',this)"><span class="material-symbols-outlined">handshake</span>طلبات التواصل والتوظيف</div>
-    <div class="sb-item" onclick="sp('alumni',this)"><span class="material-symbols-outlined">school</span>إدارة الخريجين</div>
+    <div class="sb-item" onclick="sp('graduate-memberships',this)"><span class="material-symbols-outlined">verified_user</span>بوابة الخريج والاشتراكات<span class="sb-badge" id="graduateMembershipBadge">0</span></div><div class="sb-item" onclick="sp('alumni',this)"><span class="material-symbols-outlined">school</span>إدارة الخريجين</div>
     <div class="sb-item" onclick="sp('job-ads',this)"><span class="material-symbols-outlined">campaign</span>إعلانات الوظائف</div>
     <div class="sb-item" onclick="sp('training-ads',this)"><span class="material-symbols-outlined">notifications_active</span>إعلانات الدورات</div>
     <div class="sb-sec">المؤسسات</div>
@@ -220,6 +220,17 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
   </header>
   <div class="content">
 
+<!-- GRADUATE MEMBERSHIPS -->
+<div class="page" id="page-graduate-memberships">
+ <div class="card">
+  <div class="card-head"><span class="card-title">طلبات اشتراك بوابة الخريج — 50 جنيهًا سنويًا</span><button class="btn-p" onclick="loadGraduateMembershipRequests()">تحديث الطلبات</button></div>
+  <div class="card-body">
+   <p style="font-size:12px;color:var(--muted);line-height:1.9;margin-bottom:14px">راجع بيانات الخريج ومرجع الدفع وإثبات السداد. لا يتم تفعيل الحساب إلا بعد اعتماد الإدارة. مدة العضوية سنة من تاريخ الاعتماد.</p>
+   <select class="form-inp" id="graduateMembershipFilter" onchange="loadGraduateMembershipRequests()" style="max-width:220px"><option value="pending">بانتظار المراجعة</option><option value="approved">معتمد</option><option value="rejected">مرفوض</option><option value="">كل الطلبات</option></select>
+   <div id="graduateMembershipRows"><div style="padding:20px;text-align:center;color:var(--muted)">جاري تحميل الطلبات...</div></div>
+  </div>
+ </div>
+</div>
     <!-- ALUMNI -->
     <div class="page" id="page-alumni">
       <div class="card"><div class="card-head"><span class="card-title">إضافة ملف خريج</span></div>
@@ -580,7 +591,7 @@ const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
 window.initEgyptLocationSelects([{governorateId:'al_governorate',centerId:'al_center'},{governorateId:'job_governorate',centerId:'job_center'}]);
-const ptitles={'employment-requests':'طلبات التواصل والتوظيف',alumni:'إدارة الخريجين','job-ads':'إعلانات الوظائف','training-ads':'إعلانات الدورات',overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات','publication-consents':'موافقات النشر','add-cert':'إضافة شهادة',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام','academic-refs':'قوائم المؤهلات العلمية'};
+const ptitles={'graduate-memberships':'بوابة الخريج والاشتراكات','employment-requests':'طلبات التواصل والتوظيف',alumni:'إدارة الخريجين','job-ads':'إعلانات الوظائف','training-ads':'إعلانات الدورات',overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات','publication-consents':'موافقات النشر','add-cert':'إضافة شهادة',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام','academic-refs':'قوائم المؤهلات العلمية'};
 let allInstitutions=[], allAdminCerts=[], allPublicationRows=[];
 const pendingPublicationConsents={};
 function adminEsc(v){return String(v??'—').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}
@@ -610,8 +621,52 @@ function sp(name,el){
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('pageTitle').textContent=ptitles[name]||name;
   if(el)el.classList.add('active');
-  const loaders={'employment-requests':loadEmploymentContactRequests,alumni:loadAlumniProfiles,'job-ads':loadJobAnnouncements,'training-ads':loadTrainingAnnouncements,institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'publication-consents':loadPublicationConsents,'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
+  const loaders={'graduate-memberships':loadGraduateMembershipRequests,'employment-requests':loadEmploymentContactRequests,alumni:loadAlumniProfiles,'job-ads':loadJobAnnouncements,'training-ads':loadTrainingAnnouncements,institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'publication-consents':loadPublicationConsents,'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
   if(loaders[name])loaders[name]();
+}
+
+
+// ── GRADUATE MEMBERSHIPS ──────────────────────────────────────
+async function loadGraduateMembershipRequests(){
+ const body=document.getElementById('graduateMembershipRows');if(!body)return;
+ const status=document.getElementById('graduateMembershipFilter')?.value??'pending';
+ body.innerHTML='<div style="padding:18px;text-align:center">جارٍ تحميل طلبات الخريجين...</div>';
+ let query=sb.from('graduate_membership_requests').select('id,auth_user_id,graduate_profile_id,amount,currency,billing_cycle,payment_method,payment_reference,receipt_storage_path,status,admin_note,starts_at,ends_at,created_at,graduate_profiles(full_name,email,phone,governorate,center,bio)').order('created_at',{ascending:false}).limit(200);
+ if(status)query=query.eq('status',status);
+ const{data,error}=await query;if(error){body.textContent='تعذر تحميل الطلبات: '+error.message;return;}
+ const rows=data||[];const badge=document.getElementById('graduateMembershipBadge');
+ if(badge){const n=rows.filter(x=>x.status==='pending').length;badge.textContent=n;badge.style.display=n?'inline':'none';}
+ if(!rows.length){body.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted)">لا توجد طلبات في هذه الحالة.</div>';return;}
+ const cards=[];
+ for(const r of rows){
+  const p=r.graduate_profiles||{};let receipt='<span style="color:var(--muted)">لم يرفق إيصال</span>';
+  if(r.receipt_storage_path){const{data:signed,error:signedError}=await sb.storage.from('graduate-payment-proofs').createSignedUrl(r.receipt_storage_path,300);if(!signedError&&signed?.signedUrl)receipt='<a href="'+adminEsc(signed.signedUrl)+'" target="_blank" rel="noopener">عرض إثبات الدفع</a>';else receipt='<span style="color:#b91c1c">تعذر فتح الإيصال</span>';}
+  const label=r.status==='pending'?'بانتظار المراجعة':r.status==='approved'?'معتمد':'مرفوض';
+  let actions='';
+  if(r.status==='pending')actions='<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-p" onclick="approveGraduateMembership(\''+r.id+'\')">اعتماد السداد وتفعيل سنة</button><button class="btn-d" onclick="rejectGraduateMembership(\''+r.id+'\')">رفض الطلب</button></div>';
+  let activeDates=r.status==='approved'?'<p style="font-size:11px;color:#16845b">ساري من '+new Date(r.starts_at).toLocaleDateString('ar-EG')+' حتى '+new Date(r.ends_at).toLocaleDateString('ar-EG')+'</p>':'';
+  cards.push('<div class="card" style="border:1px solid var(--border);margin:12px 0;padding:16px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b>'+adminEsc(p.full_name||'خريج')+'</b><span class="badge '+(r.status==='approved'?'bok':r.status==='pending'?'bwarn':'berr')+'">'+label+'</span></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:12px 0;font-size:12px"><div><b>البريد:</b> '+adminEsc(p.email)+'</div><div><b>الهاتف:</b> '+adminEsc(p.phone)+'</div><div><b>المحافظة:</b> '+adminEsc(p.governorate)+'</div><div><b>المبلغ:</b> '+adminEsc(r.amount)+' '+adminEsc(r.currency)+' / سنة</div><div><b>طريقة الدفع:</b> '+adminEsc(r.payment_method)+'</div><div><b>رقم العملية:</b> '+adminEsc(r.payment_reference)+'</div><div><b>تاريخ الطلب:</b> '+new Date(r.created_at).toLocaleString('ar-EG')+'</div><div><b>إثبات الدفع:</b> '+receipt+'</div></div>'+(r.admin_note?'<p style="font-size:12px;color:#9a3412">ملاحظة الإدارة: '+adminEsc(r.admin_note)+'</p>':'')+actions+activeDates+'</div>');
+ }
+ body.innerHTML=cards.join('');
+}
+async function approveGraduateMembership(id){
+ if(!confirm('تأكيد مراجعة السداد واعتماد عضوية الخريج لمدة سنة مقابل 50 جنيهًا؟'))return;
+ const{data:r,error:readError}=await sb.from('graduate_membership_requests').select('id,auth_user_id,graduate_profile_id,status').eq('id',id).maybeSingle();
+ if(readError||!r){toast(readError?.message||'الطلب غير موجود','err');return;}if(r.status!=='pending'){toast('تمت معالجة هذا الطلب بالفعل','err');return;}
+ const start=new Date(),end=new Date(start);end.setFullYear(end.getFullYear()+1);
+ const{error}=await sb.from('graduate_membership_requests').update({status:'approved',starts_at:start.toISOString(),ends_at:end.toISOString(),reviewed_by:(await sb.auth.getUser()).data.user.id,reviewed_at:start.toISOString(),admin_note:null,updated_at:start.toISOString()}).eq('id',id).eq('status','pending');
+ if(error){toast('تعذر اعتماد الطلب: '+error.message,'err');return;}
+ const{data:gp}=await sb.from('graduate_profiles').select('id,full_name,email,phone,governorate,center,bio,publication_consent,publication_consent_at,auth_user_id').eq('id',r.graduate_profile_id).maybeSingle();
+ if(gp){
+  const{data:existing}=await sb.from('alumni_profiles').select('id').eq('legacy_graduate_profile_id',gp.id).maybeSingle();
+  if(!existing){const{error:alumniError}=await sb.from('alumni_profiles').insert({full_name:gp.full_name,phone:gp.phone,email:gp.email,governorate:gp.governorate,center:gp.center,professional_summary:gp.bio,legacy_graduate_profile_id:gp.id,created_by:gp.auth_user_id,updated_by:gp.auth_user_id,publication_consent:gp.publication_consent===true,publication_consent_at:gp.publication_consent_at,visibility_status:'hidden'});if(alumniError)toast('تم اعتماد الاشتراك، لكن تعذر إنشاء ملف الخريج المرتبط: '+alumniError.message,'err');}
+ }
+ toast('تم اعتماد العضوية لمدة سنة وتفعيل بوابة الخريج','ok');loadGraduateMembershipRequests();loadAlumniProfiles();
+}
+async function rejectGraduateMembership(id){
+ const reason=prompt('اكتب سبب رفض طلب الاشتراك حتى يظهر للخريج:','');if(reason===null)return;if(!reason.trim()){toast('سبب الرفض مطلوب','err');return;}
+ const{error}=await sb.from('graduate_membership_requests').update({status:'rejected',admin_note:reason.trim(),reviewed_by:(await sb.auth.getUser()).data.user.id,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id).eq('status','pending');
+ if(error){toast('تعذر رفض الطلب: '+error.message,'err');return;}toast('تم رفض الطلب وإظهار السبب للخريج','ok');loadGraduateMembershipRequests();
 }
 
 // ── OVERVIEW ──────────────────────────────────────────────────
