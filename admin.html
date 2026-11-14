@@ -1033,19 +1033,28 @@ async function loadCompanies(){
   const{data,error}=await sb.rpc('admin_list_companies');
   if(error){toast(error.message,'err');return;}
   document.getElementById('compTable').innerHTML=!(data||[]).length?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">لا توجد شركات</td></tr>':data.map(c=>`<tr>
-    <td>${adminEsc(c.company_name)}<div style="font-size:10px;color:var(--muted)">${adminEsc(c.contact_email||'—')}</div></td>
+    <td>${adminEsc(c.company_name)}<div style="font-size:10px;color:var(--muted)" dir="ltr">${adminEsc(c.contact_email||'—')}</div><div style="font-size:10px;color:var(--muted)" dir="ltr">${adminEsc(c.contact_phone||'—')}</div></td>
     <td>${adminEsc(c.contact_name||'—')}</td>
-    <td><span class="badge ${c.status==='approved'?'bok':'bwarn'}">${c.status==='approved'?'معتمد':'معلق'}</span></td>
+    <td><span class="badge ${c.status==='approved'?'bok':c.status==='suspended'?'berr':'bwarn'}">${c.status==='approved'?'معتمد':c.status==='suspended'?'موقوف':'بانتظار اعتماد الإدارة'}</span></td>
     <td><div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;font-weight:900;color:var(--navy)">${c.search_credits||0}</span><button onclick="addCreds('${c.id}',${c.search_credits||0})" class="btn-s" style="font-size:10px;padding:4px 8px">+</button></div></td>
     <td><div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button onclick="linkCompanyAccount('${c.id}')" class="btn-s" style="font-size:10px;padding:5px 10px">ربط / تغيير حساب البوابة</button>
-      ${c.status!=='approved'?`<button onclick="setCompSt('${c.id}','approved')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد</button>`:''}
+      
+      ${(c.status==='pending'||!c.auth_user_id)&&c.status!=='suspended'?`<button onclick="approveCompanyAccount('${c.id}')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد وربط الدخول</button>`:''}
       ${c.status==='approved'?`<button onclick="setCompSt('${c.id}','suspended')" class="btn-d" style="font-size:10px;padding:5px 10px">إيقاف</button>`:''}
     </div></td>
   </tr>`).join('');
 }
-async function linkCompanyAccount(id){const email=prompt('أدخل البريد الإلكتروني لحساب الشركة المسجل في المنصة:');if(!email)return;const{error}=await sb.rpc('admin_link_company_user',{p_company_id:id,p_email:email.trim()});if(error){toast(error.message,'err');return;}toast('تم ربط حساب الشركة','ok');loadCompanies();}
-async function setCompSt(id,status){const{error}=await sb.rpc('admin_update_company',{p_company_id:id,p_status:status,p_search_credits:null});if(error){toast(error.message,'err');return;}toast('تم التحديث','ok');loadCompanies();}
+async function approveCompanyAccount(id){
+  if(!confirm('سيتم اعتماد الشركة وربط حساب الدخول بالبريد والهاتف المسجلين، والسماح لها باستخدام بوابة الشركات. هل تريد المتابعة؟'))return;
+  const{data,error}=await sb.functions.invoke('company-admin-approval',{body:{company_id:id}});
+  if(error){let detail=error.message||'تعذر اعتماد الشركة';try{const body=await error.context?.clone?.().json();if(body?.error)detail=body.error;}catch{}toast(detail,'err');return;}
+  toast('تم اعتماد الشركة وربط البريد والهاتف بحساب الدخول','ok');loadCompanies();
+}
+async function setCompSt(id,status){
+  if(status==='approved'){await approveCompanyAccount(id);return;}
+  const{error}=await sb.rpc('admin_update_company',{p_company_id:id,p_status:status,p_search_credits:null});
+  if(error){toast(error.message,'err');return;}toast('تم إيقاف حساب الشركة','ok');loadCompanies();
+}
 async function addCreds(id,current){const a=prompt('كم عملية بحث تضيف؟','10');if(!a||isNaN(a)||parseInt(a)<0)return;const{error}=await sb.rpc('admin_update_company',{p_company_id:id,p_status:null,p_search_credits:current+parseInt(a)});if(error){toast(error.message,'err');return;}toast(`تم إضافة ${a} عملية`,'ok');loadCompanies();}
 
 // ── PACKAGES ──────────────────────────────────────────────────
