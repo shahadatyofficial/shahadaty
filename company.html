@@ -32,7 +32,44 @@
 </section>
 <section class="panel hide" id="appPanel"><div class="row" style="align-items:center"><div><h2 id="companyTitle">بوابة التوظيف</h2><div id="searchCreditBalance" class="muted" style="font-size:12px;font-weight:800;color:#0369a1;margin:5px 0">رصيد البحث: —</div><p class="muted">البيانات الظاهرة في نتائج البحث: الاسم والمؤهل وسنة التخرج فقط.</p></div><button class="btn alt" id="logoutBtn" style="flex:0 0 auto">تسجيل الخروج</button></div>
 <h3>البحث عن خريج</h3><form id="searchForm" class="row"><input class="field" id="nameQuery" placeholder="اسم الخريج"><input class="field" id="qualQuery" placeholder="المؤهل"><input class="field" id="specializationQuery" placeholder="التخصص"><input class="field" id="governorateQuery" placeholder="المحافظة"><input class="field" id="yearQuery" type="number" min="1950" max="2100" placeholder="سنة التخرج"><input class="field" id="skillQuery" placeholder="المهارة"><button class="btn" type="submit">بحث</button></form><div id="results" class="muted">اكتب المؤهل أو التخصص لبدء البحث.</div>
-<div class="panel"><h3>نشر إعلان وظيفة</h3><p class="muted">كل إعلان جديد يُرسل للإدارة للمراجعة قبل ظهوره للعامة.</p><input class="field" id="jobTitle" placeholder="المسمى الوظيفي"><input class="field" id="jobTeaser" placeholder="نبذة قصيرة للشريط المتحرك"><textarea class="field" id="jobDescription" rows="4" placeholder="تفاصيل الوظيفة والمتطلبات"></textarea><div class="row"><input class="field" id="jobQualification" placeholder="المؤهل المطلوب"><input class="field" id="jobGovernorate" placeholder="المحافظة"></div><div class="row"><input class="field" id="jobExperience" type="number" min="0" placeholder="سنوات الخبرة"><input class="field" id="jobExpiry" type="date"></div><button class="btn" id="publishJobBtn">إرسال الإعلان للمراجعة</button><div id="jobMsg" class="muted"></div><h3>إعلاناتي</h3><div id="myJobs" class="muted">جاري التحميل...</div></div>
+<div class="panel"><h3>نشر إعلان وظيفة</h3><p class="muted">كل إعلان جديد يُرسل للإدارة للمراجعة قبل ظهوره للعامة.</p><input class="field" id="jobTitle" placeholder="المسمى الوظيفي"><input class="field" id="jobTeaser" placeholder="نبذة قصيرة للشريط المتحرك"><textarea class="field" id="jobDescription" rows="4" placeholder="تفاصيل الوظيفة والمتطلبات"></textarea><div class="row"><input class="field" id="jobQualification" placeholder="المؤهل المطلوب"><input class="field" id="jobGovernorate" placeholder="المحافظة"></div><div class="row"><input class="field" id="jobExperience" type="number" min="0" placeholder="سنوات الخبرة"><input class="field" id="jobExpiry" type="date"></div>
+<div class="row">
+ <select class="field" id="jobEmploymentType"><option value="">نوع الوظيفة</option><option value="دوام كامل">دوام كامل</option><option value="دوام جزئي">دوام جزئي</option><option value="تعاقد">تعاقد</option><option value="تدريب">تدريب</option></select>
+ <select class="field" id="jobWorkMode"><option value="">نظام العمل</option><option value="حضوري">حضوري</option><option value="عن بُعد">عن بُعد</option><option value="هجين">هجين</option></select>
+</div>
+<div class="row">
+ <select class="field" id="jobWorkSchedule"><option value="">مواعيد العمل</option><option value="صباحي">صباحي</option><option value="مسائي">مسائي</option><option value="ورديات">ورديات</option><option value="متغير">متغير</option></select>
+ <input class="field" id="jobWorkHours" maxlength="120" placeholder="ساعات العمل (مثال: 9 ص إلى 5 م)">
+</div>
+<div class="row">
+ <input class="field" id="jobPositions" type="number" min="1" max="1000" value="1" placeholder="عدد الوظائف">
+ <input class="field" id="jobSalary" maxlength="120" placeholder="الراتب أو نطاق الراتب (اختياري)">
+</div>
+<input class="field" id="jobSkills" maxlength="1000" placeholder="المهارات المطلوبة، افصل بينها بفاصلة">
+
+<button class="btn" id="publishJobBtn">إرسال الإعلان للمراجعة</button><div id="jobMsg" class="muted"></div><h3>إعلاناتي</h3><div id="myJobs" class="muted">جاري التحميل...</div></div>
+
+<div class="panel">
+ <h3>اطلب ترشيح مرشحين من فريق شهادتي</h3>
+ <p class="muted">لو مش لاقي المرشح المناسب، ابعت احتياجك لفريق التوظيف. شهادتي هتراجع الطلب وتتواصل معاك، ومش هتظهر بيانات الخريجين قبل موافقتهم.</p>
+ <form id="talentRequestForm">
+  <div class="row"><input class="field" id="talentJobTitle" required maxlength="180" placeholder="المسمى الوظيفي المطلوب"><input class="field" id="talentQualification" maxlength="180" placeholder="المؤهل أو التخصص المطلوب"></div>
+  <div class="row"><input class="field" id="talentGovernorate" maxlength="80" placeholder="المحافظة"><input class="field" id="talentPositions" type="number" min="1" max="1000" value="1" required placeholder="عدد المرشحين"></div>
+  <div class="row"><input class="field" id="talentContactName" required minlength="2" maxlength="120" placeholder="اسم مسؤول التواصل"><input class="field" id="talentContactPhone" required type="tel" minlength="8" maxlength="32" placeholder="رقم الهاتف" dir="ltr"></div>
+  <input class="field" id="talentContactEmail" type="email" maxlength="254" placeholder="البريد الإلكتروني">
+  <textarea class="field" id="talentNotes" rows="3" maxlength="3000" placeholder="المهارات والخبرة وأي شروط إضافية"></textarea>
+  <button class="btn" type="submit" id="talentRequestBtn">إرسال طلب الترشيح</button>
+  <p class="muted" id="talentRequestMsg" role="status" aria-live="polite"></p>
+ </form>
+</div>
+<div class="panel">
+ <h3>مساعد إعداد إعلان الوظيفة</h3>
+ <p class="muted">يساعدك في تحسين صياغة الإعلان وتوضيح المهارات والمتطلبات. لا تضع بيانات شخصية أو سرية في الطلب.</p>
+ <textarea class="field" id="companyAiPrompt" rows="3" maxlength="2000" placeholder="مثال: اقترح صياغة احترافية لوظيفة مساعد خدمات صحية..."></textarea>
+ <button class="btn alt" id="companyAiBtn" type="button">مساعدة ذكية في صياغة الإعلان</button>
+ <div class="muted" id="companyAiResult" role="status" aria-live="polite"></div>
+</div>
+
 <div class="panel"><h3>متابعة طلبات التوظيف</h3><div id="myApplications" class="muted">جاري التحميل...</div></div>
 </section>
 <section class="panel hide" id="requestsPanel"><h3>طلبات الاطلاع</h3><div id="requests" class="muted">لا توجد طلبات محملة.</div></section>
@@ -121,20 +158,61 @@ async function loadRequests(){
  $('requests').innerHTML=out.join('');
 }
 async function loadCompanyJobs(){
- const{data,error}=await sb.from('job_announcements').select('id,title,status,created_at,expires_at').eq('company_id',companyId).order('created_at',{ascending:false}).limit(50);
- $('myJobs').innerHTML=error?esc(error.message):(data||[]).map(j=>'<div class="result"><b>'+esc(j.title)+'</b><span class="status">'+esc(j.status)+'</span></div>').join('')||'لا توجد إعلانات بعد.';
+ const{data,error}=await sb.from('job_announcements').select('id,title,status,created_at,expires_at,qualification_required,specialization_required,governorate,center,skills_required,experience_years').eq('company_id',companyId).order('created_at',{ascending:false}).limit(50);
+ $('myJobs').innerHTML=error?esc(error.message):(data||[]).map(j=>'<div class="result"><div><b>'+esc(j.title)+'</b><div class="muted">'+esc(j.qualification_required||'المؤهل غير محدد')+' · '+esc(j.governorate||'كل المحافظات')+'</div></div><div><span class="status">'+esc(j.status)+'</span> <button class="btn alt" type="button" onclick="matchCandidatesForJob(\''+j.id+'\')">مطابقة مرشحين</button></div></div>').join('')||'لا توجد إعلانات بعد.';
  const{data:apps, error:appError}=await sb.from('job_applications').select('id,status,created_at,job_announcements(title)').order('created_at',{ascending:false}).limit(100);
  $('myApplications').innerHTML=appError?esc(appError.message):(apps||[]).map(a=>'<div class="result"><div><b>'+esc(a.job_announcements?.title||'وظيفة')+'</b><div class="muted">طلب توظيف · '+new Date(a.created_at).toLocaleDateString('ar-EG')+'</div></div><span class="status">'+esc(a.status)+'</span></div>').join('')||'لا توجد طلبات توظيف حتى الآن.';
 }
+window.matchCandidatesForJob=async id=>{
+ const{data:j,error}=await sb.from('job_announcements').select('title,qualification_required,specialization_required,governorate,center,skills_required').eq('id',id).eq('company_id',companyId).maybeSingle();
+ if(error||!j){$('results').textContent='تعذر تحميل بيانات الوظيفة.';return;}
+ $('nameQuery').value='';$('qualQuery').value=j.qualification_required||'';
+ $('specializationQuery').value=j.specialization_required||'';
+ $('governorateQuery').value=j.governorate||'';$('centerQuery').value=j.center||'';
+ $('skillQuery').value=Array.isArray(j.skills_required)?j.skills_required.join('، '):'';
+ $('results').scrollIntoView({behavior:'smooth',block:'center'});
+ $('searchForm').requestSubmit();
+};
 $('publishJobBtn').onclick=async()=>{
  const title=$('jobTitle').value.trim(),description=$('jobDescription').value.trim();
  if(!title||!description){$('jobMsg').textContent='أدخل المسمى والتفاصيل.';return;}
  const{data:companyName,error:nameError}=await sb.rpc('current_approved_company_name');
  if(nameError||!companyName){$('jobMsg').textContent='تعذر التحقق من الشركة المعتمدة.';return;}
- const{error}=await sb.from('job_announcements').insert({company_id:companyId,company_display_name:companyName,title,teaser:$('jobTeaser').value.trim()||null,description,qualification_required:$('jobQualification').value.trim()||null,governorate:$('jobGovernorate').value.trim()||null,center:$('jobCenter').value||null,experience_years:$('jobExperience').value?Number($('jobExperience').value):null,expires_at:$('jobExpiry').value||null,status:'pending'});
+ const skills=$('jobSkills').value.split(/[،,]/).map(x=>x.trim()).filter(Boolean).slice(0,30);const positions=Math.max(1,Math.min(1000,Number($('jobPositions').value)||1));const{error}=await sb.from('job_announcements').insert({company_id:companyId,company_display_name:companyName,title,teaser:$('jobTeaser').value.trim()||null,description,qualification_required:$('jobQualification').value.trim()||null,governorate:$('jobGovernorate').value.trim()||null,center:$('jobCenter').value||null,experience_years:$('jobExperience').value?Number($('jobExperience').value):null,expires_at:$('jobExpiry').value||null,employment_type:$('jobEmploymentType').value||null,work_mode:$('jobWorkMode').value||null,work_schedule:$('jobWorkSchedule').value||null,work_hours:$('jobWorkHours').value.trim()||null,positions_count:positions,salary_text:$('jobSalary').value.trim()||null,skills_required:skills,status:'pending'});
  $('jobMsg').textContent=error?'تعذر إرسال الإعلان: '+error.message:'تم إرسال الإعلان للإدارة للمراجعة.';
- if(!error){['jobTitle','jobTeaser','jobDescription','jobQualification','jobGovernorate','jobCenter','jobExperience','jobExpiry'].forEach(id=>$(id).value='');loadCompanyJobs();}
+ if(!error){['jobTitle','jobTeaser','jobDescription','jobQualification','jobGovernorate','jobCenter','jobExperience','jobExpiry','jobWorkHours','jobSalary','jobSkills'].forEach(id=>$(id).value='');['jobEmploymentType','jobWorkMode','jobWorkSchedule'].forEach(id=>$(id).value='');$('jobPositions').value='1';loadCompanyJobs();}
 };
+
+$('talentRequestForm').onsubmit=async e=>{
+ e.preventDefault();const btn=$('talentRequestBtn'),msg=$('talentRequestMsg');btn.disabled=true;btn.textContent='جارٍ إرسال الطلب...';
+ try{
+  const{data:companyName,error:nameError}=await sb.rpc('current_approved_company_name');
+  if(nameError||!companyName)throw new Error('تعذر التحقق من حساب الشركة المعتمد.');
+  const{error}=await sb.from('employment_contact_requests').insert({
+   request_type:'company_to_graduate',company_name:companyName,
+   contact_name:$('talentContactName').value.trim(),contact_phone:toWesternDigits($('talentContactPhone').value).replace(/[^0-9+]/g,''),
+   contact_email:$('talentContactEmail').value.trim()||null,target_job_title:$('talentJobTitle').value.trim(),
+   qualification:$('talentQualification').value.trim()||null,governorate:$('talentGovernorate').value.trim()||null,
+   positions_needed:Math.max(1,Math.min(1000,Number($('talentPositions').value)||1)),request_notes:$('talentNotes').value.trim()||null
+  });
+  if(error)throw error;
+  $('talentRequestForm').reset();$('talentPositions').value='1';
+  msg.textContent='تم استلام طلب الترشيح وإحالته لفريق شهادتي لمراجعته والتواصل معك.';msg.style.color='#047857';
+ }catch(error){msg.textContent='تعذر إرسال الطلب: '+String(error?.message||error);msg.style.color='#b91c1c';}
+ finally{btn.disabled=false;btn.textContent='إرسال طلب الترشيح';}
+};
+$('companyAiBtn').onclick=async()=>{
+ const btn=$('companyAiBtn'),out=$('companyAiResult');
+ const prompt=$('companyAiPrompt').value.trim();
+ if(!prompt){out.textContent='اكتب نوع الوظيفة أو المطلوب تحسينه أولاً.';return;}
+ btn.disabled=true;btn.textContent='جارٍ إعداد الاقتراح...';out.textContent='جارٍ الاتصال بالمساعد الذكي...';
+ try{
+  const{data,error}=await sb.functions.invoke('shahadaty-ai-assistant',{body:{task:'job_ad',context:{request:prompt,job_title:$('jobTitle').value.trim(),qualification:$('jobQualification').value.trim(),skills:$('jobSkills').value.trim(),experience:$('jobExperience').value.trim(),governorate:$('jobGovernorate').value.trim()}}});
+  if(error)throw error;out.textContent=data?.text||'لم يصل اقتراح من المساعد.';
+ }catch(error){let payload=null;try{payload=await error?.context?.clone?.().json();}catch{}out.textContent=payload?.error==='AI_NOT_CONFIGURED'?'المساعد الذكي جاهز برمجيًا، لكنه يحتاج إضافة مفتاح OPENAI_API_KEY إلى أسرار Supabase لتفعيل الخدمة.':'تعذر تشغيل المساعد الذكي: '+String(error?.message||error);}
+ finally{btn.disabled=false;btn.textContent='مساعدة ذكية في صياغة الإعلان';}
+};
+
 sb.auth.onAuthStateChange(()=>{});
 init();
 </script></body></html>
