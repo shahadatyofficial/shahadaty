@@ -28,6 +28,22 @@ body{font-family:'Cairo',sans-serif;direction:rtl;color:var(--navy);background:#
 .lang-btn{padding:0 13px;height:100%;font-size:12px;font-weight:700;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:'Cairo',sans-serif;transition:all .15s;display:flex;align-items:center;gap:4px;}
 .lang-btn.active{background:var(--blue);color:#fff;border-radius:8px;margin:3px;height:calc(100% - 6px);}
 .btn-portal{color:var(--blue);font-size:13px;font-weight:700;padding:9px 18px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg2);cursor:pointer;font-family:'Cairo',sans-serif;}
+.portal-menu{position:relative;direction:rtl;z-index:1001}
+.portal-menu-trigger{list-style:none;display:flex;align-items:center;gap:12px;padding:9px 18px;border:1.5px solid #d9e7f2;border-radius:12px;background:linear-gradient(135deg,#fff,#f0f7fc);color:var(--navy);font:800 13px 'Cairo',sans-serif;cursor:pointer;box-shadow:0 4px 14px rgba(12,45,78,.07);white-space:nowrap}
+.portal-menu-trigger::-webkit-details-marker{display:none}
+.portal-menu-trigger svg{width:16px;height:16px;fill:none;stroke:var(--gold);stroke-width:2.5;transition:transform .2s}
+.portal-menu[open] .portal-menu-trigger svg{transform:rotate(180deg)}
+.portal-menu-panel{position:absolute;top:calc(100% + 10px);right:0;width:285px;padding:8px;background:#fff;border:1px solid #dce8f1;border-radius:16px;box-shadow:0 18px 48px rgba(7,27,52,.18);display:grid;gap:4px}
+.portal-menu-panel>a{display:flex;align-items:center;gap:11px;padding:11px;border-radius:11px;text-decoration:none;color:var(--navy);transition:background .15s}
+.portal-menu-panel>a:hover{background:#f0f7fc}
+.portal-menu-icon{width:39px;height:39px;display:grid;place-items:center;flex:none;border-radius:11px;background:#edf5fb;font-size:19px}
+.portal-menu-panel>a>span:nth-child(2){display:grid;gap:2px;min-width:0}
+.portal-menu-panel strong{font-size:12px;font-weight:900}
+.portal-menu-panel small{font-size:10px;color:#718096;line-height:1.5}
+.portal-menu-panel b{margin-inline-start:auto;color:var(--gold);font-size:17px}
+@media(max-width:820px){.portal-menu{display:block!important}.portal-menu-trigger{padding:8px 12px;font-size:12px}.portal-menu-panel{right:auto;left:0;width:min(285px,calc(100vw - 32px))}}
+@media(max-width:520px){.portal-menu-trigger{padding:7px 10px;font-size:11px;gap:8px}.portal-menu-panel{left:-5px}}
+
 .btn-cta{background:linear-gradient(135deg,var(--blue),var(--sky));color:#fff;font-size:13px;font-weight:700;padding:10px 22px;border-radius:10px;border:none;cursor:pointer;font-family:'Cairo',sans-serif;box-shadow:0 4px 14px rgba(3,105,161,0.28);display:flex;align-items:center;gap:7px;}
 
 /* HERO */
@@ -671,9 +687,15 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
       <button class="lang-btn active" id="btnAr" onclick="setLang('ar')">🇪🇬 العربية</button>
       <button class="lang-btn" id="btnEn" onclick="setLang('en')">🇬🇧 English</button>
     </div>
-    <button class="btn-portal" onclick="location.href='institution.html'">بوابة المؤسسات</button>
-    <a class="btn-portal company-portal-link" href="company.html">بوابة الشركات</a>
-    <a class="btn-portal recruitment-nav-link" href="#alumni-search">بوابة التوظيف</a>
+    <details class="portal-menu">
+      <summary class="portal-menu-trigger"><span>البوابات</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+      <div class="portal-menu-panel" aria-label="قائمة البوابات">
+        <a href="institution.html"><span class="portal-menu-icon">🏫</span><span><strong>بوابة المؤسسات</strong><small>إدارة المؤسسة والدورات والشهادات</small></span><b>←</b></a>
+        <a href="#alumni-search"><span class="portal-menu-icon">💼</span><span><strong>بوابة التوظيف</strong><small>الوظائف والبحث عن الكفاءات</small></span><b>←</b></a>
+        <a href="company.html"><span class="portal-menu-icon">🏢</span><span><strong>بوابة الشركات</strong><small>حساب الشركة وطلبات الترشيح</small></span><b>←</b></a>
+        <a href="graduate.html"><span class="portal-menu-icon">🎓</span><span><strong>بوابة الخريج</strong><small>ملفك المهني وشهاداتك وفرصك</small></span><b>←</b></a>
+      </div>
+    </details>
     <button class="btn-cta" onclick="location.href='register.html'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
       ابدأ مجاناً
@@ -839,15 +861,6 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
     <div class="stat"><span class="sn">99.9<span>%</span></span><span class="sl">دقة التحقق</span></div>
     <div class="stat"><span class="sn"><span>&lt;</span>3ث</span><span class="sl">وقت التحقق</span></div>
   </div>
-</section>
-
-<!-- QUICK ACCESS: RECRUITMENT PORTAL -->
-<section class="portal-shortcuts" aria-label="بوابات وخدمات المنصة">
- <a class="portal-shortcut recruitment-shortcut" href="#alumni-search">
-  <span class="portal-shortcut-icon" aria-hidden="true">💼</span>
-  <span class="portal-shortcut-copy"><strong>بوابة التوظيف</strong><small>ابحث عن موظف أو فرصة عمل وتواصل من خلال شهادتي</small></span>
-  <span class="portal-shortcut-arrow" aria-hidden="true">←</span>
- </a>
 </section>
 
 <!-- PUBLIC ALUMNI SEARCH — placed directly after verification statistics -->
@@ -1388,7 +1401,7 @@ function toggleFaq(i){faqIdx=faqIdx===i?-1:i;renderFaq();}
 const EN_TRANSLATIONS = {
 'نصنع المعرفة... نبني الحاضر... ونوثق المستقبل.':'We create knowledge... build the present... and preserve the future.',
 'العربية':'Arabic','الرئيسية':'Home','المميزات':'Features','القطاعات':'Sectors','الباقات':'Plans','الأسئلة':'FAQ','تواصل معنا':'Contact',
-'تحقق من شهادة':'Verify a Certificate','بوابة المؤسسات':'Institution Portal','بوابة الشركات':'Company Portal','طلب ترشيح كفاءات':'Request Recruitment','ابدأ مجاناً':'Get Started Free',
+'تحقق من شهادة':'Verify a Certificate','البوابات':'Portals','بوابة المؤسسات':'Institution Portal','بوابة التوظيف':'Recruitment Portal','بوابة الشركات':'Company Portal','بوابة الخريج':'Graduate Portal','طلب ترشيح كفاءات':'Request Recruitment','ابدأ مجاناً':'Get Started Free',
 'منصة التحقق الرقمي الأولى في مصر والوطن العربي':'The leading digital verification platform in Egypt and the Arab world',
 'الثقة تبدأ من':'Trust begins with','شهادتك':'your certificate','امتلك سجلًا رقميًا لشهادتك، واحمِ مستقبلك.':'Own a digital record of your certificate and protect your future.',
 'منصة رقمية للتحقق من الشهادات الأكاديمية والمهنية، بسرعة وأمان.':'A digital platform to verify academic and professional certificates quickly and securely.',
