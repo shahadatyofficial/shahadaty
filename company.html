@@ -158,11 +158,21 @@ async function loadRequests(){
  $('requests').innerHTML=out.join('');
 }
 async function loadCompanyJobs(){
- const{data,error}=await sb.from('job_announcements').select('id,title,status,created_at,expires_at').eq('company_id',companyId).order('created_at',{ascending:false}).limit(50);
- $('myJobs').innerHTML=error?esc(error.message):(data||[]).map(j=>'<div class="result"><b>'+esc(j.title)+'</b><span class="status">'+esc(j.status)+'</span></div>').join('')||'لا توجد إعلانات بعد.';
+ const{data,error}=await sb.from('job_announcements').select('id,title,status,created_at,expires_at,qualification_required,specialization_required,governorate,center,skills_required,experience_years').eq('company_id',companyId).order('created_at',{ascending:false}).limit(50);
+ $('myJobs').innerHTML=error?esc(error.message):(data||[]).map(j=>'<div class="result"><div><b>'+esc(j.title)+'</b><div class="muted">'+esc(j.qualification_required||'المؤهل غير محدد')+' · '+esc(j.governorate||'كل المحافظات')+'</div></div><div><span class="status">'+esc(j.status)+'</span> <button class="btn alt" type="button" onclick="matchCandidatesForJob(\''+j.id+'\')">مطابقة مرشحين</button></div></div>').join('')||'لا توجد إعلانات بعد.';
  const{data:apps, error:appError}=await sb.from('job_applications').select('id,status,created_at,job_announcements(title)').order('created_at',{ascending:false}).limit(100);
  $('myApplications').innerHTML=appError?esc(appError.message):(apps||[]).map(a=>'<div class="result"><div><b>'+esc(a.job_announcements?.title||'وظيفة')+'</b><div class="muted">طلب توظيف · '+new Date(a.created_at).toLocaleDateString('ar-EG')+'</div></div><span class="status">'+esc(a.status)+'</span></div>').join('')||'لا توجد طلبات توظيف حتى الآن.';
 }
+window.matchCandidatesForJob=async id=>{
+ const{data:j,error}=await sb.from('job_announcements').select('title,qualification_required,specialization_required,governorate,center,skills_required').eq('id',id).eq('company_id',companyId).maybeSingle();
+ if(error||!j){$('results').textContent='تعذر تحميل بيانات الوظيفة.';return;}
+ $('nameQuery').value='';$('qualQuery').value=j.qualification_required||'';
+ $('specializationQuery').value=j.specialization_required||'';
+ $('governorateQuery').value=j.governorate||'';$('centerQuery').value=j.center||'';
+ $('skillQuery').value=Array.isArray(j.skills_required)?j.skills_required.join('، '):'';
+ $('results').scrollIntoView({behavior:'smooth',block:'center'});
+ $('searchForm').requestSubmit();
+};
 $('publishJobBtn').onclick=async()=>{
  const title=$('jobTitle').value.trim(),description=$('jobDescription').value.trim();
  if(!title||!description){$('jobMsg').textContent='أدخل المسمى والتفاصيل.';return;}
@@ -199,7 +209,7 @@ $('companyAiBtn').onclick=async()=>{
  try{
   const{data,error}=await sb.functions.invoke('shahadaty-ai-assistant',{body:{task:'job_ad',context:{request:prompt,job_title:$('jobTitle').value.trim(),qualification:$('jobQualification').value.trim(),skills:$('jobSkills').value.trim(),experience:$('jobExperience').value.trim(),governorate:$('jobGovernorate').value.trim()}}});
   if(error)throw error;out.textContent=data?.text||'لم يصل اقتراح من المساعد.';
- }catch(error){out.textContent=String(error?.message||error).includes('AI_NOT_CONFIGURED')?'المساعد الذكي جاهز برمجيًا، لكنه يحتاج إضافة مفتاح OPENAI_API_KEY إلى أسرار Supabase لتفعيل الخدمة.':'تعذر تشغيل المساعد الذكي: '+String(error?.message||error);}
+ }catch(error){let payload=null;try{payload=await error?.context?.clone?.().json();}catch{}out.textContent=payload?.error==='AI_NOT_CONFIGURED'?'المساعد الذكي جاهز برمجيًا، لكنه يحتاج إضافة مفتاح OPENAI_API_KEY إلى أسرار Supabase لتفعيل الخدمة.':'تعذر تشغيل المساعد الذكي: '+String(error?.message||error);}
  finally{btn.disabled=false;btn.textContent='مساعدة ذكية في صياغة الإعلان';}
 };
 
