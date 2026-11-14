@@ -25,7 +25,10 @@ Deno.serve(async(req:Request)=>{
   return reply({success:true,listed:false,visibility_status:"hidden"});
  }
  const now=new Date().toISOString();
- const summary=[p.bio,p.work_experience,p.experience_years?("سنوات الخبرة: "+p.experience_years):"",p.professional_skills?("المهارات: "+p.professional_skills):"",p.languages?("اللغات: "+p.languages):"",p.target_roles?("الوظائف المستهدفة: "+p.target_roles):"",p.portfolio_url?("معرض الأعمال: "+p.portfolio_url):""].filter(Boolean).join("\n\n").slice(0,12000);
+ const {data:memberships,error:membershipError}=await admin.from("graduate_membership_requests").select("id").eq("auth_user_id",userData.user.id).eq("status","approved").gt("ends_at",now).limit(1);
+ if(membershipError)return reply({error:"MEMBERSHIP_CHECK_FAILED"},500);
+ const goldActive=!!memberships?.length;
+ const summary=[p.bio,...(goldActive?[p.work_experience,p.experience_years?("سنوات الخبرة: "+p.experience_years):"",p.professional_skills?("المهارات: "+p.professional_skills):"",p.languages?("اللغات: "+p.languages):"",p.target_roles?("الوظائف المستهدفة: "+p.target_roles):"",p.portfolio_url?("معرض الأعمال: "+p.portfolio_url):""]:[])].filter(Boolean).join("\n\n").slice(0,12000);
  const profileNumber="GRAD-"+p.id.replace(/-/g,"").slice(0,16).toUpperCase();
  const {data:alumni,error:upsertErr}=await admin.from("alumni_profiles").upsert({profile_number:profileNumber,full_name:p.full_name||"خريج شهادتي",phone:p.phone,email:p.email,governorate:p.governorate,center:p.center,professional_summary:summary||null,visibility_status:"public",contact_sharing_requires_approval:true,legacy_graduate_profile_id:p.id,created_by:userData.user.id,updated_by:userData.user.id,publication_consent:true,publication_consent_at:now,updated_at:now},{onConflict:"legacy_graduate_profile_id"}).select("id").single();
  if(upsertErr||!alumni)return reply({error:"PROFILE_SYNC_FAILED",message:upsertErr?.message},500);
@@ -37,15 +40,13 @@ Deno.serve(async(req:Request)=>{
   const result=oldQ?await admin.from("alumni_qualifications").update(q).eq("id",oldQ.id):await admin.from("alumni_qualifications").insert({...q,alumni_id:alumni.id});
   if(result.error)return reply({error:"QUALIFICATION_SYNC_FAILED"},500);
  }
- const skillGroups=[["graduate_profile",split(p.professional_skills||"")],["graduate_language",split(p.languages||"")],["graduate_target_role",split(p.target_roles||"")]];
+ const skillGroups=[["graduate_profile",goldActive?split(p.professional_skills||""):[]],["graduate_language",goldActive?split(p.languages||""):[]],["graduate_target_role",goldActive?split(p.target_roles||""):[]]];
  for(const [category,values] of skillGroups){
   const {error:deleteError}=await admin.from("alumni_skills").delete().eq("alumni_id",alumni.id).eq("skill_category",category);
   if(deleteError)return reply({error:"SKILLS_SYNC_FAILED"},500);
   if(values.length){const {error:insertError}=await admin.from("alumni_skills").insert(values.map(skill_name=>({alumni_id:alumni.id,skill_name,skill_category:category})));if(insertError)return reply({error:"SKILLS_SYNC_FAILED"},500);}
  }
- const {data:memberships,error:membershipError}=await admin.from("graduate_membership_requests").select("id").eq("auth_user_id",userData.user.id).eq("status","approved").gt("ends_at",now).limit(1);
- if(membershipError)return reply({error:"MEMBERSHIP_CHECK_FAILED"},500);
- if(memberships?.length&&p.premium_cv_path){
+ if(goldActive&&p.premium_cv_path){
   const {data:file,error:downloadError}=await admin.storage.from("graduate-gold-private").download(p.premium_cv_path);
   if(downloadError||!file)return reply({error:"CV_COPY_FAILED"},500);
   const targetPath=alumni.id+"/graduate-cv.pdf";
@@ -59,5 +60,5 @@ Deno.serve(async(req:Request)=>{
  }else{
   try{await removeCv(admin,alumni.id);}catch(e){return reply({error:"CV_CLEANUP_FAILED",message:String(e)},500);}
  }
- return reply({success:true,listed:true,visibility_status:"public",alumni_profile_id:alumni.id,cv_shared:!!(memberships?.length&&p.premium_cv_path)});
+ return reply({success:true,listed:true,visibility_status:"public",alumni_profile_id:alumni.id,cv_shared:!!(goldActive&&p.premium_cv_path)});
 });
