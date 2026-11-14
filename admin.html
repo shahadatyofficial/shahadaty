@@ -1039,7 +1039,7 @@ async function loadCompanies(){
     <td><div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;font-weight:900;color:var(--navy)">${c.search_credits||0}</span><button onclick="addCreds('${c.id}',${c.search_credits||0})" class="btn-s" style="font-size:10px;padding:4px 8px">+</button></div></td>
     <td><div style="display:flex;gap:6px;flex-wrap:wrap">
       
-      ${c.status!=='approved'||!c.auth_user_id?`<button onclick="approveCompanyAccount('${c.id}')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد وربط الدخول</button>`:''}
+      ${(c.status==='pending'||!c.auth_user_id)&&c.status!=='suspended'?`<button onclick="approveCompanyAccount('${c.id}')" class="btn-p" style="font-size:10px;padding:5px 10px">اعتماد وربط الدخول</button>`:''}
       ${c.status==='approved'?`<button onclick="setCompSt('${c.id}','suspended')" class="btn-d" style="font-size:10px;padding:5px 10px">إيقاف</button>`:''}
     </div></td>
   </tr>`).join('');
