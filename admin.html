@@ -359,6 +359,15 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
           <span class="sc-val stat-num" id="ov_rec">—</span><span class="sc-lbl">طلب ترشيح جديد</span>
         </div>
       </div>
+      <div class="card" style="margin:18px 0;border:1px solid #d9e6f2;background:linear-gradient(120deg,#f8fbff,#fff)">
+        <div class="card-head"><span class="card-title"><span class="material-symbols-outlined" style="vertical-align:middle;color:#1676b8">groups</span> إدارة الخريجين</span><span style="font-size:11px;color:var(--muted)">ملفات الخريجين والعضويات والتوظيف</span></div>
+        <div class="card-body" style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-p" onclick="sp('graduate-directory',null)">سجل الخريجين</button>
+          <button class="btn-p" onclick="sp('graduate-memberships',null)">طلبات العضوية والاعتماد</button>
+          <button class="btn-p" onclick="sp('alumni',null)">ملفات التوظيف والسير الذاتية</button>
+          <button class="btn-s" onclick="sp('employment-requests',null)">طلبات التواصل والتوظيف</button>
+        </div>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
         <div class="card">
           <div class="card-head"><span class="card-title">آخر طلبات الاعتماد</span><button class="btn-p" onclick="sp('requests',null)"><span class="material-symbols-outlined">arrow_back</span>عرض الكل</button></div>
