@@ -183,7 +183,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="sb-item active" onclick="sp('overview',this)"><span class="material-symbols-outlined">dashboard</span>نظرة عامة</div>
     <div class="sb-sec">الخريجون</div>
     <div class="sb-item" onclick="sp('graduate-directory',this)"><span class="material-symbols-outlined">groups</span>سجل الخريجين</div>
-    <div class="sb-item" onclick="sp('graduate-memberships',this)"><span class="material-symbols-outlined">verified_user</span>طلبات العضوية والاعتماد<span class="sb-badge" id="graduateMembershipBadge">0</span></div>
+    <div class="sb-item" onclick="sp('graduate-memberships',this)"><span class="material-symbols-outlined">verified_user</span>طلبات الخريجين والعضويات<span class="sb-badge" id="graduateAccessBadge">0</span><span class="sb-badge" id="graduateMembershipBadge">0</span></div>
     <div class="sb-item" onclick="sp('alumni',this)"><span class="material-symbols-outlined">school</span>إدارة ملفات التوظيف</div>
     <div class="sb-sec">التوظيف والإعلانات</div>
     <div class="sb-item" onclick="sp('employment-requests',this)"><span class="material-symbols-outlined">handshake</span>طلبات التواصل والتوظيف</div>
@@ -239,6 +239,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 </div>
 <!-- GRADUATE MEMBERSHIPS -->
 <div class="page" id="page-graduate-memberships">
+ <div class="card"><div class="card-head"><span class="card-title">طلبات قبول الخريجين الجدد</span><button class="btn-p" onclick="loadGraduateAccessRequests()">تحديث الطلبات</button></div><div class="card-body"><p style="font-size:12px;color:var(--muted);line-height:1.9">راجع بيانات المتقدم كاملة، ثم وافق على الحساب أو ارفض الطلب. عند الموافقة يتم تفعيل البريد إداريًا وإنشاء ملف Basic مجاني. يمكنك إرسال رسالة واتساب مباشرة للمتقدم.</p><select class="form-inp" id="graduateAccessFilter" onchange="loadGraduateAccessRequests()" style="max-width:220px"><option value="pending">تحت المراجعة</option><option value="approved">تمت الموافقة</option><option value="rejected">مرفوض</option><option value="">كل الطلبات</option></select><div id="graduateAccessRows">جارٍ تحميل طلبات القبول...</div></div></div>
  <div class="card">
   <div class="card-head"><span class="card-title">طلبات اشتراك بوابة الخريج — 50 جنيهًا سنويًا</span><button class="btn-p" onclick="loadGraduateMembershipRequests()">تحديث الطلبات</button></div>
   <div class="card-body">
@@ -431,6 +432,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
         <div style="padding:12px 20px;color:var(--muted);font-size:11px;line-height:1.8">حدد «نعم» فقط عند وجود موافقة صريحة من صاحب الشهادة على النشر في محرك البحث العام. إلغاء الموافقة يخفي السجل من نتائج البحث العام.</div>
         <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>صاحب الشهادة</th><th>رقم الشهادة</th><th>الدورة / المؤهل</th><th>المؤسسة</th><th>التاريخ</th><th>موافقة النشر</th></tr></thead><tbody id="publicationConsentRows"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">جاري تحميل السجلات...</td></tr></tbody></table></div>
       </div>
+      <div class="card"><div class="card-head"><span class="card-title">السجل الموثق لموافقات نشر ملفات الخريجين</span><button class="btn-s" onclick="loadGraduateConsentAudit()">تحديث السجل</button></div><div class="card-body"><p style="font-size:11px;color:var(--muted)">كل موافقة أو سحب موافقة يتم تسجيله بتاريخ ووقت ونص الإقرار وإصدار الموافقة.</p><div id="graduateConsentAuditRows" style="overflow-x:auto">جارٍ تحميل سجل الموافقات...</div></div></div>
     </div>
 
     <!-- ADD CERTIFICATE -->
@@ -647,7 +649,7 @@ function sp(name,el){
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('pageTitle').textContent=ptitles[name]||name;
   if(el)el.classList.add('active');
-  const loaders={'graduate-directory':loadGraduateDirectory,'graduate-memberships':loadGraduateMembershipRequests,'employment-requests':loadEmploymentContactRequests,alumni:loadAlumniProfiles,'job-ads':loadJobAnnouncements,'training-ads':loadTrainingAnnouncements,institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'publication-consents':loadPublicationConsents,'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
+  const loaders={'graduate-directory':loadGraduateDirectory,'graduate-memberships':()=>{loadGraduateAccessRequests();loadGraduateMembershipRequests();},'employment-requests':loadEmploymentContactRequests,alumni:loadAlumniProfiles,'job-ads':loadJobAnnouncements,'training-ads':loadTrainingAnnouncements,institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'publication-consents':()=>{loadPublicationConsents();loadGraduateConsentAudit();},'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
   if(loaders[name])loaders[name]();
 }
 
@@ -674,6 +676,56 @@ function renderGraduateDirectory(){
  box.innerHTML='<table style="width:100%;min-width:760px;border-collapse:collapse;font-size:12px"><thead><tr style="background:#f4f7fa"><th style="padding:10px;text-align:right">الخريج</th><th style="padding:10px;text-align:right">الهاتف</th><th style="padding:10px;text-align:right">البريد</th><th style="padding:10px;text-align:right">المحافظة / المركز</th><th style="padding:10px;text-align:right">المؤهل / جهة الدراسة</th><th style="padding:10px;text-align:right">حالة العضوية</th><th style="padding:10px;text-align:right">تاريخ التسجيل</th></tr></thead><tbody>'+rows.map(p=>{const status=p.active?'عضوية سارية':p.membership==='pending'?'بانتظار الاعتماد':p.membership==='rejected'?'طلب مرفوض':'لا توجد عضوية سارية',color=p.active?'#15803d':p.membership==='pending'?'#a16207':'#64748b';return '<tr style="border-bottom:1px solid #e5edf5"><td style="padding:10px;font-weight:800">'+adminEsc(p.full_name)+'</td><td style="padding:10px" dir="ltr">'+adminEsc(p.phone)+'</td><td style="padding:10px" dir="ltr">'+adminEsc(p.email)+'</td><td style="padding:10px">'+adminEsc(p.governorate)+' / '+adminEsc(p.center)+'</td><td style="padding:10px">'+adminEsc(p.qualification)+' / '+adminEsc(p.education_institution)+'</td><td style="padding:10px;color:'+color+';font-weight:800">'+status+'</td><td style="padding:10px">'+(p.created_at?new Date(p.created_at).toLocaleDateString('ar-EG'):'—')+'</td></tr>';}).join('')+'</tbody></table>';
 }
 
+// ── GRADUATE ACCESS APPLICATIONS ──
+async function loadGraduateAccessRequests(){
+ const box=document.getElementById('graduateAccessRows');if(!box)return;
+ const status=document.getElementById('graduateAccessFilter')?.value??'pending';
+ box.innerHTML='<div style="padding:16px;text-align:center">جارٍ تحميل طلبات القبول...</div>';
+ let q=sb.from('graduate_access_requests').select('id,auth_user_id,full_name,email,phone,governorate,center,status,admin_note,created_at,reviewed_at').order('created_at',{ascending:false}).limit(300);
+ if(status)q=q.eq('status',status);
+ const{data,error}=await q;if(error){box.textContent='تعذر تحميل طلبات القبول: '+error.message;return;}
+ const rows=data||[],badge=document.getElementById('graduateAccessBadge');
+ if(badge){const n=rows.filter(x=>x.status==='pending').length;badge.textContent=n;badge.style.display=n?'inline':'none';}
+ if(!rows.length){box.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted)">لا توجد طلبات في هذه الحالة.</div>';return;}
+ box.innerHTML=rows.map(r=>{
+  const state=r.status==='pending'?'تحت المراجعة':r.status==='approved'?'تمت الموافقة':'مرفوض';
+  const color=r.status==='approved'?'#15803d':r.status==='pending'?'#a16207':'#b91c1c';
+  const waPhone=String(r.phone||'').replace(/^0/,'20');
+  const textMsg='مرحبًا '+r.full_name+'، تمت الموافقة على طلب عضويتك في بوابة خريجي شهادتي العلمية. يمكنك الآن تسجيل الدخول باستخدام بريدك الإلكتروني أو رقم هاتفك وكلمة المرور التي أنشأتها عند التسجيل، واستكمال ملفك الأساسي مجانًا. رابط الدخول: https://shahadatyofficial.github.io/shahadaty/graduate-v2.html';
+  const wa='https://wa.me/'+waPhone+'?text='+encodeURIComponent(textMsg);
+  const actions=r.status==='pending'?'<button class="btn-p" onclick="reviewGraduateAccess(\''+r.id+'\',\'approve\')">موافقة وتفعيل الحساب</button><button class="btn-d" onclick="reviewGraduateAccess(\''+r.id+'\',\'reject\')">رفض الطلب</button>':'';
+  const waButton=r.status==='approved'?'<a class="btn-s" style="display:inline-block;text-decoration:none;margin:6px;padding:8px 12px" target="_blank" rel="noopener" href="'+adminEsc(wa)+'">فتح واتساب وإرسال رسالة الموافقة</a>':'';
+  const accountTools=r.status==='approved'?'<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px"><button class="btn-s" onclick="editGraduateAccess(\''+r.auth_user_id+'\',\''+r.id+'\')">تعديل الحساب</button><button class="btn-s" onclick="resetGraduatePassword(\''+r.auth_user_id+'\',\''+r.phone+'\',\''+adminEsc(r.full_name)+'\')">إعادة تعيين كلمة المرور</button><button class="btn-d" onclick="deleteGraduateAccount(\''+r.auth_user_id+'\')">حذف الحساب</button></div>':'';
+  return '<div class="card" style="border:1px solid var(--border);margin:12px 0;padding:16px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b>'+adminEsc(r.full_name)+'</b><b style="color:'+color+'">'+state+'</b></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:12px 0;font-size:12px"><div><b>البريد الإلكتروني:</b> '+adminEsc(r.email)+'</div><div><b>الهاتف:</b> <span dir="ltr">'+adminEsc(r.phone)+'</span></div><div><b>المحافظة:</b> '+adminEsc(r.governorate||'—')+'</div><div><b>المركز / المدينة:</b> '+adminEsc(r.center||'—')+'</div><div><b>تاريخ الطلب:</b> '+new Date(r.created_at).toLocaleString('ar-EG')+'</div></div>'+(r.admin_note?'<p style="font-size:12px;color:#9a3412">ملاحظة الإدارة: '+adminEsc(r.admin_note)+'</p>':'')+actions+waButton+accountTools+'</div>';
+ }).join('');
+}
+async function reviewGraduateAccess(id,action){
+ let note='';if(action==='reject'){const v=prompt('اكتب سبب رفض طلب الخريج:','');if(v===null)return;note=v.trim();if(!note){toast('سبب الرفض مطلوب','err');return;}}else if(!confirm('هل تؤكد الموافقة على طلب الخريج وتفعيل حسابه المجاني؟'))return;
+ try{const{data,error}=await sb.functions.invoke('graduate-application-review',{body:{request_id:id,action,admin_note:note}});if(error)throw error;if(!data?.success)throw new Error(data?.message||data?.error||'تعذر تنفيذ القرار.');toast(action==='approve'?'تمت الموافقة وتفعيل حساب الخريج وإنشاء ملف Basic.':'تم رفض الطلب.','ok');const filter=document.getElementById('graduateAccessFilter');if(action==='approve'&&filter)filter.value='approved';await loadGraduateAccessRequests();}catch(e){toast('تعذر معالجة الطلب: '+String(e?.message||e),'err');}
+}
+async function editGraduateAccess(userId,requestId){
+ const{data:r,error}=await sb.from('graduate_access_requests').select('*').eq('id',requestId).maybeSingle();if(error||!r)return toast('تعذر تحميل بيانات الحساب','err');
+ const full_name=prompt('الاسم الكامل:',r.full_name);if(full_name===null)return;
+ const email=prompt('البريد الإلكتروني:',r.email);if(email===null)return;
+ const phone=prompt('رقم الهاتف:',r.phone);if(phone===null)return;
+ const governorate=prompt('المحافظة:',r.governorate||'');if(governorate===null)return;
+ const center=prompt('المركز / المدينة:',r.center||'');if(center===null)return;
+ try{const{data,error}=await sb.functions.invoke('graduate-account-admin',{body:{action:'update',user_id:userId,full_name,email,phone,governorate,center}});if(error)throw error;if(!data?.success)throw new Error(data?.message||data?.error||'تعذر التعديل');toast('تم تحديث بيانات الحساب','ok');loadGraduateAccessRequests();}catch(e){toast('تعذر تعديل الحساب: '+String(e?.message||e),'err');}
+}
+async function resetGraduatePassword(userId,phone,name){
+ if(!confirm('إنشاء كلمة مرور مؤقتة جديدة لهذا الخريج؟'))return;
+ try{const{data,error}=await sb.functions.invoke('graduate-account-admin',{body:{action:'reset_password',user_id:userId}});if(error)throw error;if(!data?.success||!data.temporary_password)throw new Error(data?.error||'تعذر إعادة تعيين كلمة المرور');
+ const waPhone=String(data.phone||phone||'').replace(/^0/,'20');
+ const textMsg='مرحبًا '+(data.full_name||name)+'، تم إعادة تعيين كلمة المرور لحسابك في بوابة خريجي شهادتي العلمية. كلمة المرور المؤقتة: '+data.temporary_password+' . يُرجى تسجيل الدخول وتغيير كلمة المرور بعد الدخول. رابط الدخول: https://shahadatyofficial.github.io/shahadaty/graduate-v2.html';
+ const url='https://wa.me/'+waPhone+'?text='+encodeURIComponent(textMsg);
+ window.open(url,'_blank','noopener');
+ toast('تم إنشاء كلمة مرور مؤقتة وفتح واتساب لإرسالها.','ok');
+ }catch(e){toast('تعذر إعادة تعيين كلمة المرور: '+String(e?.message||e),'err');}
+}
+async function deleteGraduateAccount(userId){
+ if(!confirm('تأكيد حذف حساب الخريج نهائيًا؟ سيُحذف حساب الدخول والملف المرتبط به.'))return;
+ try{const{data,error}=await sb.functions.invoke('graduate-account-admin',{body:{action:'delete',user_id:userId}});if(error)throw error;if(!data?.success)throw new Error(data?.error||'تعذر حذف الحساب');toast('تم حذف حساب الخريج.','ok');loadGraduateAccessRequests();}catch(e){toast('تعذر حذف الحساب: '+String(e?.message||e),'err');}
+}
 // ── GRADUATE MEMBERSHIPS ──────────────────────────────────────
 async function loadGraduateMembershipRequests(){
  const body=document.getElementById('graduateMembershipRows');if(!body)return;
@@ -886,6 +938,15 @@ async function reviewDoc(id,status){
 }
 
 // ── CERTS ─────────────────────────────────────────────────────
+async function loadGraduateConsentAudit(){
+ const box=document.getElementById('graduateConsentAuditRows');if(!box)return;
+ box.innerHTML='جارٍ تحميل سجل الموافقات...';
+ const{data,error}=await sb.from('graduate_publication_consents').select('id,auth_user_id,graduate_profile_id,consent,consent_text,consent_version,scope,source,created_at,graduate_profiles(full_name,email,phone)').order('created_at',{ascending:false}).limit(500);
+ if(error){box.textContent='تعذر تحميل سجل الموافقات: '+error.message;return;}
+ const rows=data||[];
+ if(!rows.length){box.innerHTML='<div style="padding:16px;color:var(--muted)">لا توجد موافقات مسجلة حتى الآن.</div>';return;}
+ box.innerHTML='<table class="tbl"><thead><tr><th>الخريج</th><th>البريد / الهاتف</th><th>الحالة</th><th>نص الموافقة</th><th>الإصدار</th><th>التاريخ والوقت</th></tr></thead><tbody>'+rows.map(r=>{const p=r.graduate_profiles||{};return '<tr><td>'+adminEsc(p.full_name||'—')+'</td><td>'+adminEsc(p.email||'')+'<div dir="ltr">'+adminEsc(p.phone||'')+'</div></td><td style="font-weight:900;color:'+(r.consent?'#15803d':'#b91c1c')+'">'+(r.consent?'وافق على النشر':'سحب الموافقة')+'</td><td style="min-width:280px;white-space:normal;line-height:1.8">'+adminEsc(r.consent_text)+'</td><td>'+adminEsc(r.consent_version)+'</td><td>'+new Date(r.created_at).toLocaleString('ar-EG')+'</td></tr>';}).join('')+'</tbody></table>';
+}
 async function loadPublicationConsents(){
  const q=document.getElementById('publicationConsentSearch')?.value.trim()||'';
  const body=document.getElementById('publicationConsentRows');if(!body)return;
