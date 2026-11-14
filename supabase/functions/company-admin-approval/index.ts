@@ -111,7 +111,7 @@ Deno.serve(async (req: Request) => {
   });
   if (updateAuthError) {
     console.error("company auth update failed", updateAuthError.message);
-    return json({ error: "AUTH_CONTACT_UPDATE_FAILED: تعذر تأكيد البريد والهاتف. تحقق من عدم استخدام الهاتف بحساب آخر." }, 409);
+    return json({ error: "AUTH_CONTACT_UPDATE_FAILED: تعذر تأكيد البريد الإلكتروني وربط حساب الدخول." }, 409);
   }
 
   const { error: updateCompanyError } = await admin.from("companies").update({
