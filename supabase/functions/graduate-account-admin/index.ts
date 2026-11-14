@@ -19,6 +19,18 @@ Deno.serve(async(req:Request)=>{
  const {data:reqRow}=await admin.from("graduate_access_requests").select("id,status,full_name,email,phone").eq("auth_user_id",userId).maybeSingle();
  if(!reqRow||reqRow.status!=="approved")return reply({error:"APPROVED_GRADUATE_ONLY"},404);
  if(action==="delete"){
+  const {data:profile}=await admin.from("graduate_profiles").select("id,premium_photo_path,premium_cv_path").eq("auth_user_id",userId).maybeSingle();
+  if(profile){
+   const {data:alumni}=await admin.from("alumni_profiles").select("id").eq("legacy_graduate_profile_id",profile.id).maybeSingle();
+   if(alumni){
+    const {data:documents}=await admin.from("alumni_documents").select("storage_path").eq("alumni_id",alumni.id);
+    const paths=(documents||[]).map((x:any)=>x.storage_path).filter(Boolean);
+    if(paths.length){const {error}=await admin.storage.from("alumni-private").remove(paths);if(error)return reply({error:"FILE_CLEANUP_FAILED"},500);}
+    const {error}=await admin.from("alumni_profiles").delete().eq("id",alumni.id);if(error)return reply({error:"PROFILE_CLEANUP_FAILED"},500);
+   }
+   const goldPaths=[profile.premium_photo_path,profile.premium_cv_path].filter(Boolean);
+   if(goldPaths.length){const {error}=await admin.storage.from("graduate-gold-private").remove(goldPaths);if(error)return reply({error:"GOLD_FILE_CLEANUP_FAILED"},500);}
+  }
   const {error}=await admin.auth.admin.deleteUser(userId);
   if(error)return reply({error:"DELETE_FAILED",message:error.message},500);
   return reply({success:true,action:"deleted"});
@@ -31,7 +43,7 @@ Deno.serve(async(req:Request)=>{
   return reply({success:true,action:"reset_password",temporary_password:temporaryPassword,email:reqRow.email,phone:reqRow.phone,full_name:reqRow.full_name});
  }
  const fullName=String(b.full_name||"").trim(),email=String(b.email||"").trim().toLowerCase(),mobile=phone(String(b.phone||"")),governorate=String(b.governorate||"").trim(),center=String(b.center||"").trim();
- if(fullName.length<3||!/^\S+@\S+\.\S+$/.test(email)||!mobile)return reply({error:"VALIDATION_FAILED"},400);
+ if(fullName.length<3||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!mobile)return reply({error:"VALIDATION_FAILED"},400);
  const {error:authError}=await admin.auth.admin.updateUserById(userId,{email,email_confirm:true,user_metadata:{full_name:fullName,phone:mobile,governorate,center,account_type:"graduate",approval_status:"approved"}});
  if(authError)return reply({error:"ACCOUNT_UPDATE_FAILED",message:authError.message},500);
  const {error:profileError}=await admin.from("graduate_profiles").update({full_name:fullName,email,phone:mobile,governorate:governorate||null,center:center||null,profile_updated_at:new Date().toISOString()}).eq("auth_user_id",userId);
