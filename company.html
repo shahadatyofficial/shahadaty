@@ -143,10 +143,24 @@ $('loginBtn').onclick=async()=>{
  if(!credentials.email&&!credentials.phone){$('loginMsg').textContent='أدخل بريدًا إلكترونيًا صحيحًا أو رقم هاتف مصريًا صحيحًا.';return;}
  if(credentials.phone&&!/^\+201[0125]\d{8}$/.test(credentials.phone)){$('loginMsg').textContent='رقم الهاتف غير صحيح. استخدم رقم موبايل مصري مسجل بالشركة.';return;}
  $('loginBtn').disabled=true;$('loginMsg').textContent='جارٍ التحقق من بيانات الدخول...';
- const{error}=await sb.auth.signInWithPassword(credentials);
- $('loginBtn').disabled=false;
- $('loginMsg').textContent=error?'تعذر تسجيل الدخول. تحقق من البريد أو الهاتف وكلمة المرور، وتأكد أن الإدارة اعتمدت الشركة.':'تم تسجيل الدخول';
- if(!error)await init();
+ try{
+  let loginError=null;
+  if(credentials.phone){
+   const{data,error}=await sb.functions.invoke('company-phone-login',{body:{phone:credentials.phone,password}});
+   if(error||!data?.access_token||!data?.refresh_token)loginError=error||new Error('LOGIN_FAILED');
+   else{
+    const{error:sessionError}=await sb.auth.setSession({access_token:data.access_token,refresh_token:data.refresh_token});
+    if(sessionError)loginError=sessionError;
+   }
+  }else{
+   const{error}=await sb.auth.signInWithPassword(credentials);
+   loginError=error;
+  }
+  $('loginMsg').textContent=loginError?'تعذر تسجيل الدخول. تحقق من البيانات، وتأكد أن الإدارة اعتمدت الشركة.':'تم تسجيل الدخول';
+  if(!loginError)await init();
+ }catch(error){
+  $('loginMsg').textContent='تعذر تسجيل الدخول. تحقق من البيانات، وتأكد أن الإدارة اعتمدت الشركة.';
+ }finally{$('loginBtn').disabled=false;}
 };
 $('logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload();};
 $('searchForm').onsubmit=async e=>{e.preventDefault();$('results').textContent='جاري البحث...';const year=$('yearQuery').value.trim();if(year&&(!/^\d{4}$/.test(year)||Number(year)<1950||Number(year)>2100)){$('results').textContent='أدخل سنة تخرج صحيحة.';return;}const{data,error}=await sb.rpc('search_alumni_for_company',{p_query:$('nameQuery').value.trim()||null,p_qualification:$('qualQuery').value.trim()||null,p_specialization:$('specializationQuery').value.trim()||null,p_governorate:$('governorateQuery').value.trim()||null,p_center:$('centerQuery').value||null,p_graduation_year:year?Number(year):null,p_skill:$('skillQuery').value.trim()||null});await refreshSearchCredits();if(error){$('results').textContent=String(error.message||'').includes('SEARCH_CREDITS_EXHAUSTED')?'نفد رصيد البحث. تواصل مع إدارة شهادتي لإضافة رصيد جديد.':'تعذر تنفيذ البحث: '+error.message;return;}if(!data?.length){$('results').textContent='لا توجد نتائج مطابقة؛ لم يتم خصم رصيد لهذا البحث.';return;}
