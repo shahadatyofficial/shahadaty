@@ -10,8 +10,8 @@
 </style></head>
 <body><main class="wrap">
 <header class="panel"><div class="brand">شهادتي العلمية | بوابة الشركات</div><p class="muted">ابحث عن الكفاءات المسجلة واطلب الاطلاع على الملف المهني بموافقة الخريج.</p></header>
-<section class="panel" id="loginPanel"><h2>دخول الشركات المعتمدة</h2><input class="field" id="email" type="text" inputmode="email" autocomplete="username" placeholder="البريد الإلكتروني أو رقم الهاتف المسجل"><input class="field" id="password" type="password" autocomplete="current-password" placeholder="كلمة المرور"><button class="btn" id="loginBtn">تسجيل الدخول</button><p class="muted" id="loginMsg"></p></section>
-<section class="panel" id="joinPanel">
+<section class="panel" id="loginPanel"><h2>دخول الشركات المعتمدة</h2><input class="field" id="email" type="text" inputmode="email" autocomplete="username" placeholder="البريد الإلكتروني أو رقم الهاتف المسجل"><input class="field" id="password" type="password" autocomplete="current-password" placeholder="كلمة المرور"><button class="btn" id="loginBtn">تسجيل الدخول</button><p class="muted" id="loginMsg" role="status" aria-live="polite"></p><p class="muted">شركة جديدة؟ <button class="btn alt" type="button" id="showJoinBtn">تقديم طلب انضمام</button></p></section>
+<section class="panel hide" id="joinPanel">
   <h2>طلب انضمام شركة جديدة</h2>
   <p class="muted">سجّل بيانات شركتك لإنشاء طلب مراجعة. لن تتمكن الشركة من استخدام البحث أو نشر الوظائف إلا بعد مراجعة الإدارة واعتماد الحساب.</p>
   <form id="companyJoinForm">
@@ -117,10 +117,10 @@ $('companyJoinForm').addEventListener('submit',async e=>{
 });
 async function init(){
  const{data:{user}}=await sb.auth.getUser();
- if(!user){$('loginPanel').classList.remove('hide');$('appPanel').classList.add('hide');$('requestsPanel').classList.add('hide');return;}
+ if(!user){$('loginPanel').classList.remove('hide');$('joinPanel').classList.add('hide');$('appPanel').classList.add('hide');$('requestsPanel').classList.add('hide');return;}
  const{data,error}=await sb.rpc('current_approved_company_id');
- if(error||!data){$('loginMsg').textContent='الحساب غير مربوط بشركة معتمدة بعد. يرجى التواصل مع إدارة شهادتي.';await sb.auth.signOut();$('loginPanel').classList.remove('hide');return;}
- companyId=data;$('loginPanel').classList.add('hide');$('appPanel').classList.remove('hide');$('requestsPanel').classList.remove('hide');await refreshSearchCredits();loadRequests();loadCompanyJobs();
+ if(error||!data){$('loginMsg').textContent='تم تسجيل الدخول، لكن هذا الحساب غير مربوط حاليًا بشركة معتمدة. إذا كنت قد أرسلت طلب انضمام، انتظر اعتماد الإدارة وربط الحساب. وإذا كانت شركتك معتمدة بالفعل، تواصل مع الدعم لمراجعة ربط الحساب.';await sb.auth.signOut();$('loginPanel').classList.remove('hide');$('joinPanel').classList.add('hide');$('appPanel').classList.add('hide');$('requestsPanel').classList.add('hide');return;}
+ companyId=data;$('loginPanel').classList.add('hide');$('joinPanel').classList.add('hide');$('appPanel').classList.remove('hide');$('requestsPanel').classList.remove('hide');await refreshSearchCredits();loadRequests();loadCompanyJobs();
 }
 async function refreshSearchCredits(){
  const{data,error}=await sb.rpc('company_get_search_credits');
@@ -162,6 +162,7 @@ $('loginBtn').onclick=async()=>{
   $('loginMsg').textContent='تعذر تسجيل الدخول. تحقق من البيانات، وتأكد أن الإدارة اعتمدت الشركة.';
  }finally{$('loginBtn').disabled=false;}
 };
+$('showJoinBtn').onclick=()=>{$('joinPanel').classList.remove('hide');$('joinPanel').scrollIntoView({behavior:'smooth',block:'start'});};
 $('logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload();};
 $('searchForm').onsubmit=async e=>{e.preventDefault();$('results').textContent='جاري البحث...';const year=$('yearQuery').value.trim();if(year&&(!/^\d{4}$/.test(year)||Number(year)<1950||Number(year)>2100)){$('results').textContent='أدخل سنة تخرج صحيحة.';return;}const{data,error}=await sb.rpc('search_alumni_for_company',{p_query:$('nameQuery').value.trim()||null,p_qualification:$('qualQuery').value.trim()||null,p_specialization:$('specializationQuery').value.trim()||null,p_governorate:$('governorateQuery').value.trim()||null,p_center:$('centerQuery').value||null,p_graduation_year:year?Number(year):null,p_skill:$('skillQuery').value.trim()||null});await refreshSearchCredits();if(error){$('results').textContent=String(error.message||'').includes('SEARCH_CREDITS_EXHAUSTED')?'نفد رصيد البحث. تواصل مع إدارة شهادتي لإضافة رصيد جديد.':'تعذر تنفيذ البحث: '+error.message;return;}if(!data?.length){$('results').textContent='لا توجد نتائج مطابقة؛ لم يتم خصم رصيد لهذا البحث.';return;}
  $('results').innerHTML=data.map(x=>'<div class="result"><div><b>'+esc(x.full_name)+'</b><div class="muted">'+esc(x.qualification_name)+' · سنة التخرج: '+esc(x.graduation_year||'غير محددة')+' · '+esc(x.governorate||'')+' '+esc(x.center||'')+'</div></div><button class="btn" onclick="requestAccess(\''+x.alumni_id+'\')">طلب الاطلاع على الملف</button></div>').join('');
