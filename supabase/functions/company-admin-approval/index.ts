@@ -84,6 +84,9 @@ Deno.serve(async (req: Request) => {
     const { data, error } = await admin.auth.admin.getUserById(company.auth_user_id);
     if (!error) authUser = data.user;
   }
+  if (authUser && String(authUser.email || '').toLowerCase() !== email) {
+    return json({ error: 'LINKED_ACCOUNT_EMAIL_MISMATCH: البريد المسجل بالشركة لا يطابق البريد المرتبط بحساب الدخول.' }, 409);
+  }
   if (!authUser) {
     const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
     if (error) return json({ error: "AUTH_USER_LOOKUP_FAILED" }, 502);
