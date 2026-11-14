@@ -436,10 +436,12 @@ body{color:#102a43;background:#fff;}
   .logo-name{font-size:21px;}
   .nav-links{order:3;width:100%;overflow-x:auto;padding:2px 0 5px;scrollbar-width:none;}
   .nav-links::-webkit-scrollbar{display:none;}
-  .nav-actions{margin-right:auto;}
+   .nav-actions{margin-right:auto;flex-wrap:wrap;}
+  .company-portal-link{display:inline-flex;}
   .nl{font-size:11px;padding:7px 10px;}
   .lang-btn{padding:0 8px;font-size:10px;}
-  .btn-portal{display:none;}
+   .btn-portal{display:none;}
+  .company-portal-link{display:inline-flex;align-items:center;padding:7px 10px;font-size:11px;white-space:nowrap;}
   .hero{padding:54px 20px 38px;}
   .hero-layout{grid-template-columns:1fr;gap:34px;margin-bottom:34px;}
   .hero-copy{text-align:center;}
@@ -670,6 +672,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
       <button class="lang-btn" id="btnEn" onclick="setLang('en')">🇬🇧 English</button>
     </div>
     <button class="btn-portal" onclick="location.href='institution.html'">بوابة المؤسسات</button>
+    <a class="btn-portal company-portal-link" href="company.html">بوابة الشركات</a>
     <a class="btn-portal recruitment-nav-link" href="#alumni-search">بوابة التوظيف</a>
     <button class="btn-cta" onclick="location.href='register.html'">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
