@@ -104,10 +104,10 @@ Deno.serve(async (req: Request) => {
     return json({ error: "PHONE_ALREADY_USED_BY_ANOTHER_COMPANY" }, 409);
   }
 
+  // Phone login is handled by company-phone-login using the approved company record.
+  // Do not write Auth phone fields: this flow must work with the Phone provider disabled.
   const { error: updateAuthError } = await admin.auth.admin.updateUserById(authUser.id, {
     email_confirm: true,
-    phone,
-    phone_confirm: true,
   });
   if (updateAuthError) {
     console.error("company auth update failed", updateAuthError.message);
