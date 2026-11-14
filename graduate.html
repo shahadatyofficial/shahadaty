@@ -48,7 +48,7 @@ async function loadApprovedJobs(){
  if(!jobs.length){el.textContent='لا توجد وظائف منشورة حاليًا.';return;}
  el.innerHTML=jobs.map(j=>{
   const label=j.matchScore>=70?'توافق مرتفع':j.matchScore>=35?'توافق مبدئي':'توافق محدود';
-  return '<div class="cert" data-job-title="'+esc(j.title)+'"><b>'+esc(j.title)+'</b><p>'+esc(j.company_display_name)+' · '+esc(j.governorate||'كل المحافظات')+' '+esc(j.center||'')+'</p><p>'+esc(j.teaser||j.description)+'</p><p>المؤهل: '+esc(j.qualification_required||'غير محدد')+' · الخبرة: '+esc(j.experience_years??'غير محددة')+'</p><p><b>'+label+'</b> · '+esc(j.matchReasons.join('، ')||'راجع متطلبات الوظيفة')+'</p><small>ترشيح إرشادي مبني على البيانات المتاحة، وليس قرار قبول أو ضمان توظيف.</small><br><button onclick="applyForJob(\\''+j.id+'\\',this.closest('.cert').dataset.jobTitle)">التقديم على الوظيفة</button></div>';
+  return '<div class="cert" data-job-title="'+esc(j.title)+'"><b>'+esc(j.title)+'</b><p>'+esc(j.company_display_name)+' · '+esc(j.governorate||'كل المحافظات')+' '+esc(j.center||'')+'</p><p>'+esc(j.teaser||j.description)+'</p><p>المؤهل: '+esc(j.qualification_required||'غير محدد')+' · الخبرة: '+esc(j.experience_years??'غير محددة')+'</p><p><b>'+label+'</b> · '+esc(j.matchReasons.join('، ')||'راجع متطلبات الوظيفة')+'</p><small>ترشيح إرشادي مبني على البيانات المتاحة، وليس قرار قبول أو ضمان توظيف.</small><br><button onclick="applyForJob(\''+j.id+'\',this.parentElement.dataset.jobTitle)">التقديم على الوظيفة</button></div>';
  }).join('');
 }
 async function applyForJob(jobId,jobTitle=''){
