@@ -3,6 +3,7 @@ const allowed="https://shahadatyofficial.github.io";
 const cors={"Access-Control-Allow-Origin":allowed,"Access-Control-Allow-Headers":"authorization, apikey, content-type, x-client-info","Access-Control-Allow-Methods":"POST, OPTIONS","Vary":"Origin"};
 const reply=(v:unknown,s=200)=>new Response(JSON.stringify(v),{status:s,headers:{...cors,"Content-Type":"application/json; charset=utf-8"}});
 const split=(v:string)=>Array.from(new Set(v.split(/[,،;؛\n]+/).map(x=>x.trim()).filter(x=>x.length>1&&x.length<=120))).slice(0,40);
+async function removeCv(admin:any,alumniId:string){const {data:docs}=await admin.from("alumni_documents").select("id,storage_path").eq("alumni_id",alumniId).eq("document_type","cv");const rows=docs||[];const paths=rows.map((x:any)=>x.storage_path).filter(Boolean);if(paths.length){const {error}=await admin.storage.from("alumni-private").remove(paths);if(error)throw new Error("CV_FILE_REMOVE_FAILED");}if(rows.length){const {error}=await admin.from("alumni_documents").delete().in("id",rows.map((x:any)=>x.id));if(error)throw new Error("CV_RECORD_REMOVE_FAILED");}}
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS"){const o=req.headers.get("origin");if(o&&o!==allowed)return new Response("Forbidden",{status:403});return new Response("ok",{headers:cors});}
  if(req.method!=="POST")return reply({error:"METHOD_NOT_ALLOWED"},405);
@@ -14,13 +15,13 @@ Deno.serve(async(req:Request)=>{
  let body:any;try{const raw=await req.text();if(raw.length>1000)return reply({error:"INVALID_REQUEST"},400);body=JSON.parse(raw);}catch{return reply({error:"INVALID_REQUEST"},400);}
  if(typeof body.consent!=="boolean")return reply({error:"INVALID_CONSENT"},400);
  const admin=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
- const {data:p,error:pErr}=await admin.from("graduate_profiles").select("id,auth_user_id,full_name,email,phone,governorate,center,bio,qualification,education_institution,specialization,graduation_year,work_experience,experience_years,professional_skills,languages,target_roles,portfolio_url,publication_consent").eq("auth_user_id",userData.user.id).maybeSingle();
+ const {data:p,error:pErr}=await admin.from("graduate_profiles").select("id,auth_user_id,full_name,email,phone,governorate,center,bio,qualification,education_institution,specialization,graduation_year,work_experience,experience_years,professional_skills,languages,target_roles,portfolio_url,premium_cv_path,publication_consent").eq("auth_user_id",userData.user.id).maybeSingle();
  if(pErr||!p)return reply({error:"PROFILE_NOT_FOUND"},404);
  if(p.publication_consent!==body.consent)return reply({error:"CONSENT_STATE_MISMATCH"},409);
  const {data:existing,error:findErr}=await admin.from("alumni_profiles").select("id").eq("legacy_graduate_profile_id",p.id).maybeSingle();
  if(findErr)return reply({error:"PROFILE_SYNC_FAILED"},500);
  if(!body.consent){
-  if(existing){const {error}=await admin.from("alumni_profiles").update({publication_consent:false,publication_consent_at:null,visibility_status:"hidden",updated_by:userData.user.id,updated_at:new Date().toISOString()}).eq("id",existing.id);if(error)return reply({error:"PROFILE_SYNC_FAILED"},500);}
+  if(existing){try{await removeCv(admin,existing.id);}catch(e){return reply({error:"CV_CLEANUP_FAILED",message:String(e)},500);}const {error}=await admin.from("alumni_profiles").update({publication_consent:false,publication_consent_at:null,visibility_status:"hidden",updated_by:userData.user.id,updated_at:new Date().toISOString()}).eq("id",existing.id);if(error)return reply({error:"PROFILE_SYNC_FAILED"},500);}
   return reply({success:true,listed:false,visibility_status:"hidden"});
  }
  const now=new Date().toISOString();
@@ -42,5 +43,21 @@ Deno.serve(async(req:Request)=>{
   if(deleteError)return reply({error:"SKILLS_SYNC_FAILED"},500);
   if(values.length){const {error:insertError}=await admin.from("alumni_skills").insert(values.map(skill_name=>({alumni_id:alumni.id,skill_name,skill_category:category})));if(insertError)return reply({error:"SKILLS_SYNC_FAILED"},500);}
  }
- return reply({success:true,listed:true,visibility_status:"public",alumni_profile_id:alumni.id});
+ const {data:memberships,error:membershipError}=await admin.from("graduate_membership_requests").select("id").eq("auth_user_id",userData.user.id).eq("status","approved").gt("ends_at",now).limit(1);
+ if(membershipError)return reply({error:"MEMBERSHIP_CHECK_FAILED"},500);
+ if(memberships?.length&&p.premium_cv_path){
+  const {data:file,error:downloadError}=await admin.storage.from("graduate-gold-private").download(p.premium_cv_path);
+  if(downloadError||!file)return reply({error:"CV_COPY_FAILED"},500);
+  const targetPath=alumni.id+"/graduate-cv.pdf";
+  const {error:uploadError}=await admin.storage.from("alumni-private").upload(targetPath,file,{upsert:true,contentType:"application/pdf",cacheControl:"3600"});
+  if(uploadError)return reply({error:"CV_COPY_FAILED"},500);
+  const {data:doc,error:docReadError}=await admin.from("alumni_documents").select("id").eq("alumni_id",alumni.id).eq("document_type","cv").maybeSingle();
+  if(docReadError)return reply({error:"CV_RECORD_SYNC_FAILED"},500);
+  const payload={document_title:"السيرة الذاتية المهنية",document_type:"cv",storage_path:targetPath,mime_type:"application/pdf",file_size_bytes:file.size,verification_status:"unverified"};
+  const docWrite=doc?await admin.from("alumni_documents").update(payload).eq("id",doc.id):await admin.from("alumni_documents").insert({...payload,alumni_id:alumni.id});
+  if(docWrite.error)return reply({error:"CV_RECORD_SYNC_FAILED"},500);
+ }else{
+  try{await removeCv(admin,alumni.id);}catch(e){return reply({error:"CV_CLEANUP_FAILED",message:String(e)},500);}
+ }
+ return reply({success:true,listed:true,visibility_status:"public",alumni_profile_id:alumni.id,cv_shared:!!(memberships?.length&&p.premium_cv_path)});
 });
