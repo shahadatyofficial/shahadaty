@@ -18,8 +18,8 @@ function json(data: unknown, status = 200) {
 function redactSensitive(value: string): string {
   return value
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[بريد محذوف]")
-    .replace(/(?:\+?20|0020)?\s?1[0-9]{9,10}/g, "[هاتف محذوف]")
-    .replace(/\b[0-9]{14}\b/g, "[رقم هوية محذوف]")
+    .replace(/(?:\+?20|0020)?\s?1[0-9٠-٩۰-۹]{9,10}/g, "[هاتف محذوف]")
+    .replace(/\b[0-9٠-٩۰-۹]{14}\b/g, "[رقم هوية محذوف]")
     .slice(0, 5000);
 }
 
@@ -36,7 +36,7 @@ Deno.serve(async (req: Request) => {
 
   const authorization = req.headers.get("Authorization");
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || req.headers.get("apikey");
   if (!authorization || !supabaseUrl || !supabaseAnonKey) {
     return json({ error: "AUTH_REQUIRED" }, 401);
   }
