@@ -141,7 +141,7 @@ $('loginBtn').onclick=async()=>{
  if(!identifier||!password){$('loginMsg').textContent='أدخل البريد الإلكتروني أو رقم الهاتف وكلمة المرور.';return;}
  const credentials=identifier.includes('@')?{email:identifier.toLowerCase(),password}:{phone:normalizeEgyptianCompanyPhone(identifier),password};
  if(!credentials.email&&!credentials.phone){$('loginMsg').textContent='أدخل بريدًا إلكترونيًا صحيحًا أو رقم هاتف مصريًا صحيحًا.';return;}
- if(credentials.phone&&!/^\\+201[0125]\\d{8}$/.test(credentials.phone)){$('loginMsg').textContent='رقم الهاتف غير صحيح. استخدم رقم موبايل مصري مسجل بالشركة.';return;}
+ if(credentials.phone&&!/^\+201[0125]\d{8}$/.test(credentials.phone)){$('loginMsg').textContent='رقم الهاتف غير صحيح. استخدم رقم موبايل مصري مسجل بالشركة.';return;}
  $('loginBtn').disabled=true;$('loginMsg').textContent='جارٍ التحقق من بيانات الدخول...';
  const{error}=await sb.auth.signInWithPassword(credentials);
  $('loginBtn').disabled=false;
