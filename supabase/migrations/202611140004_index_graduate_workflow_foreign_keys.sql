@@ -1,0 +1,4 @@
+create index if not exists graduate_access_requests_reviewed_by_idx on public.graduate_access_requests(reviewed_by) where reviewed_by is not null;
+create index if not exists graduate_publication_consents_profile_id_idx on public.graduate_publication_consents(graduate_profile_id) where graduate_profile_id is not null;
+create index if not exists graduate_membership_requests_profile_id_idx on public.graduate_membership_requests(graduate_profile_id);
+create index if not exists graduate_membership_requests_reviewed_by_idx on public.graduate_membership_requests(reviewed_by) where reviewed_by is not null;
