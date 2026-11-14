@@ -55,7 +55,7 @@
  <form id="talentRequestForm">
   <div class="row"><input class="field" id="talentJobTitle" required maxlength="180" placeholder="المسمى الوظيفي المطلوب"><input class="field" id="talentQualification" maxlength="180" placeholder="المؤهل أو التخصص المطلوب"></div>
   <div class="row"><input class="field" id="talentGovernorate" maxlength="80" placeholder="المحافظة"><input class="field" id="talentPositions" type="number" min="1" max="1000" value="1" required placeholder="عدد المرشحين"></div>
-  <div class="row"><input class="field" id="talentContactName" required maxlength="120" placeholder="اسم مسؤول التواصل"><input class="field" id="talentContactPhone" required type="tel" maxlength="32" placeholder="رقم الهاتف" dir="ltr"></div>
+  <div class="row"><input class="field" id="talentContactName" required minlength="2" maxlength="120" placeholder="اسم مسؤول التواصل"><input class="field" id="talentContactPhone" required type="tel" minlength="8" maxlength="32" placeholder="رقم الهاتف" dir="ltr"></div>
   <input class="field" id="talentContactEmail" type="email" maxlength="254" placeholder="البريد الإلكتروني">
   <textarea class="field" id="talentNotes" rows="3" maxlength="3000" placeholder="المهارات والخبرة وأي شروط إضافية"></textarea>
   <button class="btn" type="submit" id="talentRequestBtn">إرسال طلب الترشيح</button>
@@ -190,10 +190,10 @@ $('talentRequestForm').onsubmit=async e=>{
   if(nameError||!companyName)throw new Error('تعذر التحقق من حساب الشركة المعتمد.');
   const{error}=await sb.from('employment_contact_requests').insert({
    request_type:'company_to_graduate',company_name:companyName,
-   contact_name:$('talentContactName').value.trim(),contact_phone:$('talentContactPhone').value.trim(),
+   contact_name:$('talentContactName').value.trim(),contact_phone:toWesternDigits($('talentContactPhone').value).replace(/[^0-9+]/g,''),
    contact_email:$('talentContactEmail').value.trim()||null,target_job_title:$('talentJobTitle').value.trim(),
    qualification:$('talentQualification').value.trim()||null,governorate:$('talentGovernorate').value.trim()||null,
-   positions_needed:Number($('talentPositions').value)||1,request_notes:$('talentNotes').value.trim()||null
+   positions_needed:Math.max(1,Math.min(1000,Number($('talentPositions').value)||1)),request_notes:$('talentNotes').value.trim()||null
   });
   if(error)throw error;
   $('talentRequestForm').reset();$('talentPositions').value='1';
