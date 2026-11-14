@@ -61,6 +61,18 @@ Deno.serve(async (req: Request) => {
   if (task !== "job_ad" && task !== "career_plan") {
     return json({ error: "UNSUPPORTED_TASK" }, 400);
   }
+
+  if (task === "job_ad") {
+    const { data: companyId, error: companyError } = await supabase.rpc("current_approved_company_id");
+    if (companyError || !companyId) return json({ error: "APPROVED_COMPANY_REQUIRED" }, 403);
+  } else {
+    const { data: graduateProfile, error: graduateError } = await supabase
+      .from("graduate_profiles")
+      .select("id")
+      .eq("auth_user_id", userData.user.id)
+      .maybeSingle();
+    if (graduateError || !graduateProfile) return json({ error: "GRADUATE_PROFILE_REQUIRED" }, 403);
+  }
   if (!body.context || typeof body.context !== "object" || Array.isArray(body.context)) {
     return json({ error: "INVALID_CONTEXT" }, 400);
   }
