@@ -51,7 +51,7 @@ Deno.serve(async(req:Request)=>{
   const targetPath=alumni.id+"/graduate-cv.pdf";
   const {error:uploadError}=await admin.storage.from("alumni-private").upload(targetPath,file,{upsert:true,contentType:"application/pdf",cacheControl:"3600"});
   if(uploadError)return reply({error:"CV_COPY_FAILED"},500);
-  const {data:doc,error:docReadError}=await admin.from("alumni_documents").select("id").eq("alumni_id",alumni.id).eq("document_type","cv").maybeSingle();
+  const {data:doc,error:docReadError}=await admin.from("alumni_documents").select("id").eq("alumni_id",alumni.id).eq("document_type","cv").order("created_at",{ascending:false}).limit(1).maybeSingle();
   if(docReadError)return reply({error:"CV_RECORD_SYNC_FAILED"},500);
   const payload={document_title:"السيرة الذاتية المهنية",document_type:"cv",storage_path:targetPath,mime_type:"application/pdf",file_size_bytes:file.size,verification_status:"unverified"};
   const docWrite=doc?await admin.from("alumni_documents").update(payload).eq("id",doc.id):await admin.from("alumni_documents").insert({...payload,alumni_id:alumni.id});
