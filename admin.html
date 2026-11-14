@@ -432,6 +432,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
         <div style="padding:12px 20px;color:var(--muted);font-size:11px;line-height:1.8">حدد «نعم» فقط عند وجود موافقة صريحة من صاحب الشهادة على النشر في محرك البحث العام. إلغاء الموافقة يخفي السجل من نتائج البحث العام.</div>
         <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>صاحب الشهادة</th><th>رقم الشهادة</th><th>الدورة / المؤهل</th><th>المؤسسة</th><th>التاريخ</th><th>موافقة النشر</th></tr></thead><tbody id="publicationConsentRows"><tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">جاري تحميل السجلات...</td></tr></tbody></table></div>
       </div>
+      <div class="card"><div class="card-head"><span class="card-title">السجل الموثق لموافقات نشر ملفات الخريجين</span><button class="btn-s" onclick="loadGraduateConsentAudit()">تحديث السجل</button></div><div class="card-body"><p style="font-size:11px;color:var(--muted)">كل موافقة أو سحب موافقة يتم تسجيله بتاريخ ووقت ونص الإقرار وإصدار الموافقة.</p><div id="graduateConsentAuditRows" style="overflow-x:auto">جارٍ تحميل سجل الموافقات...</div></div></div>
     </div>
 
     <!-- ADD CERTIFICATE -->
@@ -648,7 +649,7 @@ function sp(name,el){
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('pageTitle').textContent=ptitles[name]||name;
   if(el)el.classList.add('active');
-  const loaders={'graduate-directory':loadGraduateDirectory,'graduate-memberships':()=>{loadGraduateAccessRequests();loadGraduateMembershipRequests();},'employment-requests':loadEmploymentContactRequests,alumni:loadAlumniProfiles,'job-ads':loadJobAnnouncements,'training-ads':loadTrainingAnnouncements,institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'publication-consents':loadPublicationConsents,'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
+  const loaders={'graduate-directory':loadGraduateDirectory,'graduate-memberships':()=>{loadGraduateAccessRequests();loadGraduateMembershipRequests();},'employment-requests':loadEmploymentContactRequests,alumni:loadAlumniProfiles,'job-ads':loadJobAnnouncements,'training-ads':loadTrainingAnnouncements,institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'publication-consents':()=>{loadPublicationConsents();loadGraduateConsentAudit();},'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
   if(loaders[name])loaders[name]();
 }
 
@@ -937,6 +938,15 @@ async function reviewDoc(id,status){
 }
 
 // ── CERTS ─────────────────────────────────────────────────────
+async function loadGraduateConsentAudit(){
+ const box=document.getElementById('graduateConsentAuditRows');if(!box)return;
+ box.innerHTML='جارٍ تحميل سجل الموافقات...';
+ const{data,error}=await sb.from('graduate_publication_consents').select('id,auth_user_id,graduate_profile_id,consent,consent_text,consent_version,scope,source,created_at,graduate_profiles(full_name,email,phone)').order('created_at',{ascending:false}).limit(500);
+ if(error){box.textContent='تعذر تحميل سجل الموافقات: '+error.message;return;}
+ const rows=data||[];
+ if(!rows.length){box.innerHTML='<div style="padding:16px;color:var(--muted)">لا توجد موافقات مسجلة حتى الآن.</div>';return;}
+ box.innerHTML='<table class="tbl"><thead><tr><th>الخريج</th><th>البريد / الهاتف</th><th>الحالة</th><th>نص الموافقة</th><th>الإصدار</th><th>التاريخ والوقت</th></tr></thead><tbody>'+rows.map(r=>{const p=r.graduate_profiles||{};return '<tr><td>'+adminEsc(p.full_name||'—')+'</td><td>'+adminEsc(p.email||'')+'<div dir="ltr">'+adminEsc(p.phone||'')+'</div></td><td style="font-weight:900;color:'+(r.consent?'#15803d':'#b91c1c')+'">'+(r.consent?'وافق على النشر':'سحب الموافقة')+'</td><td style="min-width:280px;white-space:normal;line-height:1.8">'+adminEsc(r.consent_text)+'</td><td>'+adminEsc(r.consent_version)+'</td><td>'+new Date(r.created_at).toLocaleString('ar-EG')+'</td></tr>';}).join('')+'</tbody></table>';
+}
 async function loadPublicationConsents(){
  const q=document.getElementById('publicationConsentSearch')?.value.trim()||'';
  const body=document.getElementById('publicationConsentRows');if(!body)return;
