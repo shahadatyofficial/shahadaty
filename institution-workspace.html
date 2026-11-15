@@ -99,7 +99,7 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 const SUPABASE_URL='https://snteiiavvaaumgaegazn.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let user=null,org=null,membership=null,branches=[],courses=[],courseRuns=[],branchById=new Map();
+let user=null,org=null,membership=null,branches=[],courses=[],courseRuns=[],enrollmentTrainees=[],branchById=new Map();
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function say(msg,type='info'){const el=$('message');el.textContent=msg;el.className='notice '+(type==='error'?'error':type==='success'?'success':'');el.style.display='block';}
@@ -189,10 +189,18 @@ async function loadCoursesAndRuns(){
  courseRuns=runs||[];
  $('runsRows').innerHTML=(runs||[]).map(r=>'<tr><td>'+esc(r.run_name||'مجموعة')+'</td><td>'+esc(r.institution_courses?.name||'—')+'</td><td>'+esc(branchById.get(r.branch_id)?.name||'عام')+'</td><td>'+esc(r.instructor_name||'—')+'</td><td>'+esc(r.start_date||'—')+' → '+esc(r.end_date||'—')+'</td><td>'+esc(r.status)+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">لم يتم إنشاء مجموعات تدريبية</td></tr>';
  $('enrollRun').innerHTML='<option value="">اختر المجموعة</option>'+(runs||[]).filter(r=>!['completed','cancelled'].includes(r.status)).map(r=>'<option value="'+r.id+'">'+esc((r.institution_courses?.name||'دورة')+' — '+(r.run_name||'مجموعة'))+'</option>').join('');
- const {data:trainees,error:traineeError}=await sb.from('institution_trainees').select('id,full_name').eq('institution_id',org.id).eq('status','active').order('full_name').limit(1000);
+ const {data:trainees,error:traineeError}=await sb.from('institution_trainees').select('id,full_name,branch_id').eq('institution_id',org.id).eq('status','active').order('full_name').limit(1000);
  if(traineeError){emptyRow('enrollmentsRows',5,traineeError.message);return;}
- $('enrollTrainee').innerHTML='<option value="">اختر المتدرب</option>'+(trainees||[]).map(t=>'<option value="'+t.id+'">'+esc(t.full_name)+'</option>').join('');
+ enrollmentTrainees=trainees||[];
+ $('enrollRun').addEventListener('change',refreshEnrollmentTrainees);
+ refreshEnrollmentTrainees();
  await loadEnrollments();
+}
+function refreshEnrollmentTrainees(){
+ const run=courseRuns.find(r=>r.id===$('enrollRun').value);
+ const branchId=run?.branch_id||null;
+ const matching=enrollmentTrainees.filter(t=>(t.branch_id||null)===branchId);
+ $('enrollTrainee').innerHTML='<option value="">اختر متدربًا من نفس الفرع</option>'+matching.map(t=>'<option value="'+t.id+'">'+esc(t.full_name)+'</option>').join('');
 }
 $('enrollTraineeBtn').addEventListener('click',async()=>{
  const course_run_id=$('enrollRun').value,trainee_id=$('enrollTrainee').value;
