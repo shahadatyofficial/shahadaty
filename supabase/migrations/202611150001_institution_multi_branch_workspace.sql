@@ -194,7 +194,7 @@ as $$
         )
       )
       and (
-        p_branch_id is null
+        (p_branch_id is null and iu.role in ('owner','manager'))
         or iu.role = 'owner'
         or (
           iu.role = 'manager'
@@ -203,14 +203,17 @@ as $$
             where b.id = p_branch_id and b.institution_id = p_institution_id
           )
         )
-        or exists (
-          select 1
-          from public.institution_user_branches iub
-          join public.institution_branches b on b.id = iub.branch_id
-          where iub.institution_user_id = iu.id
-            and iub.branch_id = p_branch_id
-            and b.institution_id = p_institution_id
-            and b.is_active
+        or (
+          p_branch_id is not null
+          and exists (
+            select 1
+            from public.institution_user_branches iub
+            join public.institution_branches b on b.id = iub.branch_id
+            where iub.institution_user_id = iu.id
+              and iub.branch_id = p_branch_id
+              and b.institution_id = p_institution_id
+              and b.is_active
+          )
         )
       )
   );
@@ -259,16 +262,21 @@ create policy institution_role_permissions_select on public.institution_role_per
 drop policy if exists institution_user_branches_select on public.institution_user_branches;
 create policy institution_user_branches_select on public.institution_user_branches
  for select to authenticated
- using (exists (
-   select 1 from public.institution_users iu
-   join public.institution_branches b on b.institution_id=iu.institution_id
-   where iu.id=institution_user_id and iu.auth_user_id=(select auth.uid()) and iu.status='active'
-   union all
-   select 1 from public.institution_user_branches mine
-   join public.institution_users iu on iu.id=mine.institution_user_id
-   where mine.branch_id=institution_user_branches.branch_id
-     and iu.auth_user_id=(select auth.uid()) and iu.status='active'
- ));
+ using (
+   exists (
+     select 1 from public.institution_users self
+     where self.id=institution_user_id
+       and self.auth_user_id=(select auth.uid()) and self.status='active'
+   )
+   or exists (
+     select 1
+     from public.institution_user_branches mine
+     join public.institution_users self on self.id=mine.institution_user_id
+     where mine.branch_id=institution_user_branches.branch_id
+       and self.auth_user_id=(select auth.uid()) and self.status='active'
+       and self.role in ('owner','manager')
+   )
+ );
 
 drop policy if exists institution_user_branches_manage on public.institution_user_branches;
 create policy institution_user_branches_manage on public.institution_user_branches
@@ -333,8 +341,10 @@ create policy institution_enrollments_insert on public.institution_enrollments
    and exists (
      select 1 from public.institution_course_runs r
      join public.institution_trainees t on t.id=trainee_id
-     where r.id=course_run_id and r.institution_id=institution_id
-       and t.institution_id=institution_id
+     where r.id=institution_enrollments.course_run_id
+       and r.institution_id=institution_enrollments.institution_id
+       and t.id=institution_enrollments.trainee_id
+       and t.institution_id=institution_enrollments.institution_id
        and r.branch_id is not distinct from t.branch_id
    )
  );
@@ -358,5 +368,39 @@ create policy institution_attendance_write on public.institution_attendance
  using (public.institution_has_permission(institution_id,'trainees.manage'))
  with check (public.institution_has_permission(institution_id,'trainees.manage'));
 
--- Extend the existing role helper only additively: existing owners/managers retain access.
+-- Replace broad legacy course/certificate reads with branch-aware permission checks.
+drop policy if exists institution_courses_select_member on public.institution_courses;
+create policy institution_courses_select_member on public.institution_courses
+ for select to authenticated
+ using (public.institution_has_permission(institution_id,'courses.view',branch_id));
+
+drop policy if exists institution_courses_insert_manager on public.institution_courses;
+create policy institution_courses_insert_manager on public.institution_courses
+ for insert to authenticated
+ with check (public.institution_has_permission(institution_id,'courses.manage',branch_id));
+
+drop policy if exists institution_courses_update_manager on public.institution_courses;
+create policy institution_courses_update_manager on public.institution_courses
+ for update to authenticated
+ using (public.institution_has_permission(institution_id,'courses.manage',branch_id))
+ with check (public.institution_has_permission(institution_id,'courses.manage',branch_id));
+
+drop policy if exists institution_courses_delete_manager on public.institution_courses;
+create policy institution_courses_delete_manager on public.institution_courses
+ for delete to authenticated
+ using (public.institution_has_permission(institution_id,'courses.manage',branch_id));
+
+drop policy if exists certificates_select_member on public.certificates;
+drop policy if exists certificates_select_own on public.certificates;
+create policy certificates_select_member on public.certificates
+ for select to authenticated
+ using (public.institution_has_permission(institution_id,'certificates.view',branch_id));
+
+-- Team records remain visible to their own member and to authorized team managers.
+drop policy if exists institution_users_manage_by_admin on public.institution_users;
+create policy institution_users_manage_by_admin on public.institution_users
+ for all to authenticated
+ using (public.institution_has_permission(institution_id,'team.manage'))
+ with check (public.institution_has_permission(institution_id,'team.manage'));
+
 commit;
