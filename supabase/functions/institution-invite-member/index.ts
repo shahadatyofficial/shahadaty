@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
     const email = String(body?.email || "").trim().toLowerCase();
     const role = String(body?.role || "").trim();
     const branchIds: string[] = Array.isArray(body?.branch_ids)
-      ? [...new Set(body.branch_ids.map((x: unknown) => String(x).trim()).filter(Boolean))]
+      ? [...new Set((body.branch_ids as unknown[]).map((x: unknown): string => String(x).trim()).filter((x: string): boolean => x.length > 0))]
       : [];
     if (!/^[0-9a-f-]{36}$/i.test(institutionId) ||
         !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ||
