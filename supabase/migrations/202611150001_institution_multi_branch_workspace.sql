@@ -400,4 +400,105 @@ create policy institution_users_manage_by_admin on public.institution_users
  using (public.institution_has_permission(institution_id,'team.manage'))
  with check (public.institution_has_permission(institution_id,'team.manage'));
 
+
+-- Enforce cross-tenant consistency for branch/course/enrollment relationships.
+create or replace function public.validate_institution_course_run_scope()
+returns trigger language plpgsql security definer
+set search_path = public, pg_temp as $
+declare course_org uuid; course_branch uuid;
+begin
+  select institution_id, branch_id into course_org, course_branch
+  from public.institution_courses where id = new.course_id;
+  if course_org is null or course_org <> new.institution_id then
+    raise exception 'Course does not belong to this institution' using errcode='23514';
+  end if;
+  if new.branch_id is not null and not exists (
+    select 1 from public.institution_branches b
+    where b.id=new.branch_id and b.institution_id=new.institution_id
+  ) then
+    raise exception 'Branch does not belong to this institution' using errcode='23514';
+  end if;
+  if course_branch is not null and new.branch_id is distinct from course_branch then
+    raise exception 'Course is assigned to a different branch' using errcode='23514';
+  end if;
+  return new;
+end $;
+
+drop trigger if exists institution_course_run_scope_guard on public.institution_course_runs;
+create trigger institution_course_run_scope_guard
+before insert or update of institution_id, branch_id, course_id
+on public.institution_course_runs
+for each row execute function public.validate_institution_course_run_scope();
+
+create or replace function public.validate_institution_enrollment_scope()
+returns trigger language plpgsql security definer
+set search_path = public, pg_temp as $
+declare run_org uuid; run_branch uuid; trainee_org uuid; trainee_branch uuid;
+begin
+  select institution_id, branch_id into run_org, run_branch
+  from public.institution_course_runs where id=new.course_run_id;
+  select institution_id, branch_id into trainee_org, trainee_branch
+  from public.institution_trainees where id=new.trainee_id;
+  if run_org is null or trainee_org is null
+     or run_org <> new.institution_id or trainee_org <> new.institution_id
+     or run_branch is distinct from trainee_branch then
+    raise exception 'Enrollment must connect a trainee and course group in the same institution and branch' using errcode='23514';
+  end if;
+  return new;
+end $;
+
+drop trigger if exists institution_enrollment_scope_guard on public.institution_enrollments;
+create trigger institution_enrollment_scope_guard
+before insert or update of institution_id, course_run_id, trainee_id
+on public.institution_enrollments
+for each row execute function public.validate_institution_enrollment_scope();
+
+create or replace function public.validate_institution_attendance_scope()
+returns trigger language plpgsql security definer
+set search_path = public, pg_temp as $
+begin
+  if not exists (
+    select 1 from public.institution_enrollments e
+    where e.id=new.enrollment_id and e.institution_id=new.institution_id
+  ) then
+    raise exception 'Attendance enrollment does not belong to this institution' using errcode='23514';
+  end if;
+  return new;
+end $;
+
+drop trigger if exists institution_attendance_scope_guard on public.institution_attendance;
+create trigger institution_attendance_scope_guard
+before insert or update of institution_id, enrollment_id
+on public.institution_attendance
+for each row execute function public.validate_institution_attendance_scope();
+
+-- Only an owner may grant/revoke owner status; preserve at least one owner per institution.
+create or replace function public.guard_institution_owner_role_changes()
+returns trigger language plpgsql security definer
+set search_path = public, pg_temp as $
+declare actor_role text; owner_count integer;
+begin
+  if new.role is not distinct from old.role then return new; end if;
+  if (select auth.uid()) is null then return new; end if;
+  select role into actor_role from public.institution_users
+  where institution_id=old.institution_id and auth_user_id=(select auth.uid()) and status='active'
+  limit 1;
+  if (old.role='owner' or new.role='owner') and actor_role is distinct from 'owner' then
+    raise exception 'Only an institution owner can change owner privileges' using errcode='42501';
+  end if;
+  if old.role='owner' and new.role<>'owner' then
+    select count(*) into owner_count from public.institution_users
+    where institution_id=old.institution_id and role='owner' and status='active';
+    if owner_count <= 1 then
+      raise exception 'An institution must retain at least one active owner' using errcode='23514';
+    end if;
+  end if;
+  return new;
+end $;
+
+drop trigger if exists institution_owner_role_guard on public.institution_users;
+create trigger institution_owner_role_guard
+before update of role on public.institution_users
+for each row execute function public.guard_institution_owner_role_changes();
+
 commit;
