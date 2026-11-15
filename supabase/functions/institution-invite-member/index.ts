@@ -97,24 +97,34 @@ Deno.serve(async (req: Request) => {
     }
 
     const target = await findUserByEmail(admin, email);
+    if (target && !target.email_confirmed_at) {
+      return reply(origin, 409, { error: "ACCOUNT_EMAIL_NOT_CONFIRMED" });
+    }
+    let priorMembership: any = null;
+    if (target) {
+      const { data, error } = await admin.from("institution_users").select("id,role,status")
+        .eq("institution_id", institutionId).eq("auth_user_id", target.id).maybeSingle();
+      if (error) return reply(origin, 500, { error: "MEMBERSHIP_CHECK_FAILED" });
+      priorMembership = data;
+    }
+    if (priorMembership?.status === "active") return reply(origin, 409, { error: "ALREADY_A_MEMBER" });
+    if (priorMembership?.role === "owner") return reply(origin, 409, { error: "OWNER_MEMBERSHIP_PROTECTED" });
+
+    const { data: hasCapacity, error: capacityError } = await caller.rpc("institution_feature_has_capacity", {
+      p_institution_id: institutionId,
+      p_feature: "staff",
+    });
+    if (capacityError || hasCapacity !== true) return reply(origin, 409, { error: "STAFF_LIMIT_REACHED" });
+
     let invitedUser = target;
     let invitationEmailSent = false;
-    if (!target) {
+    if (!invitedUser) {
       const redirectTo = "https://shahadatyofficial.github.io/shahadaty/institution.html";
       const { data, error } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo });
       if (error || !data?.user) return reply(origin, 502, { error: "INVITATION_EMAIL_FAILED" });
       invitedUser = data.user;
       invitationEmailSent = true;
-    } else if (!target.email_confirmed_at) {
-      return reply(origin, 409, { error: "ACCOUNT_EMAIL_NOT_CONFIRMED" });
     }
-
-    const { data: priorMembership, error: priorError } = await admin
-      .from("institution_users").select("id,role,status")
-      .eq("institution_id", institutionId).eq("auth_user_id", invitedUser.id).maybeSingle();
-    if (priorError) return reply(origin, 500, { error: "MEMBERSHIP_CHECK_FAILED" });
-    if (priorMembership?.status === "active") return reply(origin, 409, { error: "ALREADY_A_MEMBER" });
-    if (priorMembership?.role === "owner") return reply(origin, 409, { error: "OWNER_MEMBERSHIP_PROTECTED" });
 
     const { data: previousAssignments, error: previousAssignmentsError } = priorMembership
       ? await admin.from("institution_user_branches").select("branch_id").eq("institution_user_id", priorMembership.id)
