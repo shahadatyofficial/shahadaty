@@ -196,6 +196,7 @@ async function loadCoursesAndRuns(){
  refreshEnrollmentTrainees();
  await loadEnrollments();
 }
+// Keep enrollment choices aligned with the selected run's branch to satisfy DB scope checks.
 function refreshEnrollmentTrainees(){
  const run=courseRuns.find(r=>r.id===$('enrollRun').value);
  const branchId=run?.branch_id||null;
