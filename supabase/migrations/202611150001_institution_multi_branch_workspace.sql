@@ -400,7 +400,7 @@ create policy institution_users_manage_by_admin on public.institution_users
 -- Enforce cross-tenant consistency for branch/course/enrollment relationships.
 create or replace function public.validate_institution_course_run_scope()
 returns trigger language plpgsql security definer
-set search_path = public, pg_temp as $
+set search_path = public, pg_temp as $fn$
 declare course_org uuid; course_branch uuid;
 begin
   select institution_id, branch_id into course_org, course_branch
@@ -418,7 +418,7 @@ begin
     raise exception 'Course is assigned to a different branch' using errcode='23514';
   end if;
   return new;
-end $;
+end $fn$;
 
 drop trigger if exists institution_course_run_scope_guard on public.institution_course_runs;
 create trigger institution_course_run_scope_guard
@@ -428,7 +428,7 @@ for each row execute function public.validate_institution_course_run_scope();
 
 create or replace function public.validate_institution_enrollment_scope()
 returns trigger language plpgsql security definer
-set search_path = public, pg_temp as $
+set search_path = public, pg_temp as $fn$
 declare run_org uuid; run_branch uuid; trainee_org uuid; trainee_branch uuid;
 begin
   select institution_id, branch_id into run_org, run_branch
@@ -441,7 +441,7 @@ begin
     raise exception 'Enrollment must connect a trainee and course group in the same institution and branch' using errcode='23514';
   end if;
   return new;
-end $;
+end $fn$;
 
 drop trigger if exists institution_enrollment_scope_guard on public.institution_enrollments;
 create trigger institution_enrollment_scope_guard
@@ -460,7 +460,7 @@ begin
     raise exception 'Attendance enrollment does not belong to this institution' using errcode='23514';
   end if;
   return new;
-end $;
+end $fn$;
 
 drop trigger if exists institution_attendance_scope_guard on public.institution_attendance;
 create trigger institution_attendance_scope_guard
@@ -471,7 +471,7 @@ for each row execute function public.validate_institution_attendance_scope();
 -- Only an owner may grant/revoke owner status; preserve at least one owner per institution.
 create or replace function public.guard_institution_owner_role_changes()
 returns trigger language plpgsql security definer
-set search_path = public, pg_temp as $
+set search_path = public, pg_temp as $fn$
 declare actor_role text; owner_count integer;
 begin
   if new.role is not distinct from old.role then return new; end if;
@@ -490,11 +490,40 @@ begin
     end if;
   end if;
   return new;
-end $;
+end $fn$;
 
 drop trigger if exists institution_owner_role_guard on public.institution_users;
 create trigger institution_owner_role_guard
 before update of role on public.institution_users
 for each row execute function public.guard_institution_owner_role_changes();
 
+create table if not exists public.institution_invitations (
+  id uuid primary key default gen_random_uuid(),
+  institution_id uuid not null references public.institutions(id) on delete cascade,
+  invited_email text not null,
+  invited_user_id uuid references auth.users(id) on delete set null,
+  role text not null check (role in ('manager','training_manager','registrar','certificate_issuer','branch_manager','viewer')),
+  status text not null default 'pending' check (status in ('pending','sent','accepted','revoked','expired')),
+  invited_by uuid not null references auth.users(id) on delete restrict,
+  expires_at timestamptz not null default (now() + interval '7 days'),
+  accepted_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (invited_email = lower(btrim(invited_email)))
+);
+create unique index if not exists institution_invitations_pending_email_uidx
+  on public.institution_invitations(institution_id, invited_email)
+  where status in ('pending','sent');
+create index if not exists institution_invitations_org_status_idx
+  on public.institution_invitations(institution_id, status, created_at desc);
+alter table public.institution_invitations enable row level security;
+drop policy if exists institution_invitations_select_manager on public.institution_invitations;
+create policy institution_invitations_select_manager on public.institution_invitations
+ for select to authenticated
+ using (public.institution_has_permission(institution_id,'team.view'));
+drop policy if exists institution_invitations_revoke_manager on public.institution_invitations;
+create policy institution_invitations_revoke_manager on public.institution_invitations
+ for update to authenticated
+ using (public.institution_has_permission(institution_id,'team.manage'))
+ with check (public.institution_has_permission(institution_id,'team.manage'));
 commit;
