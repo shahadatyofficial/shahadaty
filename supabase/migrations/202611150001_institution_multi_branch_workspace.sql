@@ -120,6 +120,7 @@ create table if not exists public.institution_course_runs (
 );
 create index if not exists institution_course_runs_org_branch_idx
   on public.institution_course_runs(institution_id, branch_id, status);
+create index if not exists institution_course_runs_course_idx on public.institution_course_runs(course_id);
 
 create table if not exists public.institution_enrollments (
   id uuid primary key default gen_random_uuid(),
@@ -152,6 +153,7 @@ create table if not exists public.institution_attendance (
 );
 create index if not exists institution_attendance_org_date_idx
   on public.institution_attendance(institution_id, session_date);
+create index if not exists institution_attendance_enrollment_idx on public.institution_attendance(enrollment_id, session_date);
 
 alter table public.institution_courses
   add column if not exists branch_id uuid references public.institution_branches(id) on delete set null;
