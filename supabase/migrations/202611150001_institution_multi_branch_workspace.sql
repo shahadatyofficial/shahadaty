@@ -489,7 +489,7 @@ for each row execute function public.validate_institution_enrollment_scope();
 
 create or replace function public.validate_institution_attendance_scope()
 returns trigger language plpgsql security definer
-set search_path = public, pg_temp as $
+set search_path = public, pg_temp as $fn$
 begin
   if not exists (
     select 1 from public.institution_enrollments e
