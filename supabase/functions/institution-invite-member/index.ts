@@ -96,11 +96,6 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const { data: existingMember, error: memberLookupError } = await admin
-      .from("institution_users").select("id,role,status")
-      .eq("institution_id", institutionId).eq("auth_user_id", authData.user.id).maybeSingle();
-    if (memberLookupError) return reply(origin, 500, { error: "MEMBERSHIP_CHECK_FAILED" });
-
     const target = await findUserByEmail(admin, email);
     let invitedUser = target;
     let invitationEmailSent = false;
@@ -121,6 +116,11 @@ Deno.serve(async (req: Request) => {
     if (priorMembership?.status === "active") return reply(origin, 409, { error: "ALREADY_A_MEMBER" });
     if (priorMembership?.role === "owner") return reply(origin, 409, { error: "OWNER_MEMBERSHIP_PROTECTED" });
 
+    const { data: previousAssignments, error: previousAssignmentsError } = priorMembership
+      ? await admin.from("institution_user_branches").select("branch_id").eq("institution_user_id", priorMembership.id)
+      : { data: [], error: null };
+    if (previousAssignmentsError) return reply(origin, 500, { error: "BRANCH_ASSIGNMENT_LOOKUP_FAILED" });
+
     let membershipId = priorMembership?.id;
     if (priorMembership) {
       const { error } = await admin.from("institution_users")
@@ -134,11 +134,21 @@ Deno.serve(async (req: Request) => {
       membershipId = data.id;
     }
 
+    if (priorMembership) {
+      await admin.from("institution_user_branches").delete().eq("institution_user_id", membershipId);
+    }
     if (branchIds.length) {
       const { error } = await admin.from("institution_user_branches")
         .insert(branchIds.map((branch_id: string) => ({ institution_user_id: membershipId, branch_id })));
       if (error) {
-        await admin.from("institution_users").delete().eq("id", membershipId);
+        if (priorMembership) {
+          await admin.from("institution_users").update({ role: priorMembership.role, status: priorMembership.status }).eq("id", membershipId);
+          if (previousAssignments?.length) await admin.from("institution_user_branches").insert(
+            previousAssignments.map((x: any) => ({ institution_user_id: membershipId, branch_id: x.branch_id })),
+          );
+        } else {
+          await admin.from("institution_users").delete().eq("id", membershipId);
+        }
         return reply(origin, 500, { error: "BRANCH_ASSIGNMENT_FAILED" });
       }
     }
@@ -154,7 +164,14 @@ Deno.serve(async (req: Request) => {
     });
     if (invitationError) {
       await admin.from("institution_user_branches").delete().eq("institution_user_id", membershipId);
-      await admin.from("institution_users").delete().eq("id", membershipId);
+      if (priorMembership) {
+        await admin.from("institution_users").update({ role: priorMembership.role, status: priorMembership.status }).eq("id", membershipId);
+        if (previousAssignments?.length) await admin.from("institution_user_branches").insert(
+          previousAssignments.map((x: any) => ({ institution_user_id: membershipId, branch_id: x.branch_id })),
+        );
+      } else {
+        await admin.from("institution_users").delete().eq("id", membershipId);
+      }
       return reply(origin, 500, { error: "INVITATION_AUDIT_FAILED" });
     }
 
