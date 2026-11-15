@@ -201,7 +201,7 @@ create or replace function public.institution_feature_has_capacity(
   p_feature text
 ) returns boolean
 language plpgsql
-stable
+volatile
 security definer
 set search_path = public, pg_temp
 as $function$
@@ -869,7 +869,7 @@ create trigger institution_branches_capacity_guard before insert on public.insti
 for each row execute function public.enforce_institution_feature_capacity();
 
 drop trigger if exists institution_users_capacity_guard on public.institution_users;
-create trigger institution_users_capacity_guard before insert or update of status on public.institution_users
+create trigger institution_users_capacity_guard before insert or update of status, role on public.institution_users
 for each row when (new.status='active' and new.role<>'owner')
 execute function public.enforce_institution_feature_capacity();
 
