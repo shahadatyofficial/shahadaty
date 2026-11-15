@@ -71,7 +71,13 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 <div class="card"><h2>سجل المتدربين</h2><div class="table-wrap"><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>البريد</th><th>الفرع</th><th>الحالة</th></tr></thead><tbody id="traineesRows"></tbody></table></div></div>
 </section>
 <section id="courses" class="panel">
-<div class="card"><h2>إنشاء مجموعة تدريبية</h2><div class="grid">
+<div class="card"><h2>إضافة دورة إلى كتالوج المؤسسة</h2><div class="grid">
+<div class="field"><label>اسم الدورة *</label><input id="catalogCourseName" placeholder="اسم البرنامج التدريبي"></div>
+<div class="field"><label>التخصص</label><input id="catalogCourseSpecialization" placeholder="التخصص"></div>
+<div class="field"><label>المدة</label><input id="catalogCourseDuration" placeholder="مثال: 40 ساعة"></div>
+<div class="field"><label>الفرع</label><select id="catalogCourseBranch"></select></div>
+</div><div class="actions"><button class="btn" id="saveCatalogCourseBtn">حفظ الدورة</button></div></div>
+<div class="card"><h2>كتالوج الدورات المتاحة</h2><div class="table-wrap"><table><thead><tr><th>الدورة</th><th>التخصص</th><th>المدة</th><th>الفرع</th><th>الحالة</th></tr></thead><tbody id="catalogCoursesRows"></tbody></table></div></div><div class="card"><h2>إنشاء مجموعة تدريبية</h2><div class="grid">
 <div class="field"><label>الدورة *</label><select id="runCourse"></select></div>
 <div class="field"><label>اسم المجموعة</label><input id="runName" placeholder="دفعة نوفمبر"></div>
 <div class="field"><label>الفرع</label><select id="runBranch"></select></div>
@@ -115,7 +121,7 @@ async function loadBranches(){
  if(error){say('تعذر تحميل الفروع: '+error.message,'error');return;}branches=data||[];branchById=new Map(branches.map(b=>[b.id,b]));
  $('branchCount').textContent=branches.length;$('activeBranchCount').textContent=branches.filter(b=>b.is_active).length;
  const opts='<option value="">كل الفروع / غير محدد</option>'+branches.filter(b=>b.is_active).map(b=>'<option value="'+b.id+'">'+esc(b.name)+'</option>').join('');
- $('traineeBranch').innerHTML=opts;$('runBranch').innerHTML=opts;if($('inviteBranches'))$('inviteBranches').innerHTML=branches.filter(b=>b.is_active).map(b=>'<option value="'+b.id+'">'+esc(b.name)+'</option>').join('');
+ $('traineeBranch').innerHTML=opts;$('runBranch').innerHTML=opts;$('catalogCourseBranch').innerHTML=opts;if($('inviteBranches'))$('inviteBranches').innerHTML=branches.filter(b=>b.is_active).map(b=>'<option value="'+b.id+'">'+esc(b.name)+'</option>').join('');
  $('branchesRows').innerHTML=branches.length?branches.map(b=>'<tr><td><b>'+esc(b.name)+'</b>'+(b.is_main?' <span class="pill">رئيسي</span>':'')+'</td><td>'+esc(b.branch_code||'—')+'</td><td>'+esc([b.governorate,b.address].filter(Boolean).join(' - ')||'—')+'</td><td>'+(b.is_active?'نشط':'موقوف')+'</td><td><button class="btn light" onclick="toggleBranch(\''+b.id+'\','+(!b.is_active)+')">'+(b.is_active?'إيقاف':'تفعيل')+'</button></td></tr>').join(''):'<tr><td colspan="5" class="empty">لم تتم إضافة فروع بعد</td></tr>';
  $('selectedBranchName').textContent='كل الفروع';
 }
@@ -176,6 +182,7 @@ async function loadCoursesAndRuns(){
  const {data:cs,error:ce}=await sb.from('institution_courses').select('id,name,branch_id,is_active').eq('institution_id',org.id).eq('is_active',true).order('name');
  if(ce){say(ce.message,'error');return;}courses=cs||[];
  $('runCourse').innerHTML='<option value="">اختر الدورة</option>'+courses.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('');
+ $('catalogCoursesRows').innerHTML=courses.map(c=>'<tr><td>'+esc(c.name)+'</td><td>'+esc(c.specialization||'—')+'</td><td>'+esc(c.duration||'—')+'</td><td>'+esc(branchById.get(c.branch_id)?.name||'عام')+'</td><td>نشطة</td></tr>').join('')||'<tr><td colspan="5" class="empty">لا توجد دورات متاحة لهذا النطاق بعد</td></tr>';
  const {data:runs,error}=await sb.from('institution_course_runs').select('id,run_name,instructor_name,start_date,end_date,status,branch_id,course_id,institution_courses(name)').eq('institution_id',org.id).order('created_at',{ascending:false}).limit(200);
  if(error){emptyRow('runsRows',6,error.message);return;}
  courseRuns=runs||[];
@@ -210,6 +217,15 @@ window.recordAttendance=async(id,date)=>{
  const {error}=await sb.from('institution_attendance').upsert({institution_id:org.id,enrollment_id:id,session_date:date,attendance_status:value,recorded_by:user.id},{onConflict:'enrollment_id,session_date'});
  if(error)return say(error.message,'error');say('تم حفظ الحضور.','success');
 };
+$('saveCatalogCourseBtn').addEventListener('click',async()=>{
+ const name=$('catalogCourseName').value.trim(),branch_id=$('catalogCourseBranch').value||null;
+ if(name.length<2)return say('اسم الدورة مطلوب.','error');
+ if(!await allowed('courses.manage',branch_id))return say('ليس لديك صلاحية إضافة دورة لهذا الفرع.','error');
+ const {error}=await sb.from('institution_courses').insert({institution_id:org.id,branch_id,name,specialization:$('catalogCourseSpecialization').value.trim()||null,duration:$('catalogCourseDuration').value.trim()||null,is_active:true});
+ if(error)return say(error.message,'error');
+ ['catalogCourseName','catalogCourseSpecialization','catalogCourseDuration'].forEach(id=>$(id).value='');
+ say('تمت إضافة الدورة إلى الكتالوج.','success');await loadCoursesAndRuns();
+});
 $('addRunBtn').addEventListener('click',async()=>{
  const course_id=$('runCourse').value,branch_id=$('runBranch').value||null;if(!course_id)return say('اختر الدورة أولاً.','error');
  if(!await allowed('courses.manage',branch_id))return say('ليس لديك صلاحية إنشاء مجموعة في هذا الفرع.','error');
