@@ -192,7 +192,7 @@ async function loadCoursesAndRuns(){
  const {data:trainees,error:traineeError}=await sb.from('institution_trainees').select('id,full_name,branch_id').eq('institution_id',org.id).eq('status','active').order('full_name').limit(1000);
  if(traineeError){emptyRow('enrollmentsRows',5,traineeError.message);return;}
  enrollmentTrainees=trainees||[];
- $('enrollRun').addEventListener('change',refreshEnrollmentTrainees);
+ $('enrollRun').onchange=refreshEnrollmentTrainees;
  refreshEnrollmentTrainees();
  await loadEnrollments();
 }
