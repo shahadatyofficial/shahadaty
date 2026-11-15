@@ -510,20 +510,26 @@ for each row execute function public.validate_institution_attendance_scope();
 create or replace function public.guard_institution_owner_role_changes()
 returns trigger language plpgsql security definer
 set search_path = public, pg_temp as $fn$
-declare actor_role text; owner_count integer;
+declare actor_role text; active_owner_count integer;
 begin
-  if new.role is not distinct from old.role then return new; end if;
   if (select auth.uid()) is null then return new; end if;
+  if new.institution_id is distinct from old.institution_id
+     or new.auth_user_id is distinct from old.auth_user_id then
+    raise exception 'Institution membership identity is immutable' using errcode='42501';
+  end if;
+  if new.role is not distinct from old.role and new.status is not distinct from old.status then
+    return new;
+  end if;
   select role into actor_role from public.institution_users
   where institution_id=old.institution_id and auth_user_id=(select auth.uid()) and status='active'
   limit 1;
   if (old.role='owner' or new.role='owner') and actor_role is distinct from 'owner' then
     raise exception 'Only an institution owner can change owner privileges' using errcode='42501';
   end if;
-  if old.role='owner' and new.role<>'owner' then
-    select count(*) into owner_count from public.institution_users
-    where institution_id=old.institution_id and role='owner' and status='active';
-    if owner_count <= 1 then
+  if old.role='owner' and new.status<>'active' then
+    select count(*) into active_owner_count from public.institution_users
+    where institution_id=old.institution_id and role='owner' and status='active' and id<>old.id;
+    if active_owner_count < 1 then
       raise exception 'An institution must retain at least one active owner' using errcode='23514';
     end if;
   end if;
@@ -532,7 +538,7 @@ end $fn$;
 
 drop trigger if exists institution_owner_role_guard on public.institution_users;
 create trigger institution_owner_role_guard
-before update of role on public.institution_users
+before update of role, status, institution_id, auth_user_id on public.institution_users
 for each row execute function public.guard_institution_owner_role_changes();
 
 create table if not exists public.institution_invitations (
@@ -559,12 +565,6 @@ drop policy if exists institution_invitations_select_manager on public.instituti
 create policy institution_invitations_select_manager on public.institution_invitations
  for select to authenticated
  using (public.institution_has_permission(institution_id,'team.view'));
-drop policy if exists institution_invitations_revoke_manager on public.institution_invitations;
-create policy institution_invitations_revoke_manager on public.institution_invitations
- for update to authenticated
- using (public.institution_has_permission(institution_id,'team.manage'))
- with check (public.institution_has_permission(institution_id,'team.manage'));
-
 -- Explicit Data API privileges; row access remains constrained by the RLS policies above.
 grant select, insert, update, delete on public.institution_branches to authenticated;
 grant select on public.institution_role_permissions to authenticated;
@@ -573,7 +573,7 @@ grant select, insert, update, delete on public.institution_trainees to authentic
 grant select, insert, update, delete on public.institution_course_runs to authenticated;
 grant select, insert, update, delete on public.institution_enrollments to authenticated;
 grant select, insert, update, delete on public.institution_attendance to authenticated;
-grant select, update on public.institution_invitations to authenticated;
+grant select on public.institution_invitations to authenticated;
 grant update on public.institution_users to authenticated;
 grant select, insert, update, delete on public.institution_courses to authenticated;
 
