@@ -46,7 +46,11 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 </section>
 <section id="team" class="panel">
 <div class="notice">الصلاحيات تُطبّق من قاعدة البيانات، وليس من إخفاء الأزرار فقط. الموظف لا يرى إلا الفروع المخصصة له، بينما المالك ومدير المؤسسة يملكان صلاحيات الإدارة حسب الدور.</div>
-<div class="card"><h2>أعضاء فريق المؤسسة</h2><p class="muted">يعرض هذا القسم العضويات المرتبطة بالفعل بحسابات مستخدمين. إضافة موظف جديد تتم عبر دعوة آمنة بالبريد في خطوة الربط بخدمة الدعوات.</p><div class="table-wrap"><table><thead><tr><th>معرّف الحساب</th><th>الدور</th><th>الحالة</th><th>تخصيص الفروع</th></tr></thead><tbody id="teamRows"></tbody></table></div></div>
+<div class="card"><h2>دعوة موظف جديد</h2><div class="grid">
+<div class="field"><label>البريد الإلكتروني للموظف *</label><input id="inviteEmail" type="email" dir="ltr" placeholder="employee@example.com"></div>
+<div class="field"><label>الدور الوظيفي</label><select id="inviteRole"><option value="training_manager">مدير تدريب</option><option value="registrar">شؤون متدربين</option><option value="certificate_issuer">مسؤول إصدار الشهادات</option><option value="branch_manager">مدير فرع</option><option value="viewer">مشاهد</option><option value="manager">مدير مؤسسة</option></select></div>
+<div class="field"><label>الفروع المخصصة (يمكن اختيار أكثر من فرع)</label><select id="inviteBranches" multiple size="4"></select></div></div>
+<div class="actions"><button class="btn" id="inviteMemberBtn">إرسال الدعوة وربط الصلاحيات</button></div><p class="muted">الموظف الجديد تصله دعوة على البريد. الحساب الموجود بالفعل يُربط بالمؤسسة بعد التحقق من البريد.</p></div><div class="card"><h2>أعضاء فريق المؤسسة</h2><p class="muted">يعرض هذا القسم العضويات المرتبطة بالفعل بحسابات مستخدمين. إضافة موظف جديد تتم عبر دعوة آمنة بالبريد في خطوة الربط بخدمة الدعوات.</p><div class="table-wrap"><table><thead><tr><th>معرّف الحساب</th><th>الدور</th><th>الحالة</th><th>تخصيص الفروع</th></tr></thead><tbody id="teamRows"></tbody></table></div></div>
 <div class="card"><h2>قاموس الأدوار</h2><div class="table-wrap"><table><thead><tr><th>الدور</th><th>المهام الأساسية</th></tr></thead><tbody>
 <tr><td>مدير المؤسسة</td><td>إدارة التشغيل والفروع والفريق والدورات والشهادات</td></tr>
 <tr><td>مدير التدريب</td><td>إدارة الدورات والمجموعات والمتدربين والتقارير</td></tr>
@@ -106,7 +110,7 @@ async function loadBranches(){
  if(error){say('تعذر تحميل الفروع: '+error.message,'error');return;}branches=data||[];branchById=new Map(branches.map(b=>[b.id,b]));
  $('branchCount').textContent=branches.length;$('activeBranchCount').textContent=branches.filter(b=>b.is_active).length;
  const opts='<option value="">كل الفروع / غير محدد</option>'+branches.filter(b=>b.is_active).map(b=>'<option value="'+b.id+'">'+esc(b.name)+'</option>').join('');
- $('traineeBranch').innerHTML=opts;$('runBranch').innerHTML=opts;
+ $('traineeBranch').innerHTML=opts;$('runBranch').innerHTML=opts;if($('inviteBranches'))$('inviteBranches').innerHTML=branches.filter(b=>b.is_active).map(b=>'<option value="'+b.id+'">'+esc(b.name)+'</option>').join('');
  $('branchesRows').innerHTML=branches.length?branches.map(b=>'<tr><td><b>'+esc(b.name)+'</b>'+(b.is_main?' <span class="pill">رئيسي</span>':'')+'</td><td>'+esc(b.branch_code||'—')+'</td><td>'+esc([b.governorate,b.address].filter(Boolean).join(' - ')||'—')+'</td><td>'+(b.is_active?'نشط':'موقوف')+'</td><td><button class="btn light" onclick="toggleBranch(\''+b.id+'\','+(!b.is_active)+')">'+(b.is_active?'إيقاف':'تفعيل')+'</button></td></tr>').join(''):'<tr><td colspan="5" class="empty">لم تتم إضافة فروع بعد</td></tr>';
  $('selectedBranchName').textContent='كل الفروع';
 }
@@ -138,6 +142,19 @@ async function manageBranches(memberId){
  if(ids.length){const rows=ids.map(branch_id=>({institution_user_id:memberId,branch_id}));const {error:insErr}=await sb.from('institution_user_branches').insert(rows);if(insErr)return say(insErr.message,'error');}
  say('تم تحديث الفروع المخصصة للموظف.','success');
 }
+$('inviteMemberBtn').addEventListener('click',async()=>{
+ if(!await allowed('team.manage'))return say('ليس لديك صلاحية دعوة موظفين.','error');
+ const email=$('inviteEmail').value.trim().toLowerCase();
+ const branch_ids=Array.from($('inviteBranches').selectedOptions).map(o=>o.value);
+ if(!email)return say('أدخل البريد الإلكتروني للموظف.','error');
+ const btn=$('inviteMemberBtn');btn.disabled=true;btn.textContent='جارٍ إرسال الدعوة...';
+ const {data,error}=await sb.functions.invoke('institution-invite-member',{body:{institution_id:org.id,email,role:$('inviteRole').value,branch_ids}});
+ btn.disabled=false;btn.textContent='إرسال الدعوة وربط الصلاحيات';
+ if(error||data?.error)return say(data?.error||error.message,'error');
+ $('inviteEmail').value='';Array.from($('inviteBranches').options).forEach(o=>o.selected=false);
+ say(data.invitation_email_sent?'تم إرسال الدعوة إلى البريد وربط الموظف بالصلاحيات.':'الحساب موجود بالفعل وتم ربطه بالمؤسسة.','success');
+ await loadTeam();
+});
 $('addTraineeBtn').addEventListener('click',async()=>{
  if(!await allowed('trainees.manage',$('traineeBranch').value||null))return say('ليس لديك صلاحية إضافة متدربين لهذا النطاق.','error');
  const full_name=$('traineeName').value.trim();if(full_name.length<2)return say('اسم المتدرب مطلوب.','error');
