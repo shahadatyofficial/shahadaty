@@ -159,8 +159,8 @@ async function manageBranches(memberId){
  const {data:assigned,error}=await sb.from('institution_user_branches').select('branch_id').eq('institution_user_id',memberId);
  if(error)return say(error.message,'error');
  editingTeamMemberId=memberId;teamBranchOriginal=new Set((assigned||[]).map(x=>x.branch_id));
- const choices=branches.filter(b=>b.is_active);
- $('teamBranchChoices').innerHTML=choices.length?choices.map(b=>'<label class="team-branch-choice"><input type="checkbox" value="'+esc(b.id)+'" '+(teamBranchOriginal.has(b.id)?'checked':'')+'><span><b>'+esc(b.name)+'</b><small class="muted" style="display:block">'+esc([b.governorate,b.branch_code].filter(Boolean).join(' · ')||'فرع نشط')+'</small></span></label>').join(''):'<div class="empty">لا توجد فروع نشطة لتخصيصها.</div>';
+ const choices=branches.filter(b=>b.is_active||teamBranchOriginal.has(b.id));
+ $('teamBranchChoices').innerHTML=choices.length?choices.map(b=>'<label class="team-branch-choice"><input type="checkbox" value="'+esc(b.id)+'" '+(teamBranchOriginal.has(b.id)?'checked':'')+' '+(!b.is_active?'disabled':'')+'><span><b>'+esc(b.name)+'</b><small class="muted" style="display:block">'+esc(!b.is_active?'فرع موقوف — محفوظ دون تغيير':[b.governorate,b.branch_code].filter(Boolean).join(' · ')||'فرع نشط')+'</small></span></label>').join(''):'<div class="empty">لا توجد فروع نشطة لتخصيصها.</div>';
  $('teamBranchModal').classList.add('open');
 }
 async function saveTeamBranchAssignments(){
