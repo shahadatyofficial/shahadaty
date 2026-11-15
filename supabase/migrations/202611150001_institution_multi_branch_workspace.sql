@@ -325,41 +325,79 @@ create policy institution_course_runs_delete on public.institution_course_runs
 drop policy if exists institution_enrollments_select on public.institution_enrollments;
 create policy institution_enrollments_select on public.institution_enrollments
  for select to authenticated
- using (public.institution_has_permission(institution_id,'trainees.view'));
+ using (exists (
+   select 1 from public.institution_course_runs r
+   where r.id=institution_enrollments.course_run_id
+     and r.institution_id=institution_enrollments.institution_id
+     and public.institution_has_permission(institution_enrollments.institution_id,'trainees.view',r.branch_id)
+ ));
 drop policy if exists institution_enrollments_insert on public.institution_enrollments;
 create policy institution_enrollments_insert on public.institution_enrollments
  for insert to authenticated
- with check (
-   public.institution_has_permission(institution_id,'trainees.manage')
-   and exists (
-     select 1 from public.institution_course_runs r
-     join public.institution_trainees t on t.id=trainee_id
-     where r.id=institution_enrollments.course_run_id
-       and r.institution_id=institution_enrollments.institution_id
-       and t.id=institution_enrollments.trainee_id
-       and t.institution_id=institution_enrollments.institution_id
-       and r.branch_id is not distinct from t.branch_id
-   )
- );
+ with check (exists (
+   select 1 from public.institution_course_runs r
+   join public.institution_trainees t on t.id=institution_enrollments.trainee_id
+   where r.id=institution_enrollments.course_run_id
+     and r.institution_id=institution_enrollments.institution_id
+     and t.institution_id=institution_enrollments.institution_id
+     and r.branch_id is not distinct from t.branch_id
+     and public.institution_has_permission(institution_enrollments.institution_id,'trainees.manage',r.branch_id)
+ ));
 drop policy if exists institution_enrollments_update on public.institution_enrollments;
 create policy institution_enrollments_update on public.institution_enrollments
  for update to authenticated
- using (public.institution_has_permission(institution_id,'trainees.manage'))
- with check (public.institution_has_permission(institution_id,'trainees.manage'));
+ using (exists (
+   select 1 from public.institution_course_runs r
+   where r.id=institution_enrollments.course_run_id
+     and r.institution_id=institution_enrollments.institution_id
+     and public.institution_has_permission(institution_enrollments.institution_id,'trainees.manage',r.branch_id)
+ ))
+ with check (exists (
+   select 1 from public.institution_course_runs r
+   join public.institution_trainees t on t.id=institution_enrollments.trainee_id
+   where r.id=institution_enrollments.course_run_id
+     and r.institution_id=institution_enrollments.institution_id
+     and t.institution_id=institution_enrollments.institution_id
+     and r.branch_id is not distinct from t.branch_id
+     and public.institution_has_permission(institution_enrollments.institution_id,'trainees.manage',r.branch_id)
+ ));
 drop policy if exists institution_enrollments_delete on public.institution_enrollments;
 create policy institution_enrollments_delete on public.institution_enrollments
  for delete to authenticated
- using (public.institution_has_permission(institution_id,'trainees.manage'));
+ using (exists (
+   select 1 from public.institution_course_runs r
+   where r.id=institution_enrollments.course_run_id
+     and r.institution_id=institution_enrollments.institution_id
+     and public.institution_has_permission(institution_enrollments.institution_id,'trainees.manage',r.branch_id)
+ ));
 
 drop policy if exists institution_attendance_select on public.institution_attendance;
 create policy institution_attendance_select on public.institution_attendance
  for select to authenticated
- using (public.institution_has_permission(institution_id,'trainees.view'));
+ using (exists (
+   select 1 from public.institution_enrollments e
+   join public.institution_course_runs r on r.id=e.course_run_id
+   where e.id=institution_attendance.enrollment_id
+     and e.institution_id=institution_attendance.institution_id
+     and public.institution_has_permission(institution_attendance.institution_id,'trainees.view',r.branch_id)
+ ));
 drop policy if exists institution_attendance_write on public.institution_attendance;
 create policy institution_attendance_write on public.institution_attendance
  for all to authenticated
- using (public.institution_has_permission(institution_id,'trainees.manage'))
- with check (public.institution_has_permission(institution_id,'trainees.manage'));
+ using (exists (
+   select 1 from public.institution_enrollments e
+   join public.institution_course_runs r on r.id=e.course_run_id
+   where e.id=institution_attendance.enrollment_id
+     and e.institution_id=institution_attendance.institution_id
+     and public.institution_has_permission(institution_attendance.institution_id,'trainees.manage',r.branch_id)
+ ))
+ with check (exists (
+   select 1 from public.institution_enrollments e
+   join public.institution_course_runs r on r.id=e.course_run_id
+   where e.id=institution_attendance.enrollment_id
+     and e.institution_id=institution_attendance.institution_id
+     and public.institution_has_permission(institution_attendance.institution_id,'trainees.manage',r.branch_id)
+ ));
 
 -- Replace broad legacy course/certificate reads with branch-aware permission checks.
 drop policy if exists institution_courses_select_member on public.institution_courses;
