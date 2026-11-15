@@ -268,13 +268,10 @@ create policy institution_user_branches_select on public.institution_user_branch
      where self.id=institution_user_id
        and self.auth_user_id=(select auth.uid()) and self.status='active'
    )
-   or exists (
-     select 1
-     from public.institution_user_branches mine
-     join public.institution_users self on self.id=mine.institution_user_id
-     where mine.branch_id=institution_user_branches.branch_id
-       and self.auth_user_id=(select auth.uid()) and self.status='active'
-       and self.role in ('owner','manager')
+   or public.institution_has_permission(
+     (select b.institution_id from public.institution_branches b where b.id=branch_id),
+     'team.view',
+     branch_id
    )
  );
 
