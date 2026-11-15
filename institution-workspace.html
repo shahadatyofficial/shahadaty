@@ -180,7 +180,7 @@ async function loadTrainees(){
  $('traineesRows').innerHTML=(data||[]).map(t=>'<tr><td>'+esc(t.full_name)+'</td><td dir="ltr">'+esc(t.phone||'—')+'</td><td>'+esc(t.email||'—')+'</td><td>'+esc(branchById.get(t.branch_id)?.name||'عام')+'</td><td>'+esc(t.status)+'</td></tr>').join('')||'<tr><td colspan="5" class="empty">لا يوجد متدربون مسجلون بعد</td></tr>';
 }
 async function loadCoursesAndRuns(){
- const {data:cs,error:ce}=await sb.from('institution_courses').select('id,name,branch_id,is_active').eq('institution_id',org.id).eq('is_active',true).order('name');
+ const {data:cs,error:ce}=await sb.from('institution_courses').select('id,name,specialization,duration,branch_id,is_active').eq('institution_id',org.id).eq('is_active',true).order('name');
  if(ce){say(ce.message,'error');return;}courses=cs||[];
  $('runCourse').innerHTML='<option value="">اختر الدورة</option>'+courses.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('');
  $('catalogCoursesRows').innerHTML=courses.map(c=>'<tr><td>'+esc(c.name)+'</td><td>'+esc(c.specialization||'—')+'</td><td>'+esc(c.duration||'—')+'</td><td>'+esc(branchById.get(c.branch_id)?.name||'عام')+'</td><td>نشطة</td></tr>').join('')||'<tr><td colspan="5" class="empty">لا توجد دورات متاحة لهذا النطاق بعد</td></tr>';
