@@ -81,7 +81,12 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 <div class="field"><label>السعة</label><input id="runCapacity" type="number" min="1"></div>
 <div class="field"><label>الحالة</label><select id="runStatus"><option value="planned">مخططة</option><option value="open">متاحة للتسجيل</option><option value="in_progress">جارية</option><option value="completed">مكتملة</option><option value="cancelled">ملغاة</option></select></div>
 </div><div class="actions"><button class="btn" id="addRunBtn">إنشاء المجموعة</button></div></div>
-<div class="card"><h2>المجموعات التدريبية</h2><div class="table-wrap"><table><thead><tr><th>المجموعة</th><th>الدورة</th><th>الفرع</th><th>المدرب</th><th>الفترة</th><th>الحالة</th></tr></thead><tbody id="runsRows"></tbody></table></div></div>
+<div class="card"><h2>تسجيل متدرب في مجموعة</h2><div class="grid">
+<div class="field"><label>المجموعة التدريبية *</label><select id="enrollRun"></select></div>
+<div class="field"><label>المتدرب *</label><select id="enrollTrainee"></select></div>
+<div class="field"><label>حالة التسجيل</label><select id="enrollStatus"><option value="enrolled">مسجل</option><option value="attending">منتظم</option></select></div>
+</div><div class="actions"><button class="btn" id="enrollTraineeBtn">تسجيل المتدرب</button></div></div>
+<div class="card"><h2>سجل التسجيلات والحضور</h2><div class="table-wrap"><table><thead><tr><th>المتدرب</th><th>الدورة / المجموعة</th><th>الحالة</th><th>التسجيل</th><th>الحضور اليوم</th></tr></thead><tbody id="enrollmentsRows"></tbody></table></div></div><div class="card"><h2>المجموعات التدريبية</h2><div class="table-wrap"><table><thead><tr><th>المجموعة</th><th>الدورة</th><th>الفرع</th><th>المدرب</th><th>الفترة</th><th>الحالة</th></tr></thead><tbody id="runsRows"></tbody></table></div></div>
 </section>
 </main>
 <script>
@@ -174,7 +179,33 @@ async function loadCoursesAndRuns(){
  const {data:runs,error}=await sb.from('institution_course_runs').select('id,run_name,instructor_name,start_date,end_date,status,branch_id,course_id,institution_courses(name)').eq('institution_id',org.id).order('created_at',{ascending:false}).limit(200);
  if(error){emptyRow('runsRows',6,error.message);return;}
  $('runsRows').innerHTML=(runs||[]).map(r=>'<tr><td>'+esc(r.run_name||'مجموعة')+'</td><td>'+esc(r.institution_courses?.name||'—')+'</td><td>'+esc(branchById.get(r.branch_id)?.name||'عام')+'</td><td>'+esc(r.instructor_name||'—')+'</td><td>'+esc(r.start_date||'—')+' → '+esc(r.end_date||'—')+'</td><td>'+esc(r.status)+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">لم يتم إنشاء مجموعات تدريبية</td></tr>';
+ $('enrollRun').innerHTML='<option value="">اختر المجموعة</option>'+(runs||[]).filter(r=>!['completed','cancelled'].includes(r.status)).map(r=>'<option value="'+r.id+'">'+esc((r.institution_courses?.name||'دورة')+' — '+(r.run_name||'مجموعة'))+'</option>').join('');
+ const {data:trainees,error:traineeError}=await sb.from('institution_trainees').select('id,full_name').eq('institution_id',org.id).eq('status','active').order('full_name').limit(1000);
+ if(traineeError){emptyRow('enrollmentsRows',5,traineeError.message);return;}
+ $('enrollTrainee').innerHTML='<option value="">اختر المتدرب</option>'+(trainees||[]).map(t=>'<option value="'+t.id+'">'+esc(t.full_name)+'</option>').join('');
+ await loadEnrollments();
 }
+$('enrollTraineeBtn').addEventListener('click',async()=>{
+ const course_run_id=$('enrollRun').value,trainee_id=$('enrollTrainee').value;
+ if(!course_run_id||!trainee_id)return say('اختر المجموعة والمتدرب.','error');
+ if(!await allowed('trainees.manage'))return say('ليس لديك صلاحية تسجيل المتدربين.','error');
+ const {error}=await sb.from('institution_enrollments').insert({institution_id:org.id,course_run_id,trainee_id,status:$('enrollStatus').value});
+ if(error)return say(error.message,'error');say('تم تسجيل المتدرب في المجموعة.','success');await loadEnrollments();
+});
+async function loadEnrollments(){
+ const {data,error}=await sb.from('institution_enrollments').select('id,status,enrolled_at,institution_trainees(full_name),institution_course_runs(run_name,institution_courses(name))').eq('institution_id',org.id).order('enrolled_at',{ascending:false}).limit(300);
+ if(error){emptyRow('enrollmentsRows',5,error.message);return;}
+ const today=new Date().toISOString().slice(0,10);
+ $('enrollmentsRows').innerHTML=(data||[]).map(e=>'<tr><td>'+esc(e.institution_trainees?.full_name||'—')+'</td><td>'+esc(e.institution_course_runs?.institution_courses?.name||'—')+' / '+esc(e.institution_course_runs?.run_name||'مجموعة')+'</td><td>'+esc(e.status)+'</td><td>'+new Date(e.enrolled_at).toLocaleDateString('ar-EG')+'</td><td><button class="btn light" onclick="recordAttendance(\''+e.id+'\',\''+today+'\')">تسجيل الحضور</button></td></tr>').join('')||'<tr><td colspan="5" class="empty">لا توجد تسجيلات حتى الآن</td></tr>';
+}
+window.recordAttendance=async(id,date)=>{
+ if(!await allowed('trainees.manage'))return say('ليس لديك صلاحية تسجيل الحضور.','error');
+ const value=prompt('اكتب حالة الحضور: present أو absent أو late أو excused','present');
+ if(!value)return;
+ if(!['present','absent','late','excused'].includes(value))return say('حالة الحضور غير صحيحة.','error');
+ const {error}=await sb.from('institution_attendance').upsert({institution_id:org.id,enrollment_id:id,session_date:date,attendance_status:value,recorded_by:user.id},{onConflict:'enrollment_id,session_date'});
+ if(error)return say(error.message,'error');say('تم حفظ الحضور.','success');
+};
 $('addRunBtn').addEventListener('click',async()=>{
  const course_id=$('runCourse').value,branch_id=$('runBranch').value||null;if(!course_id)return say('اختر الدورة أولاً.','error');
  if(!await allowed('courses.manage',branch_id))return say('ليس لديك صلاحية إنشاء مجموعة في هذا الفرع.','error');
