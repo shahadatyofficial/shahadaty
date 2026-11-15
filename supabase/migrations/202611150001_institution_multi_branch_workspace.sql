@@ -391,7 +391,7 @@ create policy institution_course_runs_select on public.institution_course_runs
 drop policy if exists institution_course_runs_insert on public.institution_course_runs;
 create policy institution_course_runs_insert on public.institution_course_runs
  for insert to authenticated
- with check (public.institution_has_permission(institution_id,'courses.manage',branch_id) and public.institution_feature_has_capacity(institution_id,'courses'));
+ with check (public.institution_has_permission(institution_id,'courses.manage',branch_id));
 drop policy if exists institution_course_runs_update on public.institution_course_runs;
 create policy institution_course_runs_update on public.institution_course_runs
  for update to authenticated
