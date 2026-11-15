@@ -183,10 +183,6 @@ as $$
       and iu.status = 'active'
       and (
         iu.role = 'owner'
-        or (
-          iu.role = 'manager'
-          and p_permission not in ('billing.manage')
-        )
         or exists (
           select 1
           from public.institution_role_permissions rp
