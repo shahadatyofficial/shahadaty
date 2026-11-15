@@ -829,4 +829,56 @@ $function$;
 revoke all on function public.admin_save_package_feature_limits(uuid,integer,integer,integer,integer) from public, anon;
 grant execute on function public.admin_save_package_feature_limits(uuid,integer,integer,integer,integer) to authenticated;
 
+create or replace function public.enforce_institution_feature_capacity()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $function$
+declare
+  v_feature text;
+begin
+  if tg_table_name='institution_branches' then
+    v_feature:='branches';
+  elsif tg_table_name='institution_users' then
+    if new.role='owner' or new.status<>'active' then return new; end if;
+    v_feature:='staff';
+  elsif tg_table_name='institution_trainees' then
+    v_feature:='trainees';
+  elsif tg_table_name='institution_courses' then
+    v_feature:='courses';
+  else
+    raise exception 'UNSUPPORTED_CAPACITY_TABLE';
+  end if;
+
+  -- Serialize limit checks per institution to prevent concurrent over-allocation.
+  perform 1 from public.institutions i where i.id=new.institution_id for update;
+  if not found then raise exception 'INSTITUTION_NOT_FOUND'; end if;
+
+  if not public.institution_feature_has_capacity(new.institution_id,v_feature) then
+    raise exception 'FEATURE_LIMIT_REACHED' using errcode='23514';
+  end if;
+  return new;
+end;
+$function$;
+
+revoke all on function public.enforce_institution_feature_capacity() from public, anon, authenticated;
+
+drop trigger if exists institution_branches_capacity_guard on public.institution_branches;
+create trigger institution_branches_capacity_guard before insert on public.institution_branches
+for each row execute function public.enforce_institution_feature_capacity();
+
+drop trigger if exists institution_users_capacity_guard on public.institution_users;
+create trigger institution_users_capacity_guard before insert or update of status on public.institution_users
+for each row when (new.status='active' and new.role<>'owner')
+execute function public.enforce_institution_feature_capacity();
+
+drop trigger if exists institution_trainees_capacity_guard on public.institution_trainees;
+create trigger institution_trainees_capacity_guard before insert on public.institution_trainees
+for each row execute function public.enforce_institution_feature_capacity();
+
+drop trigger if exists institution_courses_capacity_guard on public.institution_courses;
+create trigger institution_courses_capacity_guard before insert on public.institution_courses
+for each row execute function public.enforce_institution_feature_capacity();
+
 commit;
