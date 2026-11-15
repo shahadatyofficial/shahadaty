@@ -60,7 +60,7 @@ Deno.serve(async (req: Request) => {
     const institutionId = String(body?.institution_id || "").trim();
     const email = String(body?.email || "").trim().toLowerCase();
     const role = String(body?.role || "").trim();
-    const branchIds = Array.isArray(body?.branch_ids)
+    const branchIds: string[] = Array.isArray(body?.branch_ids)
       ? [...new Set(body.branch_ids.map((x: unknown) => String(x).trim()).filter(Boolean))]
       : [];
     if (!/^[0-9a-f-]{36}$/i.test(institutionId) ||
@@ -190,8 +190,8 @@ Deno.serve(async (req: Request) => {
       invitation_email_sent: invitationEmailSent,
       membership_status: "active",
     });
-  } catch (error) {
-    console.error("institution-invite-member:", error?.message || error);
+  } catch (error: unknown) {
+    console.error("institution-invite-member:", error instanceof Error ? error.message : error);
     return reply(origin, 500, { error: "INTERNAL_ERROR" });
   }
 });
