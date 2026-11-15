@@ -795,4 +795,38 @@ grant execute on function public.issue_certificate(jsonb) to authenticated;
 revoke all on function public.issue_certificates_bulk(uuid,jsonb) from public, anon;
 grant execute on function public.issue_certificates_bulk(uuid,jsonb) to authenticated;
 
+create or replace function public.admin_save_package_feature_limits(
+  p_package_id uuid,
+  p_branch_limit integer,
+  p_staff_limit integer,
+  p_trainee_limit integer,
+  p_course_limit integer
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $function$
+begin
+  if not public.is_platform_admin() then raise exception 'NOT_ALLOWED'; end if;
+  if p_package_id is null then raise exception 'PACKAGE_ID_REQUIRED'; end if;
+  if (p_branch_limit is not null and p_branch_limit<0)
+     or (p_staff_limit is not null and p_staff_limit<0)
+     or (p_trainee_limit is not null and p_trainee_limit<0)
+     or (p_course_limit is not null and p_course_limit<0) then
+    raise exception 'INVALID_FEATURE_LIMITS';
+  end if;
+  update public.packages set
+    branch_limit=p_branch_limit,
+    staff_limit=p_staff_limit,
+    trainee_limit=p_trainee_limit,
+    course_limit=p_course_limit
+  where id=p_package_id;
+  if not found then raise exception 'PACKAGE_NOT_FOUND'; end if;
+  return jsonb_build_object('success',true,'package_id',p_package_id);
+end;
+$function$;
+
+revoke all on function public.admin_save_package_feature_limits(uuid,integer,integer,integer,integer) from public, anon;
+grant execute on function public.admin_save_package_feature_limits(uuid,integer,integer,integer,integer) to authenticated;
+
 commit;
