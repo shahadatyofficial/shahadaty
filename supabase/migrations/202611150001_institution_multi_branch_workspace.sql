@@ -242,11 +242,6 @@ create policy institution_branches_update on public.institution_branches
  using (public.institution_has_permission(institution_id,'branches.manage',id))
  with check (public.institution_has_permission(institution_id,'branches.manage',id));
 
-drop policy if exists institution_branches_delete on public.institution_branches;
-create policy institution_branches_delete on public.institution_branches
- for delete to authenticated
- using (public.institution_has_permission(institution_id,'branches.manage',id));
-
 drop policy if exists institution_role_permissions_select on public.institution_role_permissions;
 create policy institution_role_permissions_select on public.institution_role_permissions
  for select to authenticated
@@ -299,11 +294,6 @@ create policy institution_trainees_update on public.institution_trainees
  for update to authenticated
  using (public.institution_has_permission(institution_id,'trainees.manage',branch_id))
  with check (public.institution_has_permission(institution_id,'trainees.manage',branch_id));
-drop policy if exists institution_trainees_delete on public.institution_trainees;
-create policy institution_trainees_delete on public.institution_trainees
- for delete to authenticated
- using (public.institution_has_permission(institution_id,'trainees.manage',branch_id));
-
 drop policy if exists institution_course_runs_select on public.institution_course_runs;
 create policy institution_course_runs_select on public.institution_course_runs
  for select to authenticated
@@ -317,11 +307,6 @@ create policy institution_course_runs_update on public.institution_course_runs
  for update to authenticated
  using (public.institution_has_permission(institution_id,'courses.manage',branch_id))
  with check (public.institution_has_permission(institution_id,'courses.manage',branch_id));
-drop policy if exists institution_course_runs_delete on public.institution_course_runs;
-create policy institution_course_runs_delete on public.institution_course_runs
- for delete to authenticated
- using (public.institution_has_permission(institution_id,'courses.manage',branch_id));
-
 drop policy if exists institution_enrollments_select on public.institution_enrollments;
 create policy institution_enrollments_select on public.institution_enrollments
  for select to authenticated
@@ -361,16 +346,6 @@ create policy institution_enrollments_update on public.institution_enrollments
      and r.branch_id is not distinct from t.branch_id
      and public.institution_has_permission(institution_enrollments.institution_id,'trainees.manage',r.branch_id)
  ));
-drop policy if exists institution_enrollments_delete on public.institution_enrollments;
-create policy institution_enrollments_delete on public.institution_enrollments
- for delete to authenticated
- using (exists (
-   select 1 from public.institution_course_runs r
-   where r.id=institution_enrollments.course_run_id
-     and r.institution_id=institution_enrollments.institution_id
-     and public.institution_has_permission(institution_enrollments.institution_id,'trainees.manage',r.branch_id)
- ));
-
 drop policy if exists institution_attendance_select on public.institution_attendance;
 create policy institution_attendance_select on public.institution_attendance
  for select to authenticated
@@ -382,8 +357,17 @@ create policy institution_attendance_select on public.institution_attendance
      and public.institution_has_permission(institution_attendance.institution_id,'trainees.view',r.branch_id)
  ));
 drop policy if exists institution_attendance_write on public.institution_attendance;
-create policy institution_attendance_write on public.institution_attendance
- for all to authenticated
+create policy institution_attendance_insert on public.institution_attendance
+ for insert to authenticated
+ with check (exists (
+   select 1 from public.institution_enrollments e
+   join public.institution_course_runs r on r.id=e.course_run_id
+   where e.id=institution_attendance.enrollment_id
+     and e.institution_id=institution_attendance.institution_id
+     and public.institution_has_permission(institution_attendance.institution_id,'trainees.manage',r.branch_id)
+ ));
+create policy institution_attendance_update on public.institution_attendance
+ for update to authenticated
  using (exists (
    select 1 from public.institution_enrollments e
    join public.institution_course_runs r on r.id=e.course_run_id
@@ -429,8 +413,8 @@ create policy certificates_select_member on public.certificates
 
 -- Team records remain visible to their own member and to authorized team managers.
 drop policy if exists institution_users_manage_by_admin on public.institution_users;
-create policy institution_users_manage_by_admin on public.institution_users
- for all to authenticated
+create policy institution_users_update_manager on public.institution_users
+ for update to authenticated
  using (public.institution_has_permission(institution_id,'team.manage'))
  with check (public.institution_has_permission(institution_id,'team.manage'));
 
@@ -566,13 +550,13 @@ create policy institution_invitations_select_manager on public.institution_invit
  for select to authenticated
  using (public.institution_has_permission(institution_id,'team.view'));
 -- Explicit Data API privileges; row access remains constrained by the RLS policies above.
-grant select, insert, update, delete on public.institution_branches to authenticated;
+grant select, insert, update on public.institution_branches to authenticated;
 grant select on public.institution_role_permissions to authenticated;
 grant select, insert, update, delete on public.institution_user_branches to authenticated;
-grant select, insert, update, delete on public.institution_trainees to authenticated;
-grant select, insert, update, delete on public.institution_course_runs to authenticated;
-grant select, insert, update, delete on public.institution_enrollments to authenticated;
-grant select, insert, update, delete on public.institution_attendance to authenticated;
+grant select, insert, update on public.institution_trainees to authenticated;
+grant select, insert, update on public.institution_course_runs to authenticated;
+grant select, insert, update on public.institution_enrollments to authenticated;
+grant select, insert, update on public.institution_attendance to authenticated;
 grant select on public.institution_invitations to authenticated;
 grant update on public.institution_users to authenticated;
 grant select, insert, update, delete on public.institution_courses to authenticated;
