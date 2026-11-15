@@ -510,7 +510,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="page" id="page-packages">
       <div class="card">
         <div class="card-head"><span class="card-title">إدارة الباقات</span><button class="btn-p" onclick="openPackageEditor()"><span class="material-symbols-outlined">add</span>إضافة باقة</button></div>
-        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الباقة</th><th>شهريًا (مكافئ)</th><th>سنوي قبل الخصم</th><th>سنوي بعد الخصم</th><th>الكوتا</th><th>المشتركون</th><th>الإجراءات</th></tr></thead><tbody id="pkgTable"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>الباقة</th><th>شهريًا (مكافئ)</th><th>سنوي قبل الخصم</th><th>سنوي بعد الخصم</th><th>الكوتا</th><th>حدود التشغيل</th><th>المشتركون</th><th>الإجراءات</th></tr></thead><tbody id="pkgTable"><tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
         <div class="card-head" style="margin-top:22px"><span class="card-title">الاشتراكات والمدفوعات ومراجعة فروق الأسعار</span><button class="btn-s" onclick="loadPkgs()">تحديث</button></div>
         <p style="font-size:11px;color:var(--muted);margin:0 0 10px">تظهر هنا المدفوعات المعلقة وأي اشتراك لا يطابق سعر الباقة الحالي. لا يتم تعديل مبالغ الاشتراكات القديمة تلقائيًا.</p><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>المؤسسة</th><th>الباقة</th><th>القيمة المسجلة / المتوقعة</th><th>دورة الفوترة</th><th>الحالة</th><th>مرجع الدفع</th><th>إجراء</th></tr></thead><tbody id="subTable"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted)">جاري التحميل...</td></tr></tbody></table></div>
       </div>
@@ -602,6 +602,11 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
         <label class="form-lbl" for="packageYearlyRegular">السعر السنوي قبل الخصم بالجنيه</label><input class="form-inp" id="packageYearlyRegular" type="number" min="0" step="0.01" required oninput="updatePackageMonthlyPreview()">
         <label class="form-lbl" for="packageYearly">السعر السنوي بعد الخصم بالجنيه</label><input class="form-inp" id="packageYearly" type="number" min="0" step="0.01" required>
         <label class="form-lbl" for="packageQuota">عدد الشهادات المسموح</label><input class="form-inp" id="packageQuota" type="number" min="0" step="1" required>
+        <div style="margin-top:14px;padding:12px;border:1px solid var(--border);border-radius:10px;background:#f8fbff"><strong style="font-size:12px">حدود تشغيل المؤسسة</strong><p style="font-size:10px;color:var(--muted);margin:4px 0 8px">اترك الحقل فارغًا للسماح بعدد غير محدود. القيم لا تغيّر أسعار الباقة أو كوتا الشهادات.</p>
+        <label class="form-lbl" for="packageBranchesLimit">عدد الفروع</label><input class="form-inp" id="packageBranchesLimit" type="number" min="0" step="1" placeholder="غير محدود">
+        <label class="form-lbl" for="packageStaffLimit">عدد الموظفين</label><input class="form-inp" id="packageStaffLimit" type="number" min="0" step="1" placeholder="غير محدود">
+        <label class="form-lbl" for="packageTraineesLimit">عدد المتدربين</label><input class="form-inp" id="packageTraineesLimit" type="number" min="0" step="1" placeholder="غير محدود">
+        <label class="form-lbl" for="packageCoursesLimit">عدد الدورات في الكتالوج</label><input class="form-inp" id="packageCoursesLimit" type="number" min="0" step="1" placeholder="غير محدود"></div>
         <label class="form-lbl" for="packageOrder">ترتيب العرض</label><input class="form-inp" id="packageOrder" type="number" min="0" step="1" value="10" required>
         <div id="packageFormError" class="login-err" role="alert"></div>
       </div>
@@ -1250,6 +1255,7 @@ async function loadPkgs(){
     <td>${Number(p.price_yearly_regular||0).toLocaleString('ar-EG',{maximumFractionDigits:2})} ج</td>
     <td>${Number(p.price_yearly||0).toLocaleString('ar-EG',{maximumFractionDigits:2})} ج</td>
     <td>${Number(p.quota_limit||0).toLocaleString('ar-EG')} شهادة</td>
+    <td style="font-size:10px;line-height:1.8">فروع: ${p.branch_limit==null?'غير محدود':p.branch_limit} · موظفون: ${p.staff_limit==null?'غير محدود':p.staff_limit}<br>متدربون: ${p.trainee_limit==null?'غير محدود':p.trainee_limit} · دورات: ${p.course_limit==null?'غير محدود':p.course_limit}</td>
     <td><span style="font-size:13px;font-weight:800;color:var(--blue)">${p.institutions?.length||0}</span></td>
     <td><button class="btn-s" type="button" onclick="editPackage('${p.id}')">تعديل</button> <button class="btn-d" type="button" onclick="deletePackage('${p.id}')">حذف</button></td>
   </tr>`).join('');
@@ -1282,6 +1288,10 @@ function openPackageEditor(pkg=null){
   updatePackageMonthlyPreview();
   document.getElementById('packageQuota').value=pkg?.quota_limit??10;
   document.getElementById('packageOrder').value=pkg?.sort_order??10;
+  document.getElementById('packageBranchesLimit').value=pkg?.branch_limit??'';
+  document.getElementById('packageStaffLimit').value=pkg?.staff_limit??'';
+  document.getElementById('packageTraineesLimit').value=pkg?.trainee_limit??'';
+  document.getElementById('packageCoursesLimit').value=pkg?.course_limit??'';
   document.getElementById('packageModalTitle').textContent=pkg?'تعديل الباقة':'إضافة باقة جديدة';
   document.getElementById('packageModal').style.display='flex';
 }
@@ -1312,11 +1322,24 @@ async function savePackage(event){
   if(!payload.p_name||!payload.p_name_ar||!pricesValid||!limitsValid){
     errorBox.textContent='راجع البيانات: السعران يجب أن يكونا صحيحين، وسعر ما بعد الخصم لا يتجاوز السعر الأصلي، والكوتا والترتيب أعداد صحيحة غير سالبة.';errorBox.style.display='block';return;
   }
+  const limitIds=['packageBranchesLimit','packageStaffLimit','packageTraineesLimit','packageCoursesLimit'];
+  const limits=limitIds.map(id=>{const value=document.getElementById(id).value.trim();return value===''?null:Number(value);});
+  if(limits.some(value=>value!==null&&(!Number.isInteger(value)||value<0))){
+    errorBox.textContent='حدود التشغيل يجب أن تكون أعدادًا صحيحة غير سالبة، أو اتركها فارغة لعدد غير محدود.';errorBox.style.display='block';return;
+  }
   btn.disabled=true;btn.textContent='جارٍ الحفظ...';errorBox.style.display='none';
-  const{error}=await sb.rpc('admin_save_package',payload);
+  const{data:saved,error}=await sb.rpc('admin_save_package',payload);
+  if(error){btn.disabled=false;btn.textContent='حفظ الباقة';errorBox.textContent=error.message;errorBox.style.display='block';return;}
+  const savedPackageId=packageId||saved?.package_id;
+  if(!savedPackageId){btn.disabled=false;btn.textContent='حفظ الباقة';errorBox.textContent='تم حفظ الباقة لكن تعذر استرجاع معرفها لحفظ الحدود.';errorBox.style.display='block';return;}
+  document.getElementById('packageId').value=savedPackageId;
+  const{error:limitError}=await sb.rpc('admin_save_package_feature_limits',{
+    p_package_id:savedPackageId,p_branch_limit:limits[0],p_staff_limit:limits[1],
+    p_trainee_limit:limits[2],p_course_limit:limits[3]
+  });
   btn.disabled=false;btn.textContent='حفظ الباقة';
-  if(error){errorBox.textContent=error.message;errorBox.style.display='block';return;}
-  closePackageEditor();toast(packageId?'تم تحديث الباقة':'تمت إضافة الباقة','ok');loadPkgs();
+  if(limitError){errorBox.textContent='تم حفظ بيانات الباقة الأساسية، لكن تعذر حفظ حدود التشغيل: '+limitError.message+' — أعد الحفظ للمحاولة مرة أخرى.';errorBox.style.display='block';return;}
+  closePackageEditor();toast(packageId?'تم تحديث الباقة وحدودها':'تمت إضافة الباقة وحدودها','ok');loadPkgs();
 }
 async function deletePackage(id){
   if(!confirm('هل تريد حذف هذه الباقة؟ لن يُسمح بالحذف إذا كانت مرتبطة بمؤسسة أو اشتراك.'))return;
