@@ -526,4 +526,17 @@ create policy institution_invitations_revoke_manager on public.institution_invit
  for update to authenticated
  using (public.institution_has_permission(institution_id,'team.manage'))
  with check (public.institution_has_permission(institution_id,'team.manage'));
+
+-- Explicit Data API privileges; row access remains constrained by the RLS policies above.
+grant select, insert, update, delete on public.institution_branches to authenticated;
+grant select on public.institution_role_permissions to authenticated;
+grant select, insert, update, delete on public.institution_user_branches to authenticated;
+grant select, insert, update, delete on public.institution_trainees to authenticated;
+grant select, insert, update, delete on public.institution_course_runs to authenticated;
+grant select, insert, update, delete on public.institution_enrollments to authenticated;
+grant select, insert, update, delete on public.institution_attendance to authenticated;
+grant select, update on public.institution_invitations to authenticated;
+grant update on public.institution_users to authenticated;
+grant select, insert, update, delete on public.institution_courses to authenticated;
+
 commit;
