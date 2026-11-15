@@ -191,24 +191,29 @@ as $$
       )
       and (
         (p_branch_id is null and iu.role in ('owner','manager'))
-        or iu.role = 'owner'
-        or (
-          iu.role = 'manager'
-          and exists (
-            select 1 from public.institution_branches b
-            where b.id = p_branch_id and b.institution_id = p_institution_id
-          )
-        )
         or (
           p_branch_id is not null
           and exists (
             select 1
-            from public.institution_user_branches iub
-            join public.institution_branches b on b.id = iub.branch_id
-            where iub.institution_user_id = iu.id
-              and iub.branch_id = p_branch_id
+            from public.institution_branches b
+            where b.id = p_branch_id
               and b.institution_id = p_institution_id
-              and b.is_active
+              and (
+                b.is_active
+                or (
+                  iu.role in ('owner','manager')
+                  and p_permission in ('branches.view','branches.manage')
+                )
+              )
+              and (
+                iu.role in ('owner','manager')
+                or exists (
+                  select 1
+                  from public.institution_user_branches iub
+                  where iub.institution_user_id = iu.id
+                    and iub.branch_id = b.id
+                )
+              )
           )
         )
       )
