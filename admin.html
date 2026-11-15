@@ -1249,7 +1249,7 @@ async function loadPkgs(){
   ]);
   if(pkgErr){toast(pkgErr.message,'err');return;}
   const pkgBody=document.getElementById('pkgTable');
-  pkgBody.innerHTML=!(packages||[]).length?'<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">لا توجد باقات</td></tr>':packages.map(p=>`<tr>
+  pkgBody.innerHTML=!(packages||[]).length?'<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">لا توجد باقات</td></tr>':packages.map(p=>`<tr>
     <td><span style="font-weight:800">${adminEsc(p.name_ar||p.name)}</span><div style="font-size:10px;color:var(--muted)" dir="ltr">${adminEsc(p.name)}</div></td>
     <td>${Number(p.price_monthly||0).toLocaleString('ar-EG',{maximumFractionDigits:2})} ج</td>
     <td>${Number(p.price_yearly_regular||0).toLocaleString('ar-EG',{maximumFractionDigits:2})} ج</td>
