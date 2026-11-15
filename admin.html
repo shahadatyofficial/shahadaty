@@ -1626,10 +1626,10 @@ async function loadReports(){
   const{data,error}=await sb.rpc('admin_platform_stats');
   if(error){toast(error.message,'err');return;}
   const s=data||{};
-  document.getElementById('rep_today').textContent=s.active_certificates??0;
-  document.getElementById('rep_month').textContent=s.certificates??0;
-  document.getElementById('rep_rev').textContent=s.approved_institutions??0;
-  document.getElementById('rep_verify').textContent=s.pending_institutions??0;
+  document.getElementById('rep_today').textContent=s.approved_institutions??0;
+  document.getElementById('rep_month').textContent=s.pending_institutions??0;
+  document.getElementById('rep_rev').textContent=s.certificates??0;
+  document.getElementById('rep_verify').textContent=s.active_certificates??0;
 }
 async function exportReport(table){
   const{data}=await sb.from(table).select('*').limit(1000);

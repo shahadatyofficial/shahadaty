@@ -22,11 +22,21 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.stat{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:13px}.stat b{font-size:22px;display:block}.empty{text-align:center;padding:24px;color:var(--muted);font-size:13px}
 @media(max-width:720px){.grid,.stats{grid-template-columns:1fr 1fr}header{padding:18px}h1{font-size:18px}}
 @media(max-width:460px){.grid,.stats{grid-template-columns:1fr}.card{padding:14px}}
+
+.team-modal{position:fixed;inset:0;z-index:1000;background:#0c2d4e99;display:none;align-items:center;justify-content:center;padding:16px}.team-modal.open{display:flex}.team-modal-card{width:min(100%,520px);max-height:85vh;overflow:auto;background:#fff;border-radius:16px;padding:20px;box-shadow:0 20px 60px #0c2d4e33}.team-modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}.team-modal-head h2{font-size:17px;margin:0}.team-branch-choice{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line);border-radius:10px;margin:8px 0;cursor:pointer}.team-branch-choice input{width:18px;height:18px;flex:none}.team-modal-actions{display:flex;justify-content:flex-start;gap:8px;margin-top:16px}.team-modal-actions button:disabled{opacity:.55;cursor:wait}
 </style></head>
 <body>
 <header><div><h1>إدارة الفروع والفريق</h1><p id="orgTitle">مساحة تشغيل المؤسسة متعددة الفروع</p></div><a href="institution.html">العودة إلى لوحة المؤسسة ←</a></header>
 <main>
 <div id="message" class="notice" style="display:none"></div>
+<div class="team-modal" id="teamBranchModal" role="dialog" aria-modal="true" aria-labelledby="teamBranchModalTitle">
+ <div class="team-modal-card">
+  <div class="team-modal-head"><h2 id="teamBranchModalTitle">تخصيص فروع الموظف</h2><button class="btn light" type="button" id="closeTeamBranchModal">إغلاق</button></div>
+  <p class="muted">حدد الفروع التي يُسمح للموظف بالعمل عليها.</p>
+  <div id="teamBranchChoices"></div>
+  <div class="team-modal-actions"><button class="btn" type="button" id="saveTeamBranches">حفظ التخصيص</button><button class="btn light" type="button" id="cancelTeamBranches">إلغاء</button></div>
+ </div>
+</div>
 <div class="tabs">
 <button class="tab active" data-tab="branches">الفروع</button>
 <button class="tab" data-tab="team">الموظفون والصلاحيات</button>
@@ -142,18 +152,36 @@ async function loadTeam(){
  $('teamRows').querySelectorAll('[data-role]').forEach(sel=>sel.addEventListener('change',async()=>{if(!await allowed('team.manage'))return say('ليس لديك صلاحية إدارة الفريق.','error');const {error}=await sb.from('institution_users').update({role:sel.value}).eq('id',sel.dataset.role).eq('institution_id',org.id);if(error){say(error.message,'error');await loadTeam()}else say('تم تحديث الدور.','success')}));
  $('teamRows').querySelectorAll('[data-branches]').forEach(btn=>btn.addEventListener('click',()=>manageBranches(btn.dataset.branches)));
 }
+let editingTeamMemberId=null,teamBranchOriginal=new Set();
+function closeTeamBranchModal(){ $('teamBranchModal').classList.remove('open');editingTeamMemberId=null; }
 async function manageBranches(memberId){
  if(!await allowed('team.manage'))return say('ليس لديك صلاحية تخصيص الفروع.','error');
- const {data:assigned,error}=await sb.from('institution_user_branches').select('branch_id').eq('institution_user_id',memberId);if(error)return say(error.message,'error');
- const current=new Set((assigned||[]).map(x=>x.branch_id));
- const choices=branches.filter(b=>b.is_active).map(b=>({id:b.id,name:b.name}));
- const selected=prompt('اكتب أكواد الفروع المطلوب تخصيصها مفصولة بفاصلة:\n'+choices.map((b,i)=>(i+1)+') '+b.name+' ['+b.id+']').join('\n')+'\nاتركها فارغة لإزالة كل التخصيصات.');
- if(selected===null)return;
- const ids=selected.split(',').map(x=>x.trim()).filter(Boolean).map(x=>choices[Number(x)-1]?.id||x).filter(id=>choices.some(b=>b.id===id));
- const {error:delErr}=await sb.from('institution_user_branches').delete().eq('institution_user_id',memberId);if(delErr)return say(delErr.message,'error');
- if(ids.length){const rows=ids.map(branch_id=>({institution_user_id:memberId,branch_id}));const {error:insErr}=await sb.from('institution_user_branches').insert(rows);if(insErr)return say(insErr.message,'error');}
- say('تم تحديث الفروع المخصصة للموظف.','success');
+ const {data:assigned,error}=await sb.from('institution_user_branches').select('branch_id').eq('institution_user_id',memberId);
+ if(error)return say(error.message,'error');
+ editingTeamMemberId=memberId;teamBranchOriginal=new Set((assigned||[]).map(x=>x.branch_id));
+ const choices=branches.filter(b=>b.is_active||teamBranchOriginal.has(b.id));
+ $('teamBranchChoices').innerHTML=choices.length?choices.map(b=>'<label class="team-branch-choice"><input type="checkbox" value="'+esc(b.id)+'" '+(teamBranchOriginal.has(b.id)?'checked':'')+' '+(!b.is_active?'disabled':'')+'><span><b>'+esc(b.name)+'</b><small class="muted" style="display:block">'+esc(!b.is_active?'فرع موقوف — محفوظ دون تغيير':[b.governorate,b.branch_code].filter(Boolean).join(' · ')||'فرع نشط')+'</small></span></label>').join(''):'<div class="empty">لا توجد فروع نشطة لتخصيصها.</div>';
+ $('teamBranchModal').classList.add('open');
 }
+async function saveTeamBranchAssignments(){
+ if(!editingTeamMemberId)return;
+ const btn=$('saveTeamBranches'),memberId=editingTeamMemberId;
+ const selected=new Set(Array.from($('teamBranchChoices').querySelectorAll('input:checked')).map(x=>x.value));
+ const add=[...selected].filter(id=>!teamBranchOriginal.has(id));
+ const remove=[...teamBranchOriginal].filter(id=>!selected.has(id));
+ btn.disabled=true;btn.textContent='جارٍ الحفظ...';
+ try{
+  if(remove.length){const {error}=await sb.from('institution_user_branches').delete().eq('institution_user_id',memberId).in('branch_id',remove);if(error)throw error;}
+  if(add.length){const rows=add.map(branch_id=>({institution_user_id:memberId,branch_id}));const {error}=await sb.from('institution_user_branches').insert(rows);if(error)throw error;}
+  closeTeamBranchModal();say('تم حفظ تخصيص الفروع للموظف.','success');await loadTeam();
+ }catch(error){say('تعذر حفظ التخصيص: '+(error.message||'خطأ غير معروف'),'error');}
+ finally{btn.disabled=false;btn.textContent='حفظ التخصيص';}
+}
+$('closeTeamBranchModal').addEventListener('click',closeTeamBranchModal);
+$('cancelTeamBranches').addEventListener('click',closeTeamBranchModal);
+$('saveTeamBranches').addEventListener('click',saveTeamBranchAssignments);
+$('teamBranchModal').addEventListener('click',e=>{if(e.target===$('teamBranchModal'))closeTeamBranchModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeTeamBranchModal();});
 $('inviteMemberBtn').addEventListener('click',async()=>{
  if(!await allowed('team.manage'))return say('ليس لديك صلاحية دعوة موظفين.','error');
  const email=$('inviteEmail').value.trim().toLowerCase();
