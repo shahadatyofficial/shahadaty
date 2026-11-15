@@ -211,7 +211,7 @@ async function loadTeam(){
  const roleOptions=[['owner','مالك'],['manager','مدير مؤسسة'],['training_manager','مدير تدريب'],['registrar','شؤون متدربين'],['certificate_issuer','إصدار شهادات'],['branch_manager','مدير فرع'],['viewer','مشاهد']];
  $('teamRows').innerHTML=(data||[]).map(m=>{
   const self=m.auth_user_id===user.id, protectedOwner=m.role==='owner';
-  const canEdit=canManageTeam&&!self&&(!protectedOwner||membership.role==='owner');
+  const canEdit=canManageTeam&&!self&&!protectedOwner;
   const statusLabel=m.status==='active'?'نشط':m.status==='suspended'?'موقوف مؤقتًا':'غير نشط';
   const nextStatus=m.status==='active'?'suspended':'active';
   const actionLabel=m.status==='active'?'إيقاف مؤقت':'إعادة تفعيل';
