@@ -4,6 +4,35 @@
 
 begin;
 
+-- Optional feature caps are configurable per package and may be snapshotted per subscription.
+alter table public.packages
+  add column if not exists branch_limit integer,
+  add column if not exists staff_limit integer,
+  add column if not exists trainee_limit integer,
+  add column if not exists course_limit integer;
+alter table public.subscriptions
+  add column if not exists branch_limit integer,
+  add column if not exists staff_limit integer,
+  add column if not exists trainee_limit integer,
+  add column if not exists course_limit integer;
+
+alter table public.packages
+  drop constraint if exists packages_feature_limits_nonnegative,
+  add constraint packages_feature_limits_nonnegative check (
+    (branch_limit is null or branch_limit >= 0)
+    and (staff_limit is null or staff_limit >= 0)
+    and (trainee_limit is null or trainee_limit >= 0)
+    and (course_limit is null or course_limit >= 0)
+  );
+alter table public.subscriptions
+  drop constraint if exists subscriptions_feature_limits_nonnegative,
+  add constraint subscriptions_feature_limits_nonnegative check (
+    (branch_limit is null or branch_limit >= 0)
+    and (staff_limit is null or staff_limit >= 0)
+    and (trainee_limit is null or trainee_limit >= 0)
+    and (course_limit is null or course_limit >= 0)
+  );
+
 create table if not exists public.institution_branches (
   id uuid primary key default gen_random_uuid(),
   institution_id uuid not null references public.institutions(id) on delete cascade,
@@ -167,6 +196,60 @@ create index if not exists institution_courses_branch_idx
 create index if not exists certificates_institution_branch_idx
   on public.certificates(institution_id, branch_id, created_at desc);
 
+create or replace function public.institution_feature_has_capacity(
+  p_institution_id uuid,
+  p_feature text
+) returns boolean
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $function$
+declare
+  v_limit integer;
+  v_used bigint;
+begin
+  select
+    case p_feature
+      when 'branches' then coalesce(s.branch_limit,p.branch_limit)
+      when 'staff' then coalesce(s.staff_limit,p.staff_limit)
+      when 'trainees' then coalesce(s.trainee_limit,p.trainee_limit)
+      when 'courses' then coalesce(s.course_limit,p.course_limit)
+      else -1
+    end
+  into v_limit
+  from public.subscriptions s
+  join public.packages p on p.id=s.package_id
+  where s.institution_id=p_institution_id
+    and s.status='active'
+    and (s.starts_at is null or s.starts_at<=now())
+    and (s.ends_at is null or s.ends_at>now())
+    and (s.payment_status='paid' or (coalesce(s.amount,0)=0 and p.name='trial'))
+  order by s.created_at desc
+  limit 1;
+
+  if not found or v_limit=-1 then return false; end if;
+  if v_limit is null then return true; end if;
+
+  if p_feature='branches' then
+    select count(*) into v_used from public.institution_branches where institution_id=p_institution_id;
+  elsif p_feature='staff' then
+    select count(*) into v_used from public.institution_users
+    where institution_id=p_institution_id and status='active' and role<>'owner';
+  elsif p_feature='trainees' then
+    select count(*) into v_used from public.institution_trainees where institution_id=p_institution_id;
+  elsif p_feature='courses' then
+    select count(*) into v_used from public.institution_courses where institution_id=p_institution_id;
+  else
+    return false;
+  end if;
+  return v_used < v_limit;
+end;
+$function$;
+
+revoke all on function public.institution_feature_has_capacity(uuid,text) from public, anon;
+grant execute on function public.institution_feature_has_capacity(uuid,text) to authenticated;
+
 create or replace function public.institution_has_permission(
   p_institution_id uuid,
   p_permission text,
@@ -241,7 +324,7 @@ create policy institution_branches_select on public.institution_branches
 drop policy if exists institution_branches_insert on public.institution_branches;
 create policy institution_branches_insert on public.institution_branches
  for insert to authenticated
- with check (public.institution_has_permission(institution_id,'branches.manage'));
+ with check (public.institution_has_permission(institution_id,'branches.manage') and public.institution_feature_has_capacity(institution_id,'branches'));
 
 drop policy if exists institution_branches_update on public.institution_branches;
 create policy institution_branches_update on public.institution_branches
@@ -295,7 +378,7 @@ create policy institution_trainees_select on public.institution_trainees
 drop policy if exists institution_trainees_insert on public.institution_trainees;
 create policy institution_trainees_insert on public.institution_trainees
  for insert to authenticated
- with check (public.institution_has_permission(institution_id,'trainees.manage',branch_id));
+ with check (public.institution_has_permission(institution_id,'trainees.manage',branch_id) and public.institution_feature_has_capacity(institution_id,'trainees'));
 drop policy if exists institution_trainees_update on public.institution_trainees;
 create policy institution_trainees_update on public.institution_trainees
  for update to authenticated
@@ -308,7 +391,7 @@ create policy institution_course_runs_select on public.institution_course_runs
 drop policy if exists institution_course_runs_insert on public.institution_course_runs;
 create policy institution_course_runs_insert on public.institution_course_runs
  for insert to authenticated
- with check (public.institution_has_permission(institution_id,'courses.manage',branch_id));
+ with check (public.institution_has_permission(institution_id,'courses.manage',branch_id) and public.institution_feature_has_capacity(institution_id,'courses'));
 drop policy if exists institution_course_runs_update on public.institution_course_runs;
 create policy institution_course_runs_update on public.institution_course_runs
  for update to authenticated
