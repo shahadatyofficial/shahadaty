@@ -842,6 +842,14 @@ begin
     v_feature:='branches';
   elsif tg_table_name='institution_users' then
     if new.role='owner' or new.status<>'active' then return new; end if;
+    -- Role edits on an already-counted active employee do not consume extra capacity.
+    -- Only a new membership or a transition into the counted state needs a capacity check.
+    if tg_op='UPDATE'
+       and old.institution_id=new.institution_id
+       and old.status='active'
+       and old.role<>'owner' then
+      return new;
+    end if;
     v_feature:='staff';
   elsif tg_table_name='institution_trainees' then
     v_feature:='trainees';
