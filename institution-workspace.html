@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>إدارة الفروع والفريق | شهادتي العلمية</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--navy:#0c2d4e;--blue:#0369a1;--gold:#b08d48;--bg:#f4f7fb;--line:#e3eaf2;--muted:#64748b;--red:#b91c1c;--green:#15803d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--navy);font-family:Cairo,sans-serif}
+header{background:linear-gradient(120deg,#0c2d4e,#075985);color:#fff;padding:22px max(20px,calc((100% - 1180px)/2));display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap}
+header a{color:#fff;text-decoration:none;border:1px solid #ffffff55;padding:8px 14px;border-radius:10px;font-size:13px}
+h1{font-size:22px;margin:0}header p{margin:4px 0 0;color:#dbeafe;font-size:12px}
+main{max-width:1180px;margin:24px auto;padding:0 16px 50px}
+.tabs{display:flex;gap:8px;overflow:auto;margin-bottom:18px}.tab{border:1px solid var(--line);background:#fff;color:var(--navy);padding:10px 16px;border-radius:11px;font:700 13px Cairo;white-space:nowrap;cursor:pointer}.tab.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.panel{display:none}.panel.active{display:block}.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 5px 18px #0c2d4e08}
+.card h2{font-size:16px;margin:0 0 14px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid #d6e0eb;border-radius:10px;font:13px Cairo;color:var(--navy);background:#fff}
+label{font-size:12px;font-weight:700;display:block;margin-bottom:5px}.field{min-width:0}.btn{border:0;border-radius:10px;background:var(--blue);color:#fff;padding:10px 16px;font:700 13px Cairo;cursor:pointer}.btn.gold{background:var(--gold)}.btn.light{background:#edf5fb;color:var(--blue)}.btn.danger{background:#fff1f2;color:var(--red)}.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right;padding:10px;border-bottom:1px solid var(--line);font-size:12px}th{background:#f7fafc;color:#475569}
+.table-wrap{overflow:auto}.muted{color:var(--muted);font-size:12px}.notice{padding:12px;border-radius:10px;background:#eff6ff;color:#1e40af;font-size:12px;line-height:1.8;margin-bottom:14px}.error{background:#fff1f2;color:#9f1239}.success{background:#f0fdf4;color:#166534}.pill{padding:3px 8px;border-radius:20px;background:#eef2ff;color:#3730a3;font-size:10px;font-weight:800}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.stat{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:13px}.stat b{font-size:22px;display:block}.empty{text-align:center;padding:24px;color:var(--muted);font-size:13px}
+@media(max-width:720px){.grid,.stats{grid-template-columns:1fr 1fr}header{padding:18px}h1{font-size:18px}}
+@media(max-width:460px){.grid,.stats{grid-template-columns:1fr}.card{padding:14px}}
+</style></head>
+<body>
+<header><div><h1>إدارة الفروع والفريق</h1><p id="orgTitle">مساحة تشغيل المؤسسة متعددة الفروع</p></div><a href="institution.html">العودة إلى لوحة المؤسسة ←</a></header>
+<main>
+<div id="message" class="notice" style="display:none"></div>
+<div class="tabs">
+<button class="tab active" data-tab="branches">الفروع</button>
+<button class="tab" data-tab="team">الموظفون والصلاحيات</button>
+<button class="tab" data-tab="trainees">المتدربون</button>
+<button class="tab" data-tab="courses">البرامج والمجموعات</button>
+</div>
+<section id="branches" class="panel active">
+<div class="stats"><div class="stat"><span class="muted">إجمالي الفروع</span><b id="branchCount">—</b></div><div class="stat"><span class="muted">الفروع النشطة</span><b id="activeBranchCount">—</b></div><div class="stat"><span class="muted">الفروع المحددة</span><b id="selectedBranchName" style="font-size:15px">كل الفروع</b></div></div>
+<div class="card"><h2>إضافة فرع جديد</h2><div class="grid">
+<div class="field"><label>اسم الفرع *</label><input id="branchName" placeholder="مثال: فرع دمنهور"></div>
+<div class="field"><label>كود الفرع</label><input id="branchCode" placeholder="BR-02" dir="ltr"></div>
+<div class="field"><label>المحافظة</label><input id="branchGov" placeholder="المحافظة"></div>
+<div class="field"><label>العنوان</label><input id="branchAddress" placeholder="العنوان بالتفصيل"></div>
+<div class="field"><label>هاتف الفرع</label><input id="branchPhone" placeholder="01xxxxxxxxx" dir="ltr"></div></div>
+<div class="actions"><button class="btn" id="addBranchBtn">حفظ الفرع</button></div></div>
+<div class="card"><h2>الفروع المسجلة</h2><div class="table-wrap"><table><thead><tr><th>الفرع</th><th>الكود</th><th>الموقع</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="branchesRows"></tbody></table></div></div>
+</section>
+<section id="team" class="panel">
+<div class="notice">الصلاحيات تُطبّق من قاعدة البيانات، وليس من إخفاء الأزرار فقط. الموظف لا يرى إلا الفروع المخصصة له، بينما المالك ومدير المؤسسة يملكان صلاحيات الإدارة حسب الدور.</div>
+<div class="card"><h2>دعوة موظف جديد</h2><div class="grid">
+<div class="field"><label>البريد الإلكتروني للموظف *</label><input id="inviteEmail" type="email" dir="ltr" placeholder="employee@example.com"></div>
+<div class="field"><label>الدور الوظيفي</label><select id="inviteRole"><option value="training_manager">مدير تدريب</option><option value="registrar">شؤون متدربين</option><option value="certificate_issuer">مسؤول إصدار الشهادات</option><option value="branch_manager">مدير فرع</option><option value="viewer">مشاهد</option><option value="manager">مدير مؤسسة</option></select></div>
+<div class="field"><label>الفروع المخصصة (يمكن اختيار أكثر من فرع)</label><select id="inviteBranches" multiple size="4"></select></div></div>
+<div class="actions"><button class="btn" id="inviteMemberBtn">إرسال الدعوة وربط الصلاحيات</button></div><p class="muted">الموظف الجديد تصله دعوة على البريد. الحساب الموجود بالفعل يُربط بالمؤسسة بعد التحقق من البريد.</p></div><div class="card"><h2>أعضاء فريق المؤسسة</h2><p class="muted">يعرض هذا القسم العضويات المرتبطة بالفعل بحسابات مستخدمين. إضافة موظف جديد تتم عبر دعوة آمنة بالبريد في خطوة الربط بخدمة الدعوات.</p><div class="table-wrap"><table><thead><tr><th>معرّف الحساب</th><th>الدور</th><th>الحالة</th><th>تخصيص الفروع</th></tr></thead><tbody id="teamRows"></tbody></table></div></div>
+<div class="card"><h2>قاموس الأدوار</h2><div class="table-wrap"><table><thead><tr><th>الدور</th><th>المهام الأساسية</th></tr></thead><tbody>
+<tr><td>مدير المؤسسة</td><td>إدارة التشغيل والفروع والفريق والدورات والشهادات</td></tr>
+<tr><td>مدير التدريب</td><td>إدارة الدورات والمجموعات والمتدربين والتقارير</td></tr>
+<tr><td>مسؤول شؤون المتدربين</td><td>ملفات المتدربين والتسجيلات</td></tr>
+<tr><td>مسؤول إصدار الشهادات</td><td>عرض المتدربين والدورات وإصدار الشهادات</td></tr>
+<tr><td>مدير فرع</td><td>إدارة تشغيل الفرع المخصص فقط</td></tr>
+<tr><td>مشاهد</td><td>عرض البيانات والتقارير دون تعديل</td></tr>
+</tbody></table></div></div>
+</section>
+<section id="trainees" class="panel">
+<div class="card"><h2>إضافة متدرب</h2><div class="grid">
+<div class="field"><label>اسم المتدرب *</label><input id="traineeName"></div>
+<div class="field"><label>رقم الهاتف</label><input id="traineePhone" dir="ltr"></div>
+<div class="field"><label>البريد الإلكتروني</label><input id="traineeEmail" type="email" dir="ltr"></div>
+<div class="field"><label>الرقم القومي</label><input id="traineeNational" dir="ltr" maxlength="14"></div>
+<div class="field"><label>الفرع</label><select id="traineeBranch"></select></div>
+<div class="field"><label>المحافظة</label><input id="traineeGov"></div></div><div class="actions"><button class="btn" id="addTraineeBtn">حفظ المتدرب</button></div></div>
+<div class="card"><h2>سجل المتدربين</h2><div class="table-wrap"><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>البريد</th><th>الفرع</th><th>الحالة</th></tr></thead><tbody id="traineesRows"></tbody></table></div></div>
+</section>
+<section id="courses" class="panel">
+<div class="card"><h2>إضافة دورة إلى كتالوج المؤسسة</h2><div class="grid">
+<div class="field"><label>اسم الدورة *</label><input id="catalogCourseName" placeholder="اسم البرنامج التدريبي"></div>
+<div class="field"><label>التخصص</label><input id="catalogCourseSpecialization" placeholder="التخصص"></div>
+<div class="field"><label>المدة</label><input id="catalogCourseDuration" placeholder="مثال: 40 ساعة"></div>
+<div class="field"><label>الفرع</label><select id="catalogCourseBranch"></select></div>
+</div><div class="actions"><button class="btn" id="saveCatalogCourseBtn">حفظ الدورة</button></div></div>
+<div class="card"><h2>كتالوج الدورات المتاحة</h2><div class="table-wrap"><table><thead><tr><th>الدورة</th><th>التخصص</th><th>المدة</th><th>الفرع</th><th>الحالة</th></tr></thead><tbody id="catalogCoursesRows"></tbody></table></div></div><div class="card"><h2>إنشاء مجموعة تدريبية</h2><div class="grid">
+<div class="field"><label>الدورة *</label><select id="runCourse"></select></div>
+<div class="field"><label>اسم المجموعة</label><input id="runName" placeholder="دفعة نوفمبر"></div>
+<div class="field"><label>الفرع</label><select id="runBranch"></select></div>
+<div class="field"><label>اسم المدرب</label><input id="runInstructor"></div>
+<div class="field"><label>تاريخ البداية</label><input id="runStart" type="date"></div>
+<div class="field"><label>تاريخ النهاية</label><input id="runEnd" type="date"></div>
+<div class="field"><label>السعة</label><input id="runCapacity" type="number" min="1"></div>
+<div class="field"><label>الحالة</label><select id="runStatus"><option value="planned">مخططة</option><option value="open">متاحة للتسجيل</option><option value="in_progress">جارية</option><option value="completed">مكتملة</option><option value="cancelled">ملغاة</option></select></div>
+</div><div class="actions"><button class="btn" id="addRunBtn">إنشاء المجموعة</button></div></div>
+<div class="card"><h2>تسجيل متدرب في مجموعة</h2><div class="grid">
+<div class="field"><label>المجموعة التدريبية *</label><select id="enrollRun"></select></div>
+<div class="field"><label>المتدرب *</label><select id="enrollTrainee"></select></div>
+<div class="field"><label>حالة التسجيل</label><select id="enrollStatus"><option value="enrolled">مسجل</option><option value="attending">منتظم</option></select></div>
+</div><div class="actions"><button class="btn" id="enrollTraineeBtn">تسجيل المتدرب</button></div></div>
+<div class="card"><h2>سجل التسجيلات والحضور</h2><div class="table-wrap"><table><thead><tr><th>المتدرب</th><th>الدورة / المجموعة</th><th>الحالة</th><th>التسجيل</th><th>الحضور اليوم</th></tr></thead><tbody id="enrollmentsRows"></tbody></table></div></div><div class="card"><h2>المجموعات التدريبية</h2><div class="table-wrap"><table><thead><tr><th>المجموعة</th><th>الدورة</th><th>الفرع</th><th>المدرب</th><th>الفترة</th><th>الحالة</th></tr></thead><tbody id="runsRows"></tbody></table></div></div>
+</section>
+</main>
+<script>
+const SUPABASE_URL='https://snteiiavvaaumgaegazn.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let user=null,org=null,membership=null,branches=[],courses=[],courseRuns=[],enrollmentTrainees=[],branchById=new Map();
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function say(msg,type='info'){const el=$('message');el.textContent=msg;el.className='notice '+(type==='error'?'error':type==='success'?'success':'');el.style.display='block';}
+function emptyRow(id,cols,msg){$(id).innerHTML='<tr><td colspan="'+cols+'" class="empty">'+esc(msg)+'</td></tr>';}
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab,.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.tab).classList.add('active')}));
+async function init(){
+ const {data:{user:u},error}=await sb.auth.getUser();user=u;
+ if(error||!user){say('سجّل الدخول أولاً من لوحة المؤسسة ثم افتح إدارة الفروع.','error');return;}
+ const {data:m,error:me}=await sb.from('institution_users').select('id,institution_id,role,status').eq('auth_user_id',user.id).eq('status','active').order('created_at',{ascending:true}).limit(1).maybeSingle();
+ if(me||!m){say('لم يتم العثور على عضوية مؤسسة نشطة لهذا الحساب.','error');return;}membership=m;
+ const {data:i,error:ie}=await sb.from('institutions').select('id,name,status').eq('id',m.institution_id).maybeSingle();
+ if(ie||!i||i.status!=='approved'){say('المؤسسة غير معتمدة أو تعذر تحميل بياناتها.','error');return;}org=i;$('orgTitle').textContent=org.name;
+ await loadBranches();
+ await Promise.all([loadTeam(),loadTrainees(),loadCoursesAndRuns()]);
+}
+async function allowed(permission,branchId=null){const {data,error}=await sb.rpc('institution_has_permission',{p_institution_id:org.id,p_permission:permission,p_branch_id:branchId});return !error&&data===true;}
+async function loadBranches(){
+ const {data,error}=await sb.from('institution_branches').select('id,branch_code,name,governorate,address,phone,is_main,is_active').eq('institution_id',org.id).order('is_main',{ascending:false}).order('name');
+ if(error){say('تعذر تحميل الفروع: '+error.message,'error');return;}branches=data||[];branchById=new Map(branches.map(b=>[b.id,b]));
+ $('branchCount').textContent=branches.length;$('activeBranchCount').textContent=branches.filter(b=>b.is_active).length;
+ const opts='<option value="">كل الفروع / غير محدد</option>'+branches.filter(b=>b.is_active).map(b=>'<option value="'+b.id+'">'+esc(b.name)+'</option>').join('');
+ $('traineeBranch').innerHTML=opts;$('runBranch').innerHTML=opts;$('catalogCourseBranch').innerHTML=opts;if($('inviteBranches'))$('inviteBranches').innerHTML=branches.filter(b=>b.is_active).map(b=>'<option value="'+b.id+'">'+esc(b.name)+'</option>').join('');
+ $('branchesRows').innerHTML=branches.length?branches.map(b=>'<tr><td><b>'+esc(b.name)+'</b>'+(b.is_main?' <span class="pill">رئيسي</span>':'')+'</td><td>'+esc(b.branch_code||'—')+'</td><td>'+esc([b.governorate,b.address].filter(Boolean).join(' - ')||'—')+'</td><td>'+(b.is_active?'نشط':'موقوف')+'</td><td><button class="btn light" onclick="toggleBranch(\''+b.id+'\','+(!b.is_active)+')">'+(b.is_active?'إيقاف':'تفعيل')+'</button></td></tr>').join(''):'<tr><td colspan="5" class="empty">لم تتم إضافة فروع بعد</td></tr>';
+ $('selectedBranchName').textContent='كل الفروع';
+}
+$('addBranchBtn').addEventListener('click',async()=>{
+ if(!await allowed('branches.manage'))return say('ليس لديك صلاحية إدارة الفروع.','error');
+ const name=$('branchName').value.trim();if(name.length<2)return say('اكتب اسم الفرع بشكل صحيح.','error');
+ const payload={institution_id:org.id,name,branch_code:$('branchCode').value.trim()||null,governorate:$('branchGov').value.trim()||null,address:$('branchAddress').value.trim()||null,phone:$('branchPhone').value.trim()||null};
+ const {error}=await sb.from('institution_branches').insert(payload);if(error)return say(error.message,'error');
+ ['branchName','branchCode','branchGov','branchAddress','branchPhone'].forEach(id=>$(id).value='');say('تم إضافة الفرع.','success');await loadBranches();
+});
+window.toggleBranch=async(id,active)=>{if(!await allowed('branches.manage',id))return say('ليس لديك صلاحية تعديل هذا الفرع.','error');const {error}=await sb.from('institution_branches').update({is_active:active}).eq('id',id);if(error)return say(error.message,'error');say('تم تحديث حالة الفرع.','success');await loadBranches()};
+async function loadTeam(){
+ const {data,error}=await sb.from('institution_users').select('id,auth_user_id,role,status,created_at').eq('institution_id',org.id).order('created_at');
+ if(error){emptyRow('teamRows',4,error.message);return;}
+ const canManageTeam=await allowed('team.manage');
+ const roleOptions=[['owner','مالك'],['manager','مدير مؤسسة'],['training_manager','مدير تدريب'],['registrar','شؤون متدربين'],['certificate_issuer','إصدار شهادات'],['branch_manager','مدير فرع'],['viewer','مشاهد']];
+ $('teamRows').innerHTML=(data||[]).map(m=>'<tr><td dir="ltr">'+esc(m.auth_user_id)+'</td><td><select data-role="'+m.id+'" '+(canManageTeam&&m.auth_user_id!==user.id&&!(m.role==='owner'&&membership.role!=='owner')?'':'disabled')+'>'+roleOptions.map(([v,l])=>'<option value="'+v+'" '+(m.role===v?'selected':'')+' '+(v==='owner'&&membership.role!=='owner'?'disabled':'')+'>'+l+'</option>').join('')+'</select></td><td>'+esc(m.status)+'</td><td><button class="btn light" data-branches="'+m.id+'">تخصيص الفروع</button></td></tr>').join('')||'<tr><td colspan="4" class="empty">لا يوجد أعضاء فريق</td></tr>';
+ $('teamRows').querySelectorAll('[data-role]').forEach(sel=>sel.addEventListener('change',async()=>{if(!await allowed('team.manage'))return say('ليس لديك صلاحية إدارة الفريق.','error');const {error}=await sb.from('institution_users').update({role:sel.value}).eq('id',sel.dataset.role).eq('institution_id',org.id);if(error){say(error.message,'error');await loadTeam()}else say('تم تحديث الدور.','success')}));
+ $('teamRows').querySelectorAll('[data-branches]').forEach(btn=>btn.addEventListener('click',()=>manageBranches(btn.dataset.branches)));
+}
+async function manageBranches(memberId){
+ if(!await allowed('team.manage'))return say('ليس لديك صلاحية تخصيص الفروع.','error');
+ const {data:assigned,error}=await sb.from('institution_user_branches').select('branch_id').eq('institution_user_id',memberId);if(error)return say(error.message,'error');
+ const current=new Set((assigned||[]).map(x=>x.branch_id));
+ const choices=branches.filter(b=>b.is_active).map(b=>({id:b.id,name:b.name}));
+ const selected=prompt('اكتب أكواد الفروع المطلوب تخصيصها مفصولة بفاصلة:\n'+choices.map((b,i)=>(i+1)+') '+b.name+' ['+b.id+']').join('\n')+'\nاتركها فارغة لإزالة كل التخصيصات.');
+ if(selected===null)return;
+ const ids=selected.split(',').map(x=>x.trim()).filter(Boolean).map(x=>choices[Number(x)-1]?.id||x).filter(id=>choices.some(b=>b.id===id));
+ const {error:delErr}=await sb.from('institution_user_branches').delete().eq('institution_user_id',memberId);if(delErr)return say(delErr.message,'error');
+ if(ids.length){const rows=ids.map(branch_id=>({institution_user_id:memberId,branch_id}));const {error:insErr}=await sb.from('institution_user_branches').insert(rows);if(insErr)return say(insErr.message,'error');}
+ say('تم تحديث الفروع المخصصة للموظف.','success');
+}
+$('inviteMemberBtn').addEventListener('click',async()=>{
+ if(!await allowed('team.manage'))return say('ليس لديك صلاحية دعوة موظفين.','error');
+ const email=$('inviteEmail').value.trim().toLowerCase();
+ const branch_ids=Array.from($('inviteBranches').selectedOptions).map(o=>o.value);
+ if(!email)return say('أدخل البريد الإلكتروني للموظف.','error');
+ const btn=$('inviteMemberBtn');btn.disabled=true;btn.textContent='جارٍ إرسال الدعوة...';
+ const {data,error}=await sb.functions.invoke('institution-invite-member',{body:{institution_id:org.id,email,role:$('inviteRole').value,branch_ids}});
+ btn.disabled=false;btn.textContent='إرسال الدعوة وربط الصلاحيات';
+ if(error||data?.error)return say(data?.error||error.message,'error');
+ $('inviteEmail').value='';Array.from($('inviteBranches').options).forEach(o=>o.selected=false);
+ say(data.invitation_email_sent?'تم إرسال الدعوة إلى البريد وربط الموظف بالصلاحيات.':'الحساب موجود بالفعل وتم ربطه بالمؤسسة.','success');
+ await loadTeam();
+});
+$('addTraineeBtn').addEventListener('click',async()=>{
+ if(!await allowed('trainees.manage',$('traineeBranch').value||null))return say('ليس لديك صلاحية إضافة متدربين لهذا النطاق.','error');
+ const full_name=$('traineeName').value.trim();if(full_name.length<2)return say('اسم المتدرب مطلوب.','error');
+ const row={institution_id:org.id,branch_id:$('traineeBranch').value||null,full_name,phone:$('traineePhone').value.trim()||null,email:$('traineeEmail').value.trim()||null,national_id:$('traineeNational').value.trim()||null,governorate:$('traineeGov').value.trim()||null,created_by:user.id};
+ const {error}=await sb.from('institution_trainees').insert(row);if(error)return say(error.message,'error');
+ ['traineeName','traineePhone','traineeEmail','traineeNational','traineeGov'].forEach(id=>$(id).value='');say('تم تسجيل المتدرب.','success');await loadTrainees();
+});
+async function loadTrainees(){
+ const {data,error}=await sb.from('institution_trainees').select('id,full_name,phone,email,branch_id,status').eq('institution_id',org.id).order('created_at',{ascending:false}).limit(250);
+ if(error){emptyRow('traineesRows',5,error.message);return;}
+ $('traineesRows').innerHTML=(data||[]).map(t=>'<tr><td>'+esc(t.full_name)+'</td><td dir="ltr">'+esc(t.phone||'—')+'</td><td>'+esc(t.email||'—')+'</td><td>'+esc(branchById.get(t.branch_id)?.name||'عام')+'</td><td>'+esc(t.status)+'</td></tr>').join('')||'<tr><td colspan="5" class="empty">لا يوجد متدربون مسجلون بعد</td></tr>';
+}
+async function loadCoursesAndRuns(){
+ const {data:cs,error:ce}=await sb.from('institution_courses').select('id,name,specialization,duration,branch_id,is_active').eq('institution_id',org.id).eq('is_active',true).order('name');
+ if(ce){say(ce.message,'error');return;}courses=cs||[];
+ $('runCourse').innerHTML='<option value="">اختر الدورة</option>'+courses.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('');
+ $('catalogCoursesRows').innerHTML=courses.map(c=>'<tr><td>'+esc(c.name)+'</td><td>'+esc(c.specialization||'—')+'</td><td>'+esc(c.duration||'—')+'</td><td>'+esc(branchById.get(c.branch_id)?.name||'عام')+'</td><td>نشطة</td></tr>').join('')||'<tr><td colspan="5" class="empty">لا توجد دورات متاحة لهذا النطاق بعد</td></tr>';
+ const {data:runs,error}=await sb.from('institution_course_runs').select('id,run_name,instructor_name,start_date,end_date,status,branch_id,course_id,institution_courses(name)').eq('institution_id',org.id).order('created_at',{ascending:false}).limit(200);
+ if(error){emptyRow('runsRows',6,error.message);return;}
+ courseRuns=runs||[];
+ $('runsRows').innerHTML=(runs||[]).map(r=>'<tr><td>'+esc(r.run_name||'مجموعة')+'</td><td>'+esc(r.institution_courses?.name||'—')+'</td><td>'+esc(branchById.get(r.branch_id)?.name||'عام')+'</td><td>'+esc(r.instructor_name||'—')+'</td><td>'+esc(r.start_date||'—')+' → '+esc(r.end_date||'—')+'</td><td>'+esc(r.status)+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">لم يتم إنشاء مجموعات تدريبية</td></tr>';
+ $('enrollRun').innerHTML='<option value="">اختر المجموعة</option>'+(runs||[]).filter(r=>!['completed','cancelled'].includes(r.status)).map(r=>'<option value="'+r.id+'">'+esc((r.institution_courses?.name||'دورة')+' — '+(r.run_name||'مجموعة'))+'</option>').join('');
+ const {data:trainees,error:traineeError}=await sb.from('institution_trainees').select('id,full_name,branch_id').eq('institution_id',org.id).eq('status','active').order('full_name').limit(1000);
+ if(traineeError){emptyRow('enrollmentsRows',5,traineeError.message);return;}
+ enrollmentTrainees=trainees||[];
+ $('enrollRun').onchange=refreshEnrollmentTrainees;
+ refreshEnrollmentTrainees();
+ await loadEnrollments();
+}
+// Keep enrollment choices aligned with the selected run's branch to satisfy DB scope checks.
+function refreshEnrollmentTrainees(){
+ const run=courseRuns.find(r=>r.id===$('enrollRun').value);
+ const branchId=run?.branch_id||null;
+ const matching=enrollmentTrainees.filter(t=>(t.branch_id||null)===branchId);
+ $('enrollTrainee').innerHTML='<option value="">اختر متدربًا من نفس الفرع</option>'+matching.map(t=>'<option value="'+t.id+'">'+esc(t.full_name)+'</option>').join('');
+}
+$('enrollTraineeBtn').addEventListener('click',async()=>{
+ const course_run_id=$('enrollRun').value,trainee_id=$('enrollTrainee').value;
+ if(!course_run_id||!trainee_id)return say('اختر المجموعة والمتدرب.','error');
+ const selectedRun=courseRuns.find(r=>r.id===course_run_id);
+ if(!selectedRun||!await allowed('trainees.manage',selectedRun.branch_id))return say('ليس لديك صلاحية تسجيل المتدربين في هذا الفرع.','error');
+ const {error}=await sb.from('institution_enrollments').insert({institution_id:org.id,course_run_id,trainee_id,status:$('enrollStatus').value});
+ if(error)return say(error.message,'error');say('تم تسجيل المتدرب في المجموعة.','success');await loadEnrollments();
+});
+async function loadEnrollments(){
+ const {data,error}=await sb.from('institution_enrollments').select('id,status,enrolled_at,institution_trainees(full_name),institution_course_runs(run_name,institution_courses(name))').eq('institution_id',org.id).order('enrolled_at',{ascending:false}).limit(300);
+ if(error){emptyRow('enrollmentsRows',5,error.message);return;}
+ const now=new Date();const today=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
+ $('enrollmentsRows').innerHTML=(data||[]).map(e=>'<tr><td>'+esc(e.institution_trainees?.full_name||'—')+'</td><td>'+esc(e.institution_course_runs?.institution_courses?.name||'—')+' / '+esc(e.institution_course_runs?.run_name||'مجموعة')+'</td><td>'+esc(e.status)+'</td><td>'+new Date(e.enrolled_at).toLocaleDateString('ar-EG')+'</td><td><button class="btn light" onclick="recordAttendance(\''+e.id+'\',\''+today+'\')">تسجيل الحضور</button></td></tr>').join('')||'<tr><td colspan="5" class="empty">لا توجد تسجيلات حتى الآن</td></tr>';
+}
+window.recordAttendance=async(id,date)=>{
+ const {data:enrollment,error:enrollmentError}=await sb.from('institution_enrollments').select('course_run_id,institution_course_runs(branch_id)').eq('id',id).eq('institution_id',org.id).maybeSingle();
+ if(enrollmentError||!enrollment)return say('تعذر التحقق من المجموعة التدريبية.','error');
+ if(!await allowed('trainees.manage',enrollment.institution_course_runs?.branch_id||null))return say('ليس لديك صلاحية تسجيل الحضور لهذا الفرع.','error');
+ const value=prompt('اكتب حالة الحضور: present أو absent أو late أو excused','present');
+ if(!value)return;
+ if(!['present','absent','late','excused'].includes(value))return say('حالة الحضور غير صحيحة.','error');
+ const {error}=await sb.from('institution_attendance').upsert({institution_id:org.id,enrollment_id:id,session_date:date,attendance_status:value,recorded_by:user.id},{onConflict:'enrollment_id,session_date'});
+ if(error)return say(error.message,'error');say('تم حفظ الحضور.','success');
+};
+$('saveCatalogCourseBtn').addEventListener('click',async()=>{
+ const name=$('catalogCourseName').value.trim(),branch_id=$('catalogCourseBranch').value||null;
+ if(name.length<2)return say('اسم الدورة مطلوب.','error');
+ if(!await allowed('courses.manage',branch_id))return say('ليس لديك صلاحية إضافة دورة لهذا الفرع.','error');
+ const {error}=await sb.from('institution_courses').insert({institution_id:org.id,branch_id,name,specialization:$('catalogCourseSpecialization').value.trim()||null,duration:$('catalogCourseDuration').value.trim()||null,is_active:true});
+ if(error)return say(error.message,'error');
+ ['catalogCourseName','catalogCourseSpecialization','catalogCourseDuration'].forEach(id=>$(id).value='');
+ say('تمت إضافة الدورة إلى الكتالوج.','success');await loadCoursesAndRuns();
+});
+$('addRunBtn').addEventListener('click',async()=>{
+ const course_id=$('runCourse').value,branch_id=$('runBranch').value||null;if(!course_id)return say('اختر الدورة أولاً.','error');
+ if(!await allowed('courses.manage',branch_id))return say('ليس لديك صلاحية إنشاء مجموعة في هذا الفرع.','error');
+ const row={institution_id:org.id,course_id,branch_id,run_name:$('runName').value.trim()||null,instructor_name:$('runInstructor').value.trim()||null,start_date:$('runStart').value||null,end_date:$('runEnd').value||null,capacity:$('runCapacity').value?Number($('runCapacity').value):null,status:$('runStatus').value,created_by:user.id};
+ const {error}=await sb.from('institution_course_runs').insert(row);if(error)return say(error.message,'error');say('تم إنشاء المجموعة التدريبية.','success');await loadCoursesAndRuns();
+});
+init();
+</script></body></html>

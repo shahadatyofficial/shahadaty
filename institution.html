@@ -358,6 +358,10 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="sb-item" onclick="showPage('documents',this)">
       <span class="material-symbols-outlined">folder_open</span> مستندات المؤسسة
     </div>
+    <div class="sb-section">إدارة المؤسسة المتقدمة</div>
+    <a class="sb-item" href="institution-workspace.html" style="text-decoration:none;color:inherit">
+      <span class="material-symbols-outlined">account_tree</span> الفروع والفريق والتشغيل
+    </a>
     <div class="sb-section">المؤسسة</div>
     <div class="sb-item" onclick="showPage('quota',this)">
       <span class="material-symbols-outlined">bar_chart</span> إدارة الكوتا
@@ -543,10 +547,12 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
               <div><label class="form-lbl">اسم الطالب الكامل *</label><input type="text" id="fi_student" class="form-inp2" placeholder="الاسم كما في الهوية"></div>
               <div><label class="form-lbl">رقم الشهادة (تلقائي)</label><input type="text" id="fi_certnum" class="form-inp2" dir="ltr" readonly style="background:#f8fbff" placeholder="سيتم التوليد تلقائياً"></div>
             </div>
+            <div class="form-row"><div><label class="form-lbl">ربط بملف متدرب مسجل (اختياري)</label><select id="fi_trainee" class="form-inp2"><option value="">إدخال بيانات الطالب يدويًا</option></select></div><div></div></div>
             <div class="form-row">
               <div><label class="form-lbl">الدورة / البرنامج *</label><input type="text" id="fi_course" class="form-inp2" list="institutionCourseOptions" onchange="applySelectedCourse()" placeholder="اختر دورة مسجلة أو اكتب اسمها"></div>
               <div><label class="form-lbl">التخصص</label><input type="text" id="fi_spec" class="form-inp2" placeholder="التخصص الأكاديمي"></div>
             </div>
+            <div class="form-row"><div><label class="form-lbl">الفرع المسؤول عن إصدار الشهادة</label><select id="fi_branch" class="form-inp2"><option value="">النطاق العام / الإدارة</option></select></div><div></div></div>
             <div class="form-row"><div><label class="form-lbl">مدة الدورة</label><input type="text" id="fi_duration" class="form-inp2" placeholder="مثال: 3 أشهر / 120 ساعة"></div><div></div></div>
             <div class="form-row">
               <div><label class="form-lbl">تاريخ الحصول على الدورة *</label><input type="date" id="fi_date" class="form-inp2" dir="ltr"></div>
@@ -581,6 +587,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
           <div class="card-head"><span class="card-title">الرفع الجماعي الذكي</span></div>
           <div class="card-body">
             <p style="font-size:12px;color:var(--muted);margin-bottom:18px">ارفع ملف Excel يحتوي على بيانات الطلاب لإصدار شهاداتهم دفعة واحدة</p>
+            <div style="max-width:360px;margin-bottom:16px"><label class="form-lbl">فرع إصدار شهادات الملف</label><select id="bulk_branch" class="form-inp2"><option value="">النطاق العام / الإدارة</option></select></div>
             <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()"
               ondragover="event.preventDefault();this.classList.add('over')"
               ondragleave="this.classList.remove('over')"
@@ -776,6 +783,8 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
         <div><label class="form-lbl">اسم الطالب *</label><input type="text" id="mi_student" class="form-inp2" placeholder="الاسم الكامل"></div>
         <div><label class="form-lbl">الدورة / البرنامج *</label><input type="text" id="mi_course" class="form-inp2" list="institutionCourseOptions" placeholder="اسم الدورة"><datalist id="institutionCourseOptions"></datalist></div>
       </div>
+      <div class="form-row"><div><label class="form-lbl">ربط بملف متدرب مسجل (اختياري)</label><select id="mi_trainee" class="form-inp2"><option value="">إدخال بيانات الطالب يدويًا</option></select></div><div></div></div>
+      <div class="form-row"><div><label class="form-lbl">الفرع المسؤول عن إصدار الشهادة</label><select id="mi_branch" class="form-inp2"><option value="">النطاق العام / الإدارة</option></select></div><div></div></div>
       <div class="form-row">
         <div><label class="form-lbl">تاريخ الحصول على الدورة *</label><input type="date" id="mi_date" class="form-inp2" dir="ltr"></div>
         <div><label class="form-lbl">التقدير</label><select id="mi_grade" class="form-inp2" style="background:#f0f9ff"><option value="">اختر</option><option>ممتاز</option><option>جيد جداً</option><option>جيد</option><option>مقبول</option></select></div>
@@ -805,7 +814,7 @@ const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
 window.initEgyptLocationSelects([{governorateId:'fi_gov',centerId:'fi_center'},{governorateId:'mi_gov',centerId:'mi_center'}]);
-let inst=null, allCerts=[], bulkData=[], lineChart=null, donutChart=null;
+let inst=null, allCerts=[], bulkData=[], lineChart=null, donutChart=null, institutionBranches=[], institutionTrainees=[];
 
 // ── Auth ──────────────────────────────────────────────────────
 function normalizeLoginPhone(value){
@@ -890,6 +899,7 @@ async function loadInst(){
   const{data:subscription, error:subscriptionError}=await sb.from('subscriptions').select('id,status,payment_status,amount,currency,billing_cycle,starts_at,ends_at,quota_limit,quota_used,packages(name)').eq('institution_id',data.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
   if(subscriptionError){toast('تعذر تحميل حالة الاشتراك: '+subscriptionError.message,'err');}
   inst={...data,membershipRole:membership?.role||'owner',currentSubscription:subscription||null};
+  await loadInstitutionBranches();
   if(subscription?.quota_limit!=null&&Number(subscription.quota_limit)>0)inst.quota_total=Number(subscription.quota_limit);
   document.getElementById('loginScreen').style.display='none';
   const n=data.name;
@@ -1231,6 +1241,33 @@ async function loadQuotaDetails(){
     <button onclick="location.href='landing.html#packages'" style="display:inline-flex;align-items:center;gap:7px;background:var(--blue);color:#fff;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;padding:11px 22px;border-radius:10px;border:none;cursor:pointer"><span class="material-symbols-outlined" style="font-size:18px">upgrade</span> ترقية الباقة</button>`;
 }
 // ── Issue Certificate ──────────────────────────────────────────
+async function loadInstitutionBranches(){
+  const {data:branches,error}=await sb.from('institution_branches').select('id,name').eq('institution_id',inst.id).eq('is_active',true).order('name');
+  if(error){toast('تعذر تحميل فروع إصدار الشهادات: '+error.message,'err');return;}
+  institutionBranches=branches||[];
+  const options='<option value="">النطاق العام / الإدارة</option>'+institutionBranches.map(b=>'<option value="'+escapeHtml(b.id)+'">'+escapeHtml(b.name)+'</option>').join('');
+  ['fi_branch','mi_branch','bulk_branch'].forEach(id=>{
+    const select=document.getElementById(id);if(!select)return;
+    select.innerHTML=options;
+    if(institutionBranches.length===1)select.value=institutionBranches[0].id;
+  });
+  const {data:trainees,error:traineeError}=await sb.from('institution_trainees').select('id,full_name,phone,email,national_id,governorate,branch_id').eq('institution_id',inst.id).eq('status','active').order('full_name').limit(1000);
+  if(traineeError){toast('تعذر تحميل ملفات المتدربين: '+traineeError.message,'err');return;}
+  institutionTrainees=trainees||[];
+  const traineeOptions='<option value="">إدخال بيانات الطالب يدويًا</option>'+institutionTrainees.map(t=>'<option value="'+escapeHtml(t.id)+'">'+escapeHtml(t.full_name)+'</option>').join('');
+  ['fi_trainee','mi_trainee'].forEach(id=>{const select=document.getElementById(id);if(select)select.innerHTML=traineeOptions;});
+}
+function applyIssueTrainee(prefix){
+  const select=document.getElementById(prefix+'_trainee');
+  const trainee=institutionTrainees.find(t=>t.id===select?.value);
+  if(!trainee)return;
+  const map=prefix==='fi'?{student:'fi_student',phone:'fi_phone',email:'fi_email',national_id:'fi_national',governorate:'fi_gov',branch_id:'fi_branch'}:{student:'mi_student',phone:'mi_phone',email:'mi_email',national_id:null,governorate:'mi_gov',branch_id:'mi_branch'};
+  const set=(id,value)=>{const el=id?document.getElementById(id):null;if(el&&value!==null&&value!==undefined)el.value=value;};
+  set(map.student,trainee.full_name);set(map.phone,trainee.phone);set(map.email,trainee.email);
+  set(map.national_id,trainee.national_id);set(map.governorate,trainee.governorate);set(map.branch_id,trainee.branch_id||'');
+}
+document.getElementById('fi_trainee')?.addEventListener('change',()=>applyIssueTrainee('fi'));
+document.getElementById('mi_trainee')?.addEventListener('change',()=>applyIssueTrainee('mi'));
 async function issuePayload(payload){
   const {data,error}=await sb.rpc('issue_certificate',{p_payload:payload});
   if(error) throw error;
@@ -1250,7 +1287,7 @@ async function issueCertModal(){
   const res=document.getElementById('mi_result');
   if(!student||!course||!date){showRes(res,'يرجى تعبئة الحقول المطلوبة *','err');return;}
   try{
-    const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('mi_grade').value,student_phone:document.getElementById('mi_phone').value,governorate:document.getElementById('mi_gov').value,center:document.getElementById('mi_center')?.value||null,visible_to_companies:document.getElementById('mi_consent').checked});
+    const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('mi_grade').value,student_phone:document.getElementById('mi_phone').value,governorate:document.getElementById('mi_gov').value,center:document.getElementById('mi_center')?.value||null,branch_id:document.getElementById('mi_branch')?.value||null,trainee_id:document.getElementById('mi_trainee')?.value||null,visible_to_companies:document.getElementById('mi_consent').checked});
     showRes(res,`✓ تم الإصدار — رقم الشهادة: <b>${row.cert_number}</b><br><a href="certificate.html?id=${encodeURIComponent(row.cert_number)}" target="_blank" style="color:var(--blue)">عرض الشهادة</a>`,'ok');
     await loadInst(); toast('✓ تم إصدار الشهادة بنجاح','ok'); setTimeout(closeIssueModal,1800);
   }catch(e){showRes(res,dbErrorMessage(e),'err');}
@@ -1262,14 +1299,14 @@ async function issueFullCert(){
     const email=document.getElementById('fi_email').value.trim(),national=document.getElementById('fi_national').value.trim();
   if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showRes(res,'صيغة البريد الإلكتروني غير صحيحة.','err');return;}
   if(national&&!/^\d{14}$/.test(national)){showRes(res,'الرقم القومي يجب أن يتكون من 14 رقمًا.','err');return;}
-  const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,acquisition_date:date,grade:document.getElementById('fi_grade').value,specialization:document.getElementById('fi_spec').value,duration:document.getElementById('fi_duration')?.value||'',student_phone:document.getElementById('fi_phone').value,student_email:email,student_national_id:national,governorate:document.getElementById('fi_gov').value,center:document.getElementById('fi_center')?.value||null,visible_to_companies:document.getElementById('fi_consent').checked});
+  const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,acquisition_date:date,grade:document.getElementById('fi_grade').value,specialization:document.getElementById('fi_spec').value,duration:document.getElementById('fi_duration')?.value||'',student_phone:document.getElementById('fi_phone').value,student_email:email,student_national_id:national,governorate:document.getElementById('fi_gov').value,center:document.getElementById('fi_center')?.value||null,branch_id:document.getElementById('fi_branch')?.value||null,trainee_id:document.getElementById('fi_trainee')?.value||null,visible_to_companies:document.getElementById('fi_consent').checked});
     showRes(res,`✓ تم الإصدار بنجاح — رقم الشهادة: <strong>${row.cert_number}</strong> — <a href="certificate.html?id=${encodeURIComponent(row.cert_number)}" target="_blank" style="color:var(--blue)">عرض الشهادة ↗</a>`,'ok');
     clearIssueForm(); await loadInst();
   }catch(e){showRes(res,dbErrorMessage(e),'err');}
 }
-function clearIssueForm(){['fi_student','fi_certnum','fi_course','fi_spec','fi_phone','fi_email','fi_national','fi_gov','fi_duration'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});const g=document.getElementById('fi_grade');if(g)g.value='';const c=document.getElementById('fi_consent');if(c)c.checked=false;}
+function clearIssueForm(){['fi_student','fi_certnum','fi_course','fi_spec','fi_phone','fi_email','fi_national','fi_gov','fi_duration'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});const g=document.getElementById('fi_grade');if(g)g.value='';const c=document.getElementById('fi_consent');if(c)c.checked=false;const t=document.getElementById('fi_trainee');if(t)t.value='';const b=document.getElementById('fi_branch');if(b&&b.options.length>1)b.value='';}
 function openIssueModal(){document.getElementById('issueModal').style.display='flex';}
-function closeIssueModal(){document.getElementById('issueModal').style.display='none';['mi_student','mi_course','mi_phone','mi_gov'].forEach(id=>document.getElementById(id).value='');document.getElementById('mi_grade').value='';document.getElementById('mi_consent').checked=false;document.getElementById('mi_result').style.display='none';}
+function closeIssueModal(){document.getElementById('issueModal').style.display='none';['mi_student','mi_course','mi_phone','mi_gov'].forEach(id=>document.getElementById(id).value='');document.getElementById('mi_grade').value='';document.getElementById('mi_consent').checked=false;const trainee=document.getElementById('mi_trainee');if(trainee)trainee.value='';const branch=document.getElementById('mi_branch');if(branch&&branch.options.length>1)branch.value='';document.getElementById('mi_result').style.display='none';}
 
 // ── Certs List ─────────────────────────────────────────────────
 function escapeHtml(value){
@@ -1352,7 +1389,7 @@ function showBulkPreview(rows){
 async function confirmBulk(){
   const btn=document.querySelector('#bulkPreview .btn-submit');if(!bulkData.length)return;
   const prepared=bulkData.map(prepareBulkRow),invalid=prepared.filter(x=>x.errors.length);
-  const rows=prepared.filter(x=>!x.errors.length).map(x=>x.row);
+  const rows=prepared.filter(x=>!x.errors.length).map(x=>({...x.row,branch_id:document.getElementById('bulk_branch')?.value||null}));
   btn.disabled=true;document.getElementById('bulkProgress').style.display='block';
   if(!rows.length){
     document.getElementById('bulkProgressTxt').textContent='لم يتم إرسال أي شهادة. راجع الاسم والدورة وتاريخ الحصول والبريد والرقم القومي.';
