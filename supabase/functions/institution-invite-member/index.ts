@@ -153,7 +153,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const { error: invitationError } = await admin.from("institution_invitations").insert({
+    const invitationPayload = {
       institution_id: institutionId,
       invited_email: email,
       invited_user_id: invitedUser.id,
@@ -161,7 +161,15 @@ Deno.serve(async (req: Request) => {
       status: invitationEmailSent ? "sent" : "accepted",
       invited_by: authData.user.id,
       accepted_at: invitationEmailSent ? null : new Date().toISOString(),
-    });
+      updated_at: new Date().toISOString(),
+    };
+    const { data: pendingInvitation } = await admin.from("institution_invitations")
+      .select("id").eq("institution_id", institutionId).eq("invited_email", email)
+      .in("status", ["pending", "sent"]).maybeSingle();
+    const invitationWrite = pendingInvitation
+      ? await admin.from("institution_invitations").update(invitationPayload).eq("id", pendingInvitation.id)
+      : await admin.from("institution_invitations").insert(invitationPayload);
+    const invitationError = invitationWrite.error;
     if (invitationError) {
       await admin.from("institution_user_branches").delete().eq("institution_user_id", membershipId);
       if (priorMembership) {
