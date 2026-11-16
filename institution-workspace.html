@@ -123,6 +123,14 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
   <div class="stat"><span class="muted">غياب</span><b id="reportAbsent">—</b></div>
  </div>
  <div class="card"><h2>تفاصيل الحضور</h2><div class="table-wrap"><table><thead><tr><th>التاريخ</th><th>المتدرب</th><th>الدورة</th><th>المجموعة</th><th>الفرع</th><th>الحالة</th><th>ملاحظات</th></tr></thead><tbody id="institutionReportRows"><tr><td colspan="7" class="empty">حدد الفترة ثم اضغط عرض التقرير</td></tr></tbody></table></div></div>
+ <div class="stats">
+  <div class="stat"><span class="muted">التسجيلات خلال الفترة</span><b id="performanceEnrollments">—</b></div>
+  <div class="stat"><span class="muted">مجموعات نشطة</span><b id="performanceRuns">—</b></div>
+  <div class="stat"><span class="muted">متدربون فريدون</span><b id="performanceTrainees">—</b></div>
+ </div>
+ <div class="card"><h2>أداء الفروع</h2><p class="muted">التسجيلات، المتدربون، ونسبة الحضور في الفترة المحددة.</p><div class="table-wrap"><table><thead><tr><th>الفرع</th><th>التسجيلات</th><th>المتدربون</th><th>حاضر</th><th>غائب</th><th>نسبة الحضور</th></tr></thead><tbody id="branchPerformanceRows"><tr><td colspan="6" class="empty">اعرض التقرير أولاً</td></tr></tbody></table></div></div>
+ <div class="card"><h2>أداء الدورات والمجموعات</h2><p class="muted">مقارنة التسجيلات والإنجاز والحضور لكل دورة.</p><div class="table-wrap"><table><thead><tr><th>الدورة</th><th>المجموعة</th><th>الفرع</th><th>التسجيلات</th><th>مكتمل</th><th>نسبة الحضور</th></tr></thead><tbody id="coursePerformanceRows"><tr><td colspan="6" class="empty">اعرض التقرير أولاً</td></tr></tbody></table></div></div>
+ <div class="card"><h2>متابعة المتدربين</h2><p class="muted">أعلى 10 متدربين من حيث نسبة الحضور، مع عدد مرات الحضور والغياب.</p><div class="table-wrap"><table><thead><tr><th>المتدرب</th><th>الفرع</th><th>الدورات</th><th>حاضر</th><th>غائب</th><th>نسبة الحضور</th></tr></thead><tbody id="traineePerformanceRows"><tr><td colspan="6" class="empty">اعرض التقرير أولاً</td></tr></tbody></table></div></div>
 </section>
 </main>
 <script>
@@ -152,6 +160,39 @@ async function loadInstitutionReport(){
   let q=sb.from('institution_attendance').select('id,session_date,attendance_status,notes,enrollment_id,institution_enrollments!inner(id,trainee_id,course_run_id,status,institution_trainees!inner(full_name),institution_course_runs!inner(run_name,branch_id,institution_courses(name)))').eq('institution_id',org.id).gte('session_date',from).lte('session_date',to).order('session_date',{ascending:false}).limit(1000);
   const {data,error}=await q;if(error)throw error;
   institutionReportRows=(data||[]).filter(r=>!branchId||r.institution_enrollments?.institution_course_runs?.branch_id===branchId);
+  const enrollmentQuery=sb.from('institution_enrollments').select('id,status,enrolled_at,trainee_id,course_run_id,institution_trainees!inner(full_name,branch_id),institution_course_runs!inner(run_name,branch_id,institution_courses!inner(name))').eq('institution_id',org.id).gte('enrolled_at',from+'T00:00:00').lte('enrolled_at',to+'T23:59:59').order('enrolled_at',{ascending:false}).limit(2000);
+  const {data:enrollments,error:enrollmentError}=await enrollmentQuery;
+  if(enrollmentError)throw enrollmentError;
+  const scopedEnrollments=(enrollments||[]).filter(e=>{
+   const run=e.institution_course_runs||{};
+   return (!branchId||run.branch_id===branchId)&&run.branch_id===(e.institution_trainees?.branch_id||null);
+  });
+  const attendanceByEnrollment=new Map();
+  institutionReportRows.forEach(r=>{
+   const id=r.enrollment_id;
+   if(!attendanceByEnrollment.has(id))attendanceByEnrollment.set(id,{present:0,absent:0,total:0});
+   const item=attendanceByEnrollment.get(id);item.total++;
+   if(r.attendance_status==='present')item.present++;
+   if(r.attendance_status==='absent')item.absent++;
+  });
+  const branchStats=new Map(),courseStats=new Map(),traineeStats=new Map();
+  scopedEnrollments.forEach(e=>{
+   const run=e.institution_course_runs||{},trainee=e.institution_trainees||{};
+   const branchIdValue=run.branch_id||'general',branchName=branchById.get(branchIdValue)?.name||'عام';
+   const courseName=run.institution_courses?.name||'دورة غير محددة',runName=run.run_name||'مجموعة';
+   const att=attendanceByEnrollment.get(e.id)||{present:0,absent:0,total:0};
+   const add=(map,key,base)=>{if(!map.has(key))map.set(key,{...base,enrollments:0,trainees:new Set(),present:0,absent:0,total:0,completed:0});return map.get(key);};
+   const bs=add(branchStats,branchIdValue,{name:branchName});bs.enrollments++;bs.trainees.add(e.trainee_id);bs.present+=att.present;bs.absent+=att.absent;bs.total+=att.total;
+   const ck=e.course_run_id,cs=add(courseStats,ck,{course:courseName,run:runName,branch:branchName});cs.enrollments++;cs.trainees.add(e.trainee_id);cs.present+=att.present;cs.absent+=att.absent;cs.total+=att.total;if(e.status==='completed')cs.completed++;
+   const tk=e.trainee_id,ts=add(traineeStats,tk,{name:trainee.full_name||'—',branch:branchName});ts.enrollments++;ts.present+=att.present;ts.absent+=att.absent;ts.total+=att.total;
+  });
+  const pct=(n,d)=>d?Math.round(n/d*100)+'%':'—';
+  $('performanceEnrollments').textContent=scopedEnrollments.length;
+  $('performanceRuns').textContent=new Set(scopedEnrollments.map(e=>e.course_run_id)).size;
+  $('performanceTrainees').textContent=new Set(scopedEnrollments.map(e=>e.trainee_id)).size;
+  $('branchPerformanceRows').innerHTML=[...branchStats.values()].sort((a,b)=>b.enrollments-a.enrollments).map(s=>'<tr><td>'+esc(s.name)+'</td><td>'+s.enrollments+'</td><td>'+s.trainees.size+'</td><td>'+s.present+'</td><td>'+s.absent+'</td><td>'+pct(s.present,s.present+s.absent)+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">لا توجد تسجيلات للفترة المحددة</td></tr>';
+  $('coursePerformanceRows').innerHTML=[...courseStats.values()].sort((a,b)=>b.enrollments-a.enrollments).map(s=>'<tr><td>'+esc(s.course)+'</td><td>'+esc(s.run)+'</td><td>'+esc(s.branch)+'</td><td>'+s.enrollments+'</td><td>'+s.completed+'</td><td>'+pct(s.present,s.present+s.absent)+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">لا توجد تسجيلات للفترة المحددة</td></tr>';
+  $('traineePerformanceRows').innerHTML=[...traineeStats.values()].sort((a,b)=>(b.present/(b.present+b.absent||1))-(a.present/(a.present+a.absent||1))).slice(0,10).map(s=>'<tr><td>'+esc(s.name)+'</td><td>'+esc(s.branch)+'</td><td>'+s.enrollments+'</td><td>'+s.present+'</td><td>'+s.absent+'</td><td>'+pct(s.present,s.present+s.absent)+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">لا توجد بيانات متدربين للفترة المحددة</td></tr>';
   const count=s=>institutionReportRows.filter(r=>r.attendance_status===s).length;
   $('reportTotal').textContent=institutionReportRows.length;$('reportPresent').textContent=count('present');$('reportAbsent').textContent=count('absent');
   $('institutionReportRows').innerHTML=institutionReportRows.length?institutionReportRows.map(r=>{
