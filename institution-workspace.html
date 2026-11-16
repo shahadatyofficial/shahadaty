@@ -429,14 +429,18 @@ async function issueEnrollmentCertificate(id){
  if(!payload.student_name||!payload.course||!payload.course_id)return say('بيانات المتدرب أو الدورة غير مكتملة ولا يمكن إصدار الشهادة.','error');
  if(!confirm('إصدار شهادة تدريب باسم '+payload.student_name+' عن دورة '+payload.course+'؟'))return;
  const btn=document.querySelector('[data-issue-certificate="'+id+'"]');if(btn){btn.disabled=true;btn.textContent='جارٍ الإصدار...';}
- const {data,error}=await sb.rpc('issue_certificate',{p_payload:payload});
- if(error){
-  const messages={SUBSCRIPTION_INACTIVE_OR_UNPAID:'اشتراك المؤسسة غير نشط أو غير مسدد.',QUOTA_EXCEEDED:'تم استنفاد حصة الشهادات المتاحة في الباقة.',NOT_ALLOWED:'ليس لديك صلاحية إصدار الشهادات لهذا الفرع.',INSTITUTION_NOT_APPROVED:'المؤسسة غير معتمدة حاليًا.'};
-  return say(messages[error.message]||('تعذر إصدار الشهادة: '+error.message),'error');
- }
- const issued=Array.isArray(data)?data[0]:data;
- say('تم إصدار الشهادة بنجاح. رقم الشهادة: '+(issued?.cert_number||'تم التسجيل') ,'success');
- await loadEnrollments();
+ try{
+  const {data,error}=await sb.rpc('issue_certificate',{p_payload:payload});
+  if(error){
+   const code=String(error.message||'').split(':')[0].trim();
+   const messages={SUBSCRIPTION_INACTIVE_OR_UNPAID:'اشتراك المؤسسة غير نشط أو غير مسدد.',QUOTA_EXCEEDED:'تم استنفاد حصة الشهادات المتاحة في الباقة.',NOT_ALLOWED:'ليس لديك صلاحية إصدار الشهادات لهذا الفرع.',INSTITUTION_NOT_APPROVED:'المؤسسة غير معتمدة حاليًا.'};
+   throw new Error(messages[code]||('تعذر إصدار الشهادة: '+error.message));
+  }
+  const issued=Array.isArray(data)?data[0]:data;
+  say('تم إصدار الشهادة بنجاح. رقم الشهادة: '+(issued?.cert_number||'تم التسجيل'),'success');
+  await loadEnrollments();
+ }catch(error){say(error.message||'تعذر إصدار الشهادة.','error');}
+ finally{if(btn){btn.disabled=false;btn.textContent='إصدار الشهادة';}}
 }
 window.recordAttendance=async(id,date)=>{
  const {data:enrollment,error:enrollmentError}=await sb.from('institution_enrollments').select('course_run_id,institution_course_runs(branch_id)').eq('id',id).eq('institution_id',org.id).maybeSingle();
