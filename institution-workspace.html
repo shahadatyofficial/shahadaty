@@ -104,7 +104,7 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 <div class="field"><label>المتدرب *</label><select id="enrollTrainee"></select></div>
 <div class="field"><label>حالة التسجيل</label><select id="enrollStatus"><option value="enrolled">مسجل</option><option value="attending">منتظم</option></select></div>
 </div><div class="actions"><button class="btn" id="enrollTraineeBtn">تسجيل المتدرب</button></div></div>
-<div class="card"><h2>سجل التسجيلات والحضور</h2><div class="table-wrap"><table><thead><tr><th>المتدرب</th><th>الدورة / المجموعة</th><th>الحالة</th><th>التسجيل</th><th>الحضور اليوم</th></tr></thead><tbody id="enrollmentsRows"></tbody></table></div></div><div class="card"><h2>المجموعات التدريبية</h2><div class="table-wrap"><table><thead><tr><th>المجموعة</th><th>الدورة</th><th>الفرع</th><th>المدرب</th><th>الفترة</th><th>الحالة</th></tr></thead><tbody id="runsRows"></tbody></table></div></div>
+<div class="card"><h2>سجل التسجيلات والحضور</h2><div class="table-wrap"><table><thead><tr><th>المتدرب</th><th>الدورة / المجموعة</th><th>الحالة</th><th>التسجيل</th><th>الحضور اليوم</th><th>إجراء</th></tr></thead><tbody id="enrollmentsRows"></tbody></table></div></div><div class="card"><h2>المجموعات التدريبية</h2><div class="table-wrap"><table><thead><tr><th>المجموعة</th><th>الدورة</th><th>الفرع</th><th>المدرب</th><th>الفترة</th><th>الحالة</th></tr></thead><tbody id="runsRows"></tbody></table></div></div>
 </section>
 <section id="reports" class="panel">
  <div class="card">
@@ -145,6 +145,7 @@ function emptyRow(id,cols,msg){$(id).innerHTML='<tr><td colspan="'+cols+'" class
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab,.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.tab).classList.add('active')}));
 const attendanceLabels={present:'حاضر',absent:'غائب',late:'متأخر',excused:'معذور'};
 let institutionReportRows=[];
+let enrollmentActionData=new Map();
 function isoDate(d){return d.toISOString().slice(0,10);}
 function setupInstitutionReport(){
  const now=new Date(),monthStart=new Date(now.getFullYear(),now.getMonth(),1);
@@ -370,10 +371,72 @@ $('enrollTraineeBtn').addEventListener('click',async()=>{
  if(error)return say(error.message,'error');say('تم تسجيل المتدرب في المجموعة.','success');await loadEnrollments();
 });
 async function loadEnrollments(){
- const {data,error}=await sb.from('institution_enrollments').select('id,status,enrolled_at,institution_trainees(full_name),institution_course_runs(run_name,institution_courses(name))').eq('institution_id',org.id).order('enrolled_at',{ascending:false}).limit(300);
- if(error){emptyRow('enrollmentsRows',5,error.message);return;}
- const now=new Date();const today=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
- $('enrollmentsRows').innerHTML=(data||[]).map(e=>'<tr><td>'+esc(e.institution_trainees?.full_name||'—')+'</td><td>'+esc(e.institution_course_runs?.institution_courses?.name||'—')+' / '+esc(e.institution_course_runs?.run_name||'مجموعة')+'</td><td>'+esc(e.status)+'</td><td>'+new Date(e.enrolled_at).toLocaleDateString('ar-EG')+'</td><td><button class="btn light" onclick="recordAttendance(\''+e.id+'\',\''+today+'\')">تسجيل الحضور</button></td></tr>').join('')||'<tr><td colspan="5" class="empty">لا توجد تسجيلات حتى الآن</td></tr>';
+ const {data,error}=await sb.from('institution_enrollments').select('id,status,enrolled_at,completed_at,trainee_id,course_run_id,institution_trainees!inner(id,full_name,full_name_en,phone,email,national_id,governorate,branch_id),institution_course_runs!inner(id,run_name,branch_id,course_id,status,institution_courses!inner(name,specialization,duration))').eq('institution_id',org.id).order('enrolled_at',{ascending:false}).limit(500);
+ if(error){emptyRow('enrollmentsRows',6,error.message);return;}
+ const rows=data||[];
+ const {data:issued,error:issuedError}=await sb.from('certificates').select('id,cert_number,trainee_id,course_id,branch_id,status').eq('institution_id',org.id).eq('status','active').limit(2000);
+ if(issuedError){emptyRow('enrollmentsRows',6,'تعذر التحقق من الشهادات الصادرة: '+issuedError.message);return;}
+ const issuedMap=new Map((issued||[]).map(x=>[[x.trainee_id||'',x.course_id||'',x.branch_id||''].join('|'),x]));
+ const branchKeys=[...new Set(rows.map(e=>e.institution_course_runs?.branch_id||''))];
+ const permissionMap=new Map();
+ await Promise.all(branchKeys.map(async key=>{
+  const branchId=key||null;
+  const [manage,issue]=await Promise.all([allowed('trainees.manage',branchId),allowed('certificates.issue',branchId)]);
+  permissionMap.set(key,{manage,issue});
+ }));
+ enrollmentActionData=new Map(rows.map(e=>[e.id,e]));
+ const now=new Date(),today=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
+ const statusLabels={enrolled:'مسجل',attending:'منتظم',completed:'مكتمل',withdrawn:'منسحب',failed:'لم يجتز'};
+ $('enrollmentsRows').innerHTML=rows.map(e=>{
+  const trainee=e.institution_trainees||{},run=e.institution_course_runs||{},course=run.institution_courses||{};
+  const key=[trainee.id||e.trainee_id||'',run.course_id||'',run.branch_id||''].join('|');
+  const cert=issuedMap.get(key),perms=permissionMap.get(run.branch_id||'')||{};
+  let action='<span class="muted">—</span>';
+  if(cert)action='<a class="btn light" href="certificate.html?id='+encodeURIComponent(cert.cert_number)+'&template=uploaded-2-html" target="_blank" rel="noopener">عرض الشهادة</a>';
+  else if(e.status==='completed'&&perms.issue)action='<button class="btn gold" data-issue-certificate="'+e.id+'">إصدار الشهادة</button>';
+  else if(!['completed','withdrawn','failed'].includes(e.status)&&perms.manage)action='<button class="btn light" data-complete-enrollment="'+e.id+'">اعتماد الإتمام</button>';
+  return '<tr><td>'+esc(trainee.full_name||'—')+'</td><td>'+esc(course.name||'—')+' / '+esc(run.run_name||'مجموعة')+'</td><td>'+esc(statusLabels[e.status]||e.status)+'</td><td>'+new Date(e.enrolled_at).toLocaleDateString('ar-EG')+'</td><td><button class="btn light" data-record-attendance="'+e.id+'">تسجيل الحضور</button></td><td>'+action+'</td></tr>';
+ }).join('')||'<tr><td colspan="6" class="empty">لا توجد تسجيلات حتى الآن</td></tr>';
+ $('enrollmentsRows').querySelectorAll('[data-record-attendance]').forEach(btn=>btn.addEventListener('click',()=>recordAttendance(btn.dataset.recordAttendance,today)));
+ $('enrollmentsRows').querySelectorAll('[data-complete-enrollment]').forEach(btn=>btn.addEventListener('click',()=>completeEnrollment(btn.dataset.completeEnrollment)));
+ $('enrollmentsRows').querySelectorAll('[data-issue-certificate]').forEach(btn=>btn.addEventListener('click',()=>issueEnrollmentCertificate(btn.dataset.issueCertificate)));
+}
+async function completeEnrollment(id){
+ const e=enrollmentActionData.get(id),run=e?.institution_course_runs||{};
+ if(!e)return say('تعذر تحميل بيانات التسجيل. حدّث الصفحة وحاول مرة أخرى.','error');
+ if(e.status==='completed')return say('التسجيل مكتمل بالفعل.','info');
+ if(!await allowed('trainees.manage',run.branch_id||null))return say('ليس لديك صلاحية اعتماد إتمام التدريب لهذا الفرع.','error');
+ if(!confirm('تأكيد اعتماد إتمام تدريب '+(e.institution_trainees?.full_name||'المتدرب')+'؟'))return;
+ const {error}=await sb.from('institution_enrollments').update({status:'completed',completed_at:new Date().toISOString()}).eq('id',id).eq('institution_id',org.id);
+ if(error)return say('تعذر اعتماد الإتمام: '+error.message,'error');
+ say('تم اعتماد إتمام التدريب. أصبح التسجيل مؤهلاً لإصدار الشهادة وفق الاشتراك والصلاحيات.','success');
+ await loadEnrollments();
+}
+async function issueEnrollmentCertificate(id){
+ const e=enrollmentActionData.get(id),run=e?.institution_course_runs||{},trainee=e?.institution_trainees||{},course=run.institution_courses||{};
+ if(!e)return say('تعذر تحميل بيانات التسجيل. حدّث الصفحة وحاول مرة أخرى.','error');
+ if(e.status!=='completed')return say('لا يمكن إصدار شهادة قبل اعتماد إتمام التدريب.','error');
+ if(!await allowed('certificates.issue',run.branch_id||null))return say('ليس لديك صلاحية إصدار الشهادات لهذا الفرع.','error');
+ const payload={
+  institution_id:org.id,branch_id:run.branch_id||null,course_id:run.course_id,trainee_id:e.trainee_id,
+  student_name:trainee.full_name,student_name_en:trainee.full_name_en||null,
+  student_national_id:trainee.national_id||null,student_phone:trainee.phone||null,
+  student_email:trainee.email||null,governorate:trainee.governorate||null,
+  course:course.name,specialization:course.specialization||null,duration:course.duration||null,
+  center:org.name,acquisition_date:(e.completed_at||e.enrolled_at||new Date().toISOString()).slice(0,10),
+  visible_to_companies:false
+ };
+ if(!payload.student_name||!payload.course||!payload.course_id)return say('بيانات المتدرب أو الدورة غير مكتملة ولا يمكن إصدار الشهادة.','error');
+ if(!confirm('إصدار شهادة تدريب باسم '+payload.student_name+' عن دورة '+payload.course+'؟'))return;
+ const btn=document.querySelector('[data-issue-certificate="'+id+'"]');if(btn){btn.disabled=true;btn.textContent='جارٍ الإصدار...';}
+ const {data,error}=await sb.rpc('issue_certificate',{p_payload:payload});
+ if(error){
+  const messages={SUBSCRIPTION_INACTIVE_OR_UNPAID:'اشتراك المؤسسة غير نشط أو غير مسدد.',QUOTA_EXCEEDED:'تم استنفاد حصة الشهادات المتاحة في الباقة.',NOT_ALLOWED:'ليس لديك صلاحية إصدار الشهادات لهذا الفرع.',INSTITUTION_NOT_APPROVED:'المؤسسة غير معتمدة حاليًا.'};
+  return say(messages[error.message]||('تعذر إصدار الشهادة: '+error.message),'error');
+ }
+ const issued=Array.isArray(data)?data[0]:data;
+ say('تم إصدار الشهادة بنجاح. رقم الشهادة: '+(issued?.cert_number||'تم التسجيل') ,'success');
+ await loadEnrollments();
 }
 window.recordAttendance=async(id,date)=>{
  const {data:enrollment,error:enrollmentError}=await sb.from('institution_enrollments').select('course_run_id,institution_course_runs(branch_id)').eq('id',id).eq('institution_id',org.id).maybeSingle();
