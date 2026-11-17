@@ -840,7 +840,9 @@ async function updateInstitutionRunStatus(id){
 $('addRunBtn').addEventListener('click',async()=>{
  const course_id=$('runCourse').value,branch_id=$('runBranch').value||null;if(!course_id)return say('اختر الدورة أولاً.','error');
  if(!await allowed('courses.manage',branch_id))return say('ليس لديك صلاحية إنشاء مجموعة في هذا الفرع.','error');
- const row={institution_id:org.id,course_id,branch_id,run_name:$('runName').value.trim()||null,instructor_name:$('runInstructor').value.trim()||null,trainer_id:$('runTrainer')?.value||null,start_date:$('runStart').value||null,end_date:$('runEnd').value||null,capacity:$('runCapacity').value?Number($('runCapacity').value):null,status:$('runStatus').value,created_by:user.id};
+ const trainer_id=$('runTrainer')?.value||null,trainer=institutionTrainers.find(t=>t.id===trainer_id);
+ if(trainer&&trainer.branch_id&&trainer.branch_id!==branch_id)return say('المدرب المحدد تابع لفرع مختلف عن المجموعة.','error');
+ const row={institution_id:org.id,course_id,branch_id,run_name:$('runName').value.trim()||null,instructor_name:$('runInstructor').value.trim()||null,trainer_id,start_date:$('runStart').value||null,end_date:$('runEnd').value||null,capacity:$('runCapacity').value?Number($('runCapacity').value):null,status:$('runStatus').value,created_by:user.id};
  const {error}=await sb.from('institution_course_runs').insert(row);if(error)return say(error.message,'error');say('تم إنشاء المجموعة التدريبية.','success');await loadCoursesAndRuns();
 });
 init();
