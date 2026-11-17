@@ -160,6 +160,17 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 </div>
 <section id="reports" class="panel">
  <div class="card">
+  <h2>تسجيل الحضور الجماعي</h2>
+  <p class="muted">اختر المجموعة والتاريخ لعرض المتدربين المسجلين وتحديث حضور الجلسة. الحفظ يتم لكل متدرب وفق صلاحية الفرع.</p>
+  <div class="grid">
+   <div class="field"><label for="attendanceRunFilter">المجموعة التدريبية</label><select id="attendanceRunFilter"><option value="">اختر المجموعة</option></select></div>
+   <div class="field"><label for="attendanceSessionDate">تاريخ الجلسة</label><input id="attendanceSessionDate" type="date"></div>
+  </div>
+  <div class="actions"><button class="btn" type="button" id="loadAttendanceRosterBtn">عرض كشف الحضور</button><button class="btn light" type="button" id="saveAttendanceRosterBtn" disabled>حفظ حضور المجموعة</button></div>
+  <div class="table-wrap"><table><thead><tr><th>المتدرب</th><th>الفرع</th><th>الحالة الحالية</th><th>حالة الجلسة</th><th>ملاحظات</th></tr></thead><tbody id="attendanceRosterRows"><tr><td colspan="5" class="empty">اختر المجموعة والتاريخ ثم اعرض الكشف</td></tr></tbody></table></div>
+  <p class="muted" id="attendanceRosterNote">لن يتم حفظ أي تغيير قبل الضغط على «حفظ حضور المجموعة».</p>
+ </div>
+ <div class="card">
   <h2>تقارير التشغيل والحضور</h2>
   <div class="grid">
    <div class="field"><label for="reportFrom">من تاريخ</label><input id="reportFrom" type="date"></div>
@@ -238,18 +249,53 @@ function renderInstitutionCertificates(){
  }).join('')||'<tr><td colspan="8" class="empty">لا توجد شهادات تطابق معايير البحث.</td></tr>';
  $('certificateRegisterRows').querySelectorAll('[data-trainee-profile]').forEach(btn=>btn.addEventListener('click',()=>openCertificateTraineeProfile(btn.dataset.traineeProfile)));
 }
-function openCertificateTraineeProfile(certificateId){
+async function openCertificateTraineeProfile(certificateId){
  const cert=institutionCertificates.find(x=>x.id===certificateId);if(!cert)return;
+ if(cert.trainee_id)return openTraineeHistoryProfile(cert.trainee_id);
  const trainee=cert.institution_trainees||{};
- const details=[
-  ['الاسم',trainee.full_name||cert.student_name],['الاسم بالإنجليزية',trainee.full_name_en||cert.student_name_en],
-  ['الهاتف',trainee.phone||cert.student_phone],['البريد الإلكتروني',trainee.email||cert.student_email],
-  ['الرقم القومي',trainee.national_id||cert.student_national_id],['المحافظة',trainee.governorate||cert.governorate],
-  ['الفرع',branchById.get(cert.branch_id)?.name||'عام / غير محدد'],['حالة ملف المتدرب',trainee.status||'—']
- ];
  $('traineeProfileTitle').textContent='ملف المتدرب — '+(trainee.full_name||cert.student_name||'');
- $('traineeProfileContent').innerHTML='<div class="grid">'+details.map(([label,value])=>'<div class="field"><label>'+esc(label)+'</label><div class="notice">'+esc(value||'—')+'</div></div>').join('')+'</div><div class="card"><h2>الشهادة المرتبطة</h2><p>رقم الشهادة: <b dir="ltr">'+esc(cert.cert_number)+'</b></p><p>الدورة: '+esc(cert.course)+'</p><p>تاريخ الإصدار: '+esc(cert.issue_date)+'</p><a class="btn" href="certificate.html?id='+encodeURIComponent(cert.cert_number)+'&template=uploaded-2-html" target="_blank" rel="noopener">فتح الشهادة</a></div>';
+ $('traineeProfileContent').innerHTML='<div class="card"><h3>بيانات الشهادة</h3><p>رقم الشهادة: <b dir="ltr">'+esc(cert.cert_number)+'</b></p><p>الدورة: '+esc(cert.course)+'</p><p>تاريخ الإصدار: '+esc(cert.issue_date)+'</p><p class="muted">هذه الشهادة غير مرتبطة بمعرّف ملف متدرب داخل النظام.</p><a class="btn" href="certificate.html?id='+encodeURIComponent(cert.cert_number)+'&template=uploaded-2-html" target="_blank" rel="noopener">فتح الشهادة</a></div>';
  $('traineeProfileModal').classList.add('open');
+}
+async function openTraineeHistoryProfile(traineeId){
+ const trainee=institutionTraineeRows.find(t=>t.id===traineeId);
+ if(!trainee)return say('ملف المتدرب غير موجود ضمن الملفات المتاحة لحسابك.','error');
+ $('traineeProfileTitle').textContent='الملف الموحد — '+(trainee.full_name||'المتدرب');
+ $('traineeProfileContent').innerHTML='<p class="muted">جارٍ تحميل سجل التدريب والحضور والشهادات...</p>';
+ $('traineeProfileModal').classList.add('open');
+ try{
+  const [enrollmentsResult,certificatesResult]=await Promise.all([
+   sb.from('institution_enrollments').select('id,status,enrolled_at,completed_at,course_run_id,trainee_id,institution_course_runs(run_name,branch_id,start_date,end_date,institution_courses(name,specialization))').eq('institution_id',org.id).eq('trainee_id',traineeId).order('enrolled_at',{ascending:false}).limit(500),
+   sb.from('certificates').select('id,cert_number,course,issue_date,status,branch_id,trainee_id,visible_to_companies').eq('institution_id',org.id).eq('trainee_id',traineeId).order('issue_date',{ascending:false}).limit(500)
+  ]);
+  if(enrollmentsResult.error)throw enrollmentsResult.error;
+  if(certificatesResult.error)throw certificatesResult.error;
+  const enrollments=enrollmentsResult.data||[],certificates=certificatesResult.data||[];
+  const enrollmentIds=enrollments.map(e=>e.id);let attendance=[];
+  if(enrollmentIds.length){
+   const result=await sb.from('institution_attendance').select('id,enrollment_id,session_date,attendance_status,notes').eq('institution_id',org.id).in('enrollment_id',enrollmentIds).order('session_date',{ascending:false}).limit(2000);
+   if(result.error)throw result.error;attendance=result.data||[];
+  }
+  const attendanceByEnrollment=new Map();
+  attendance.forEach(a=>{if(!attendanceByEnrollment.has(a.enrollment_id))attendanceByEnrollment.set(a.enrollment_id,[]);attendanceByEnrollment.get(a.enrollment_id).push(a);});
+  const statusLabels={enrolled:'مسجل',attending:'منتظم',completed:'مكتمل',withdrawn:'منسحب',failed:'لم يجتز'};
+  const branchName=id=>branchById.get(id)?.name||'عام / غير محدد';
+  const enrollmentHtml=enrollments.map(e=>{
+   const run=e.institution_course_runs||{},course=run.institution_courses||{},records=attendanceByEnrollment.get(e.id)||[];
+   const counts={present:0,absent:0,late:0,excused:0};records.forEach(a=>{if(counts[a.attendance_status]!==undefined)counts[a.attendance_status]++;});
+   return '<tr><td>'+esc(course.name||'—')+'</td><td>'+esc(run.run_name||'مجموعة')+'</td><td>'+esc(branchName(run.branch_id))+'</td><td>'+esc(statusLabels[e.status]||e.status)+'</td><td>'+esc(e.enrolled_at?new Date(e.enrolled_at).toLocaleDateString('ar-EG'):'—')+'</td><td>'+esc(e.completed_at?new Date(e.completed_at).toLocaleDateString('ar-EG'):'—')+'</td><td>'+records.length+'</td><td>'+counts.present+'</td><td>'+counts.absent+'</td></tr>';
+  }).join('')||'<tr><td colspan="9" class="empty">لا توجد تسجيلات تدريبية مرتبطة بالملف.</td></tr>';
+  const certHtml=certificates.map(cert=>'<tr><td dir="ltr">'+esc(cert.cert_number)+'</td><td>'+esc(cert.course)+'</td><td>'+esc(cert.issue_date)+'</td><td>'+esc(certificateStatusLabels[cert.status]||cert.status||'غير محددة')+'</td><td><a class="btn light" href="certificate.html?id='+encodeURIComponent(cert.cert_number)+'&template=uploaded-2-html" target="_blank" rel="noopener">فتح الشهادة</a></td></tr>').join('')||'<tr><td colspan="5" class="empty">لا توجد شهادات مرتبطة بهذا الملف.</td></tr>';
+  const recentAttendance=attendance.slice(0,40).map(a=>'<tr><td>'+esc(a.session_date)+'</td><td>'+esc(attendanceLabels[a.attendance_status]||a.attendance_status)+'</td><td>'+esc(a.notes||'—')+'</td></tr>').join('')||'<tr><td colspan="3" class="empty">لا توجد سجلات حضور.</td></tr>';
+  $('traineeProfileContent').innerHTML=
+   '<div class="grid">'+[
+    ['الاسم',trainee.full_name],['الاسم بالإنجليزية',trainee.full_name_en],['الهاتف',trainee.phone],['البريد الإلكتروني',trainee.email],
+    ['الرقم القومي',trainee.national_id],['المحافظة',trainee.governorate],['الفرع',branchName(trainee.branch_id)],['حالة الملف',traineeStatusLabels[trainee.status]||trainee.status]
+   ].map(([label,value])=>'<div class="field"><label>'+esc(label)+'</label><div class="notice">'+esc(value||'—')+'</div></div>').join('')+'</div>'+
+   '<div class="card"><h3>المسار التدريبي</h3><div class="table-wrap"><table><thead><tr><th>الدورة</th><th>المجموعة</th><th>الفرع</th><th>الحالة</th><th>تاريخ التسجيل</th><th>الإتمام</th><th>جلسات</th><th>حضور</th><th>غياب</th></tr></thead><tbody>'+enrollmentHtml+'</tbody></table></div></div>'+
+   '<div class="card"><h3>سجل الحضور التفصيلي</h3><div class="table-wrap"><table><thead><tr><th>التاريخ</th><th>الحالة</th><th>ملاحظات</th></tr></thead><tbody>'+recentAttendance+'</tbody></table></div><p class="muted">يعرض أحدث 40 سجل حضور ضمن الصلاحيات المتاحة.</p></div>'+
+   '<div class="card"><h3>الشهادات الصادرة</h3><div class="table-wrap"><table><thead><tr><th>رقم الشهادة</th><th>الدورة</th><th>تاريخ الإصدار</th><th>الحالة</th><th>عرض</th></tr></thead><tbody>'+certHtml+'</tbody></table></div><p class="muted">حالة إتاحة الشهادات لجهات العمل لا تتغير من شاشة الملف الموحد.</p></div>';
+ }catch(error){$('traineeProfileContent').innerHTML='<div class="notice error">تعذر تحميل السجل الموحد: '+esc(error.message||'خطأ غير معروف')+'</div>';}
 }
 $('closeTraineeProfile').addEventListener('click',()=>$('traineeProfileModal').classList.remove('open'));
 $('traineeProfileModal').addEventListener('click',e=>{if(e.target===$('traineeProfileModal'))$('traineeProfileModal').classList.remove('open');});
@@ -261,6 +307,60 @@ $('clearCertificateFiltersBtn').addEventListener('click',()=>{
  renderInstitutionCertificates();
 });
 const attendanceLabels={present:'حاضر',absent:'غائب',late:'متأخر',excused:'معذور'};
+let attendanceRosterRows=[];
+function setupAttendanceManager(){
+ const today=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+ $('attendanceSessionDate').value=today;
+ $('attendanceRunFilter').innerHTML='<option value="">اختر المجموعة</option>'+courseRuns.filter(r=>!['completed','cancelled'].includes(r.status)).map(r=>'<option value="'+esc(r.id)+'">'+esc((r.institution_courses?.name||'دورة')+' — '+(r.run_name||'مجموعة')+' — '+(branchById.get(r.branch_id)?.name||'عام'))+'</option>').join('');
+}
+async function loadAttendanceRoster(){
+ const runId=$('attendanceRunFilter').value,date=$('attendanceSessionDate').value;
+ if(!runId||!date)return say('اختر المجموعة وتاريخ الجلسة أولاً.','error');
+ const run=courseRuns.find(r=>r.id===runId);if(!run)return say('المجموعة المحددة غير متاحة. حدّث الصفحة.','error');
+ if(!await allowed('trainees.view',run.branch_id||null))return say('ليس لديك صلاحية عرض متدربي هذا الفرع.','error');
+ const btn=$('loadAttendanceRosterBtn');btn.disabled=true;btn.textContent='جارٍ تحميل الكشف...';
+ try{
+  const {data,error}=await sb.from('institution_enrollments').select('id,status,trainee_id,institution_trainees!inner(id,full_name,branch_id,status)').eq('institution_id',org.id).eq('course_run_id',runId).in('status',['enrolled','attending','completed']).order('enrolled_at',{ascending:true}).limit(1000);
+  if(error)throw error;
+  const roster=(data||[]).filter(e=>(e.institution_trainees?.branch_id||null)===(run.branch_id||null));
+  const ids=roster.map(e=>e.id);let existing=[];
+  if(ids.length){
+   const result=await sb.from('institution_attendance').select('id,enrollment_id,attendance_status,notes').eq('institution_id',org.id).eq('session_date',date).in('enrollment_id',ids);
+   if(result.error)throw result.error;existing=result.data||[];
+  }
+  const existingMap=new Map(existing.map(a=>[a.enrollment_id,a]));
+  attendanceRosterRows=roster.map(e=>({...e,attendance:existingMap.get(e.id)||null,selectedStatus:existingMap.get(e.id)?.attendance_status||'',notes:existingMap.get(e.id)?.notes||''}));
+  $('attendanceRosterRows').innerHTML=attendanceRosterRows.map(e=>{
+   const t=e.institution_trainees||{};
+   return '<tr data-attendance-enrollment="'+esc(e.id)+'"><td>'+esc(t.full_name||'—')+'</td><td>'+esc(branchById.get(run.branch_id)?.name||'عام')+'</td><td>'+esc(e.attendance?attendanceLabels[e.attendance.attendance_status]||e.attendance.attendance_status:'لم يسجل')+'</td><td><select data-attendance-status="'+esc(e.id)+'"><option value="">لم يحدد</option><option value="present" '+(e.selectedStatus==='present'?'selected':'')+'>حاضر</option><option value="absent" '+(e.selectedStatus==='absent'?'selected':'')+'>غائب</option><option value="late" '+(e.selectedStatus==='late'?'selected':'')+'>متأخر</option><option value="excused" '+(e.selectedStatus==='excused'?'selected':'')+'>معذور</option></select></td><td><input data-attendance-notes="'+esc(e.id)+'" value="'+esc(e.notes)+'" placeholder="ملاحظة اختيارية"></td></tr>';
+  }).join('')||'<tr><td colspan="5" class="empty">لا يوجد متدربون مسجلون بهذه المجموعة.</td></tr>';
+  $('saveAttendanceRosterBtn').disabled=!attendanceRosterRows.length;
+  $('attendanceRosterNote').textContent='عدد المتدربين: '+attendanceRosterRows.length+' — السجلات الموجودة ستُحدّث لنفس تاريخ الجلسة دون تكرار.';
+ }catch(error){emptyRow('attendanceRosterRows',5,'تعذر تحميل الكشف: '+(error.message||'خطأ غير معروف'));say('تعذر تحميل كشف الحضور: '+error.message,'error');}
+ finally{btn.disabled=false;btn.textContent='عرض كشف الحضور';}
+}
+async function saveAttendanceRoster(){
+ const runId=$('attendanceRunFilter').value,date=$('attendanceSessionDate').value;
+ const run=courseRuns.find(r=>r.id===runId);if(!run||!date)return say('اختر المجموعة والتاريخ أولاً.','error');
+ const changes=attendanceRosterRows.map(e=>({enrollment:e,status:$('attendanceRosterRows').querySelector('[data-attendance-status="'+e.id+'"]')?.value||'',notes:$('attendanceRosterRows').querySelector('[data-attendance-notes="'+e.id+'"]')?.value.trim()||''})).filter(x=>x.status);
+ if(!changes.length)return say('حدد حالة حضور لمتدرب واحد على الأقل.','error');
+ if(!await allowed('trainees.manage',run.branch_id||null))return say('ليس لديك صلاحية تسجيل الحضور لهذا الفرع.','error');
+ const btn=$('saveAttendanceRosterBtn');btn.disabled=true;btn.textContent='جارٍ الحفظ...';
+ try{
+  const payload=changes.map(x=>({institution_id:org.id,enrollment_id:x.enrollment.id,session_date:date,attendance_status:x.status,notes:x.notes||null,recorded_by:user.id}));
+  const {error}=await sb.from('institution_attendance').upsert(payload,{onConflict:'enrollment_id,session_date'});
+  if(error)throw error;
+  say('تم حفظ '+changes.length+' سجل حضور/تحديث بنجاح.','success');
+  await loadAttendanceRoster();
+  if($('reportFrom').value&&$('reportTo').value)await loadInstitutionReport();
+ }catch(error){say('تعذر حفظ الحضور: '+(error.message||'خطأ غير معروف'),'error');}
+ finally{btn.disabled=false;btn.textContent='حفظ حضور المجموعة';}
+}
+$('loadAttendanceRosterBtn').addEventListener('click',loadAttendanceRoster);
+$('saveAttendanceRosterBtn').addEventListener('click',saveAttendanceRoster);
+$('attendanceRunFilter').addEventListener('change',()=>{$('saveAttendanceRosterBtn').disabled=true;emptyRow('attendanceRosterRows',5,'اعرض الكشف بعد اختيار المجموعة.');});
+$('attendanceSessionDate').addEventListener('change',()=>{$('saveAttendanceRosterBtn').disabled=true;emptyRow('attendanceRosterRows',5,'اعرض الكشف بعد اختيار التاريخ.');});
+
 let institutionReportRows=[];
 let enrollmentActionData=new Map();
 function isoDate(d){return d.toISOString().slice(0,10);}
@@ -343,6 +443,7 @@ async function init(){
  if(ie||!i||i.status!=='approved'){say('المؤسسة غير معتمدة أو تعذر تحميل بياناتها.','error');return;}org=i;$('orgTitle').textContent=org.name;
  await loadBranches();
  await Promise.all([loadTeam(),loadTrainees(),loadCoursesAndRuns()]);
+ setupAttendanceManager();
 }
 async function allowed(permission,branchId=null){const {data,error}=await sb.rpc('institution_has_permission',{p_institution_id:org.id,p_permission:permission,p_branch_id:branchId});return !error&&data===true;}
 async function loadBranches(){
@@ -468,8 +569,9 @@ function renderInstitutionTrainees(){
   const hay=[t.full_name,t.full_name_en,t.phone,t.email,t.national_id,t.external_reference].join(' ').toLocaleLowerCase('ar');
   return (!q||hay.includes(q))&&(!branch||t.branch_id===branch)&&(!status||t.status===status);
  });
- $('traineesRows').innerHTML=rows.map(t=>'<tr><td>'+esc(t.full_name)+'</td><td dir="ltr">'+esc(t.phone||'—')+'</td><td>'+esc(t.email||'—')+'</td><td>'+esc(branchById.get(t.branch_id)?.name||'عام')+'</td><td>'+esc(traineeStatusLabels[t.status]||t.status)+'</td><td><button class="btn light" type="button" data-edit-trainee="'+esc(t.id)+'">فتح / تعديل</button></td></tr>').join('')||'<tr><td colspan="6" class="empty">لا توجد ملفات تطابق معايير البحث.</td></tr>';
+ $('traineesRows').innerHTML=rows.map(t=>'<tr><td>'+esc(t.full_name)+'</td><td dir="ltr">'+esc(t.phone||'—')+'</td><td>'+esc(t.email||'—')+'</td><td>'+esc(branchById.get(t.branch_id)?.name||'عام')+'</td><td>'+esc(traineeStatusLabels[t.status]||t.status)+'</td><td><button class="btn light" type="button" data-open-trainee-history="'+esc(t.id)+'">الملف الموحد</button> <button class="btn light" type="button" data-edit-trainee="'+esc(t.id)+'">تعديل</button></td></tr>').join('')||'<tr><td colspan="6" class="empty">لا توجد ملفات تطابق معايير البحث.</td></tr>';
  $('traineesRows').querySelectorAll('[data-edit-trainee]').forEach(btn=>btn.addEventListener('click',()=>openTraineeEditor(btn.dataset.editTrainee)));
+ $('traineesRows').querySelectorAll('[data-open-trainee-history]').forEach(btn=>btn.addEventListener('click',()=>openTraineeHistoryProfile(btn.dataset.openTraineeHistory)));
 }
 async function openTraineeEditor(id){
  const t=institutionTraineeRows.find(x=>x.id===id);if(!t)return;
@@ -519,6 +621,7 @@ async function loadCoursesAndRuns(){
  const {data:runs,error}=await sb.from('institution_course_runs').select('id,run_name,instructor_name,start_date,end_date,status,branch_id,course_id,institution_courses(name)').eq('institution_id',org.id).order('created_at',{ascending:false}).limit(200);
  if(error){emptyRow('runsRows',6,error.message);return;}
  courseRuns=runs||[];
+ setupAttendanceManager();
  const runLabels={planned:'مخططة',open:'متاحة للتسجيل',in_progress:'جارية',completed:'مكتملة',cancelled:'ملغاة'};
  $('runsRows').innerHTML=(runs||[]).map(r=>'<tr><td>'+esc(r.run_name||'مجموعة')+'</td><td>'+esc(r.institution_courses?.name||'—')+'</td><td>'+esc(branchById.get(r.branch_id)?.name||'عام')+'</td><td>'+esc(r.instructor_name||'—')+'</td><td>'+esc(r.start_date||'—')+' → '+esc(r.end_date||'—')+'</td><td>'+esc(runLabels[r.status]||r.status)+'</td><td><select data-run-next="'+esc(r.id)+'"><option value="planned" '+(r.status==='planned'?'selected':'')+'>مخططة</option><option value="open" '+(r.status==='open'?'selected':'')+'>متاحة للتسجيل</option><option value="in_progress" '+(r.status==='in_progress'?'selected':'')+'>جارية</option><option value="completed" '+(r.status==='completed'?'selected':'')+'>مكتملة</option><option value="cancelled" '+(r.status==='cancelled'?'selected':'')+'>ملغاة</option></select> <button class="btn light" type="button" data-save-run="'+esc(r.id)+'">حفظ</button></td></tr>').join('')||'<tr><td colspan="7" class="empty">لم يتم إنشاء مجموعات تدريبية</td></tr>';
  $('runsRows').querySelectorAll('[data-save-run]').forEach(btn=>btn.addEventListener('click',()=>updateInstitutionRunStatus(btn.dataset.saveRun)));
