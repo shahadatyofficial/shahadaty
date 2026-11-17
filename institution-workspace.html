@@ -176,10 +176,7 @@ function certificateEsc(v){return esc(v??'—');}
 async function loadInstitutionCertificates(force=false){
  if(!org)return;
  if(!force&&certificateRegisterLoaded)return;
- if(!await allowed('certificates.view',null)){
-  emptyRow('certificateRegisterRows',8,'ليس لديك صلاحية عرض سجل الشهادات.');
-  say('حسابك لا يملك صلاحية عرض الشهادات.','error');return;
- }
+ // RLS and certificates.view policy filter records by institution and assigned branch.
  const btn=$('loadCertificateRegisterBtn');if(btn){btn.disabled=true;btn.textContent='جارٍ تحميل السجل...';}
  try{
   const {data,error}=await sb.from('certificates')
