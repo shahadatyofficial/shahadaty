@@ -32,12 +32,14 @@ begin
 
   -- Reuse a graduate profile only when the normalized phone identifies exactly one record.
   if v_profile_id is null and v_phone is not null then
-    select count(*), min(p.id)
-      into v_profile_matches, v_profile_id
+    select count(*) into v_profile_matches
       from public.alumni_profiles p
      where nullif(regexp_replace(coalesce(p.phone, ''), '[^0-9]', '', 'g'), '') = v_phone;
-    if v_profile_matches <> 1 then
-      v_profile_id := null;
+    if v_profile_matches = 1 then
+      select p.id into v_profile_id
+        from public.alumni_profiles p
+       where nullif(regexp_replace(coalesce(p.phone, ''), '[^0-9]', '', 'g'), '') = v_phone
+       limit 1;
     end if;
   end if;
 
@@ -70,12 +72,16 @@ begin
 
   -- Attach an already-approved graduate account only on an unambiguous phone match.
   if v_phone is not null then
-    select count(*), min(g.id)
-      into v_graduate_matches, v_graduate_id
+    select count(*) into v_graduate_matches
       from public.graduate_profiles g
      where nullif(regexp_replace(coalesce(g.phone, ''), '[^0-9]', '', 'g'), '') = v_phone
        and g.auth_user_id is not null;
     if v_graduate_matches = 1 then
+      select g.id into v_graduate_id
+        from public.graduate_profiles g
+       where nullif(regexp_replace(coalesce(g.phone, ''), '[^0-9]', '', 'g'), '') = v_phone
+         and g.auth_user_id is not null
+       limit 1;
       update public.alumni_profiles
          set legacy_graduate_profile_id = v_graduate_id,
              updated_at = now()
