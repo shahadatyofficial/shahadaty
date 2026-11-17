@@ -49,7 +49,7 @@ create policy institution_course_sessions_insert on public.institution_course_se
  and (trainer_id is null or exists(select 1 from public.institution_trainers t where t.id=trainer_id and t.institution_id=institution_course_sessions.institution_id and (t.branch_id is null or t.branch_id=(select r.branch_id from public.institution_course_runs r where r.id=course_run_id))))
 );
 create policy institution_course_sessions_update on public.institution_course_sessions for update to authenticated using (
- exists (select 1 from public.institution_course_runs r where r.id=course_run_id and r.institution_id=institution_id and institution_has_permission(institution_id,'courses.manage',r.branch_id))
+ exists (select 1 from public.institution_course_runs r where r.id=course_run_id and r.institution_id=institution_course_sessions.institution_id and institution_has_permission(institution_course_sessions.institution_id,'courses.manage',r.branch_id))
 ) with check (
- exists (select 1 from public.institution_course_runs r where r.id=course_run_id and r.institution_id=institution_id and institution_has_permission(institution_id,'courses.manage',r.branch_id))
+ exists (select 1 from public.institution_course_runs r where r.id=course_run_id and r.institution_id=institution_course_sessions.institution_id and institution_has_permission(institution_course_sessions.institution_id,'courses.manage',r.branch_id))
 );
