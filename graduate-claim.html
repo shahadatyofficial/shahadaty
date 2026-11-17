@@ -20,7 +20,7 @@
 const SUPABASE_URL="https://snteiiavvaaumgaegazn.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const params=new URLSearchParams(location.search);document.getElementById("claimCode").value=params.get("code")||"";
+const claimHash=new URLSearchParams(location.hash.replace(/^#/,""));document.getElementById("claimCode").value=claimHash.get("code")||new URLSearchParams(location.search).get("code")||"";
 const form=document.getElementById("claimForm"),btn=document.getElementById("claimSubmit"),msg=document.getElementById("claimMessage");
 form.addEventListener("submit",async e=>{
  e.preventDefault();const code=document.getElementById("claimCode").value.trim(),password=document.getElementById("claimPassword").value,confirmPassword=document.getElementById("claimPasswordConfirm").value;
