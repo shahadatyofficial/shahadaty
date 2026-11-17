@@ -1067,7 +1067,7 @@ async function createGraduateClaim(traineeId){
  try{
   const{data,error}=await sb.functions.invoke('graduate-account-claim',{body:{action:'create_claim',institution_id:inst.id,trainee_id:traineeId}});
   if(error||!data?.success)throw new Error(data?.message||error?.message||'تعذر إنشاء رمز الاستلام.');
-  const link=new URL('graduate-claim.html',location.href);link.searchParams.set('code',data.claim_code);
+  const link=new URL('graduate-claim.html',location.href);link.hash='code='+encodeURIComponent(data.claim_code);
   window.prompt('انسخ الرمز وسلم الرابط والرمز للطالب مرة واحدة. لن يظهر الرمز مرة أخرى بعد إغلاق النافذة:\n\nرابط الاستلام: '+link.href+'\n\nرمز الاستلام:',data.claim_code);
   toast('تم إنشاء رمز الاستلام. احتفظ به بشكل آمن ولا ترسله لشخص آخر.','ok');
  }catch(error){toast(error.message||'تعذر إنشاء رمز الاستلام.','err');}
