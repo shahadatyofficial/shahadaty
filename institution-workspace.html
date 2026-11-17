@@ -652,6 +652,11 @@ async function updateInstitutionRunStatus(id){
  if(!['planned','open','in_progress','completed','cancelled'].includes(next))return say('حالة المجموعة غير صحيحة.','error');
  if(next===run.status)return say('المجموعة بالفعل على هذه الحالة.','info');
  if(!await allowed('courses.manage',run.branch_id||null))return say('ليس لديك صلاحية إدارة هذه المجموعة.','error');
+ if(next==='completed'){
+  const {count,error}=await sb.from('institution_enrollments').select('id',{count:'exact',head:true}).eq('institution_id',org.id).eq('course_run_id',id).in('status',['enrolled','attending']);
+  if(error)return say('تعذر التحقق من تسجيلات المجموعة: '+error.message,'error');
+  if((count||0)>0)return say('لا يمكن إغلاق المجموعة كمكتملة قبل اعتماد إتمام تدريب كل المتدربين المسجلين أو المنتظمين.','error');
+ }
  if(!confirm('تأكيد تغيير حالة المجموعة إلى "'+({planned:'مخططة',open:'متاحة للتسجيل',in_progress:'جارية',completed:'مكتملة',cancelled:'ملغاة'}[next])+'؟'))return;
  const {error}=await sb.from('institution_course_runs').update({status:next}).eq('id',id).eq('institution_id',org.id);
  if(error)return say('تعذر تحديث حالة المجموعة: '+error.message,'error');
