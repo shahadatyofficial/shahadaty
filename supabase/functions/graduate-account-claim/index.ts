@@ -70,11 +70,17 @@ Deno.serve(async (req: Request) => {
 
   if (action === "create_claim") {
     const bearer = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
-    const apiKey = req.headers.get("apikey") || "";
-    if (!bearer || !apiKey || apiKey !== anon) return reply({ error: "UNAUTHORIZED" }, 401);
+    // The Supabase gateway validates the project API key before invoking this function.
+    // Do not compare the browser's legacy anon JWT byte-for-byte with the runtime
+    // SUPABASE_ANON_KEY: projects migrating to publishable/secret keys can expose
+    // a valid authenticated request while these two representations differ.
+    if (!bearer) return reply({ error: "UNAUTHORIZED" }, 401);
     const caller = createClient(url, anon, { global: { headers: { Authorization: "Bearer " + bearer } }, auth: { persistSession: false, autoRefreshToken: false } });
     const { data: authData, error: authError } = await caller.auth.getUser(bearer);
-    if (authError || !authData.user) return reply({ error: "UNAUTHORIZED" }, 401);
+    if (authError || !authData.user) {
+      console.error("graduate claim caller authentication failed", authError?.message || "user not found");
+      return reply({ error: "UNAUTHORIZED" }, 401);
+    }
 
     const institutionId = String(body.institution_id || "");
     const traineeId = String(body.trainee_id || "");
