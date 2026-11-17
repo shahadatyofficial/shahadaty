@@ -18,7 +18,7 @@
 <div class="back"><a href="graduate-v2.html">العودة إلى بوابة الخريجين</a></div></main>
 <script>
 const SUPABASE_URL="https://snteiiavvaaumgaegazn.supabase.co";
-const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODZ9.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const params=new URLSearchParams(location.search);document.getElementById("claimCode").value=params.get("code")||"";
 const form=document.getElementById("claimForm"),btn=document.getElementById("claimSubmit"),msg=document.getElementById("claimMessage");
