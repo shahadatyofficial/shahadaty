@@ -20,3 +20,5 @@ jobs:
           deno-version: v2.x
       - name: Type-check institution invitation function
         run: deno check supabase/functions/institution-invite-member/index.ts
+      - name: Type-check graduate account claim function
+        run: deno check supabase/functions/graduate-account-claim/index.ts
