@@ -685,6 +685,18 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 
     <!-- STUDENTS PAGE -->
     <div class="page" id="page-students">
+      <div class="card" style="margin-bottom:18px"><div class="card-head"><span class="card-title">تسجيل متدرب جديد قبل إصدار الشهادة</span></div><div class="card-body">
+        <form id="institutionTraineeForm" onsubmit="saveInstitutionTrainee(event)">
+          <div class="form-row"><div><label class="form-lbl" for="newTraineeName">اسم المتدرب رباعي *</label><input id="newTraineeName" class="form-inp2" maxlength="150" required></div><div><label class="form-lbl" for="newTraineePhone">رقم الهاتف المصري *</label><input id="newTraineePhone" class="form-inp2" type="tel" inputmode="tel" dir="ltr" placeholder="01xxxxxxxxx" required></div></div>
+          <div class="form-row"><div><label class="form-lbl" for="newTraineeEmail">البريد الإلكتروني (اختياري)</label><input id="newTraineeEmail" class="form-inp2" type="email" dir="ltr"></div><div><label class="form-lbl" for="newTraineeNational">الرقم القومي (اختياري)</label><input id="newTraineeNational" class="form-inp2" inputmode="numeric" maxlength="14"></div></div>
+          <div class="form-row"><div><label class="form-lbl" for="newTraineeBranch">الفرع (اختياري)</label><select id="newTraineeBranch" class="form-inp2"><option value="">بدون تحديد فرع</option></select></div><div><label class="form-lbl" for="newTraineeGov">المحافظة</label><input id="newTraineeGov" class="form-inp2" maxlength="80"></div></div>
+          <button class="btn-submit" id="newTraineeSaveBtn" type="submit">حفظ المتدرب</button><div id="newTraineeMsg" class="issue-result" role="status"></div>
+        </form><p style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.8">بعد الحفظ يمكنك إنشاء رمز استلام مؤقت وتسليمه للطالب. لا يتم إنشاء حساب دخول قبل استخدام الطالب للرمز واختيار كلمة مروره.</p>
+      </div></div>
+      <div class="card" style="margin-bottom:18px"><div class="card-head"><span class="card-title">المتدربون المسجلون قبل إصدار الشهادات</span><button type="button" class="btn-cancel" onclick="loadInstitutionTrainees()">تحديث</button></div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>اسم المتدرب</th><th>الهاتف</th><th>البريد</th><th>الحالة</th><th>استلام الحساب</th></tr></thead><tbody id="institutionTraineesTable"><tr><td colspan="5" style="text-align:center;padding:22px">جاري التحميل...</td></tr></tbody></table></div>
+      </div>
+
       <div class="card">
         <div class="card-head"><span class="card-title">سجل المتدربين</span><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="studentSearch" type="search" class="form-inp2" placeholder="ابحث بالاسم أو الهاتف أو الرقم القومي..." oninput="renderStudents()" style="max-width:300px;margin:0"><button type="button" class="btn-cancel" onclick="exportStudents()">تصدير Excel</button><button type="button" class="btn-cancel" onclick="loadStudents()">تحديث</button></div></div>
         <div class="card-body"><div id="studentsSummary" style="font-size:12px;color:var(--muted);margin-bottom:12px">جاري تحميل سجل المتدربين...</div>
@@ -1016,6 +1028,49 @@ async function openInstitutionDocument(path){
   const tab=window.open('about:blank','_blank');if(!tab){toast('اسمح بفتح النوافذ المنبثقة لعرض المستند','err');return;}
   const{data,error}=await sb.storage.from('institution-documents').createSignedUrl(path,300);
   if(error){tab.close();toast(error.message,'err');return;}tab.opener=null;tab.location.href=data.signedUrl;
+}
+
+// ── Institution trainee registration and graduate account claim ──
+let institutionTraineeRows=[];
+function normalizeInstitutionPhone(value){
+ let d=String(value||'').normalize('NFKC').replace(/[٠-٩]/g,x=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(x))).replace(/[۰-۹]/g,x=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(x))).replace(/[^0-9]/g,'');
+ if(d.startsWith('0020'))d=d.slice(2);if(d.startsWith('20'))d='0'+d.slice(2);if(d.length===10&&d.startsWith('1'))d='0'+d;
+ return /^01[0125]\d{8}$/.test(d)?d:null;
+}
+async function loadInstitutionTrainees(){
+ if(!inst?.id)return;const body=document.getElementById('institutionTraineesTable');if(!body)return;
+ const branches=Array.isArray(institutionBranches)?institutionBranches:[];
+ const branchSelect=document.getElementById('newTraineeBranch');
+ if(branchSelect&&branchSelect.options.length<=1)branchSelect.innerHTML='<option value="">بدون تحديد فرع</option>'+branches.filter(b=>b.is_active!==false).map(b=>'<option value="'+courseEsc(b.id)+'">'+courseEsc(b.name||b.branch_name||'فرع')+'</option>').join('');
+ const{data,error}=await sb.from('institution_trainees').select('id,full_name,phone,email,status,created_at,branch_id').eq('institution_id',inst.id).order('created_at',{ascending:false}).limit(500);
+ if(error){body.innerHTML='<tr><td colspan="5">تعذر تحميل سجل المتدربين: '+courseEsc(error.message)+'</td></tr>';return;}
+ institutionTraineeRows=data||[];
+ body.innerHTML=institutionTraineeRows.length?institutionTraineeRows.map(t=>'<tr><td>'+courseEsc(t.full_name)+'</td><td dir="ltr">'+courseEsc(t.phone||'—')+'</td><td dir="ltr">'+courseEsc(t.email||'—')+'</td><td>'+courseEsc(t.status==='active'?'نشط':'غير نشط')+'</td><td>'+(t.status==='active'&&normalizeInstitutionPhone(t.phone||'')?'<button type="button" class="btn-cancel" onclick="createGraduateClaim(\''+t.id+'\')">إنشاء رمز استلام</button>':'—')+'</td></tr>').join(''):'<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--muted)">لم يتم تسجيل متدربين مسبقًا بعد.</td></tr>';
+}
+async function saveInstitutionTrainee(event){
+ event.preventDefault();if(!inst?.id)return;
+ const name=document.getElementById('newTraineeName').value.trim(),phone=normalizeInstitutionPhone(document.getElementById('newTraineePhone').value),email=document.getElementById('newTraineeEmail').value.trim().toLowerCase(),national=document.getElementById('newTraineeNational').value.trim();
+ const msg=document.getElementById('newTraineeMsg'),btn=document.getElementById('newTraineeSaveBtn');
+ if(name.length<6||!phone){msg.textContent='أدخل الاسم الكامل ورقم هاتف مصري صحيح.';msg.style.display='block';return;}
+ if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){msg.textContent='البريد الإلكتروني غير صحيح.';msg.style.display='block';return;}
+ if(national&&!/^\d{14}$/.test(national)){msg.textContent='الرقم القومي يجب أن يتكون من 14 رقمًا.';msg.style.display='block';return;}
+ btn.disabled=true;btn.textContent='جارٍ الحفظ...';msg.style.display='none';
+ const{data:{user}}=await sb.auth.getUser();
+ const{error}=await sb.from('institution_trainees').insert({institution_id:inst.id,branch_id:document.getElementById('newTraineeBranch').value||null,full_name:name,phone,email:email||null,national_id:national||null,governorate:document.getElementById('newTraineeGov').value.trim()||null,status:'active',created_by:user?.id||null});
+ btn.disabled=false;btn.textContent='حفظ المتدرب';
+ if(error){msg.textContent='تعذر حفظ المتدرب: '+error.message;msg.style.display='block';return;}
+ document.getElementById('institutionTraineeForm').reset();msg.textContent='تم تسجيل المتدرب. يمكنك الآن إنشاء رمز استلام حسابه.';msg.style.display='block';msg.style.background='#ecfdf5';msg.style.color='#166534';await loadInstitutionTrainees();
+}
+async function createGraduateClaim(traineeId){
+ if(!inst?.id)return;
+ if(!confirm('إنشاء رمز استلام لمرة واحدة صالح لمدة 7 أيام؟ سيصبح أي رمز سابق لهذا المتدرب غير صالح.'))return;
+ try{
+  const{data,error}=await sb.functions.invoke('graduate-account-claim',{body:{action:'create_claim',institution_id:inst.id,trainee_id:traineeId}});
+  if(error||!data?.success)throw new Error(data?.message||error?.message||'تعذر إنشاء رمز الاستلام.');
+  const link=new URL('graduate-claim.html',location.href);link.searchParams.set('code',data.claim_code);
+  window.prompt('انسخ الرمز وسلم الرابط والرمز للطالب مرة واحدة. لن يظهر الرمز مرة أخرى بعد إغلاق النافذة:\n\nرابط الاستلام: '+link.href+'\n\nرمز الاستلام:',data.claim_code);
+  toast('تم إنشاء رمز الاستلام. احتفظ به بشكل آمن ولا ترسله لشخص آخر.','ok');
+ }catch(error){toast(error.message||'تعذر إنشاء رمز الاستلام.','err');}
 }
 
 // ── Trainee directory (derived from issued certificates) ───────
@@ -1462,7 +1517,7 @@ function showPage(name,el){
   if(el)el.classList.add('active');
   if(name==='certs')loadCerts();
   if(name==='courses'||name==='issue')loadCourses();
-  if(name==='students')loadStudents();
+  if(name==='students'){loadStudents();loadInstitutionTrainees();}
   if(name==='documents')loadInstitutionDocuments();
   if(name==='support')loadInstitutionSupport();
   else if(institutionSupportTimer){clearInterval(institutionSupportTimer);institutionSupportTimer=null;}
