@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>استلام حساب الخريج | شهادتي العلمية</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(145deg,#071b33,#0c3b63 65%,#075985);font-family:Cairo,sans-serif;display:grid;place-items:center;padding:20px;color:#14263b}.card{width:min(100%,480px);background:#fff;border-radius:22px;padding:30px;box-shadow:0 24px 80px #0005}.brand{text-align:center;margin-bottom:22px}.brand img{width:64px;height:64px;border-radius:50%}.brand h1{font-size:22px;margin:8px 0 0;color:#0c2d4e}.brand p{margin:4px 0;color:#b08d48;font-size:12px;font-weight:800}.intro{font-size:13px;line-height:1.9;color:#64748b;margin-bottom:20px}label{display:block;font-size:12px;font-weight:800;margin:13px 0 6px}input{width:100%;padding:13px;border:1px solid #dbe7f2;border-radius:11px;font:inherit;font-size:14px}input:focus{outline:2px solid #bae6fd;border-color:#0284c7}.btn{width:100%;border:0;border-radius:11px;padding:13px;background:#0369a1;color:#fff;font:800 14px Cairo;cursor:pointer;margin-top:18px}.btn:disabled{opacity:.6;cursor:wait}.msg{display:none;padding:12px;border-radius:10px;margin-top:15px;font-size:12px;line-height:1.8}.hint{font-size:11px;color:#64748b;margin-top:12px}.back{text-align:center;margin-top:18px;font-size:12px}.back a{color:#0369a1;text-decoration:none;font-weight:800}
+</style></head>
+<body><main class="card"><header class="brand"><img src="resources/icon.png" alt="شهادتي العلمية"><h1>استلام حساب الخريج</h1><p>شهادتي العلمية</p></header>
+<p class="intro">أدخل رمز الاستلام الذي حصلت عليه من المؤسسة، ثم أنشئ كلمة مرور خاصة بك. بعد إرسال الطلب ستراجعه إدارة المنصة قبل تفعيل الدخول.</p>
+<form id="claimForm"><label for="claimCode">رمز الاستلام</label><input id="claimCode" autocomplete="one-time-code" dir="ltr" required maxlength="50" placeholder="الصق الرمز هنا">
+<label for="claimPassword">كلمة المرور الجديدة</label><input id="claimPassword" type="password" autocomplete="new-password" minlength="10" maxlength="72" required placeholder="10 أحرف على الأقل">
+<label for="claimPasswordConfirm">تأكيد كلمة المرور</label><input id="claimPasswordConfirm" type="password" autocomplete="new-password" minlength="10" maxlength="72" required>
+<button class="btn" id="claimSubmit" type="submit">إنشاء حسابي وإرسال طلب المراجعة</button></form>
+<div class="msg" id="claimMessage" role="status"></div><p class="hint">لا تستخدم رقم الشهادة ككلمة مرور. احتفظ بكلمة المرور ولا تشاركها مع المؤسسة.</p>
+<div class="back"><a href="graduate-v2.html">العودة إلى بوابة الخريجين</a></div></main>
+<script>
+const SUPABASE_URL="https://snteiiavvaaumgaegazn.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const claimHash=new URLSearchParams(location.hash.replace(/^#/,""));document.getElementById("claimCode").value=claimHash.get("code")||new URLSearchParams(location.search).get("code")||"";
+const form=document.getElementById("claimForm"),btn=document.getElementById("claimSubmit"),msg=document.getElementById("claimMessage");
+form.addEventListener("submit",async e=>{
+ e.preventDefault();const code=document.getElementById("claimCode").value.trim(),password=document.getElementById("claimPassword").value,confirmPassword=document.getElementById("claimPasswordConfirm").value;
+ msg.style.display="none";if(password!==confirmPassword){msg.textContent="كلمتا المرور غير متطابقتين.";msg.style.display="block";msg.style.background="#fff7ed";msg.style.color="#9a3412";return;}
+ btn.disabled=true;btn.textContent="جارٍ إنشاء الحساب...";
+ try{const{data,error}=await sb.functions.invoke("graduate-account-claim",{body:{action:"redeem",claim_code:code,password}});
+  if(error)throw new Error(data?.message||error.message);if(!data?.success)throw new Error(data?.message||"تعذر استلام الحساب.");
+  form.reset();msg.textContent=data.message;msg.style.background="#ecfdf5";msg.style.color="#166534";msg.style.display="block";
+ }catch(err){msg.textContent=String(err?.message||err);msg.style.background="#fff1f2";msg.style.color="#be123c";msg.style.display="block";}
+ finally{btn.disabled=false;btn.textContent="إنشاء حسابي وإرسال طلب المراجعة";}
+});
+</script></body></html>
