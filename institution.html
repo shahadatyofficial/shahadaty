@@ -1095,7 +1095,18 @@ async function createGraduateClaim(traineeId){
  if(!inst?.id)return;
  if(!confirm('إنشاء رمز استلام لمرة واحدة صالح لمدة 7 أيام؟ سيصبح أي رمز سابق لهذا المتدرب غير صالح.'))return;
  try{
-  const{data,error}=await sb.functions.invoke('graduate-account-claim',{body:{action:'create_claim',institution_id:inst.id,trainee_id:traineeId}});
+  let{data:{session},error:sessionError}=await sb.auth.getSession();
+  if(sessionError)throw new Error('تعذر قراءة جلسة الدخول: '+sessionError.message);
+  if(!session?.access_token){
+   const refreshed=await sb.auth.refreshSession();
+   if(refreshed.error)throw new Error('انتهت جلسة الدخول. سجل الدخول مرة أخرى ثم حاول.');
+   session=refreshed.data.session;
+  }
+  if(!session?.access_token)throw new Error('لا توجد جلسة دخول صالحة. سجل الدخول مرة أخرى.');
+  const{data,error}=await sb.functions.invoke('graduate-account-claim',{
+   headers:{Authorization:'Bearer '+session.access_token,apikey:SK},
+   body:{action:'create_claim',institution_id:inst.id,trainee_id:traineeId}
+  });
   if(error||!data?.success)throw new Error(data?.message||error?.message||'تعذر إنشاء رمز الاستلام.');
   const link=new URL('graduate-claim.html',location.href);link.hash='code='+encodeURIComponent(data.claim_code);
   window.prompt('انسخ الرمز وسلم الرابط والرمز للطالب مرة واحدة. لن يظهر الرمز مرة أخرى بعد إغلاق النافذة:\n\nرابط الاستلام: '+link.href+'\n\nرمز الاستلام:',data.claim_code);
