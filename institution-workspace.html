@@ -81,7 +81,14 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 <div class="field"><label>الرقم القومي</label><input id="traineeNational" dir="ltr" maxlength="14"></div>
 <div class="field"><label>الفرع</label><select id="traineeBranch"></select></div>
 <div class="field"><label>المحافظة</label><input id="traineeGov"></div></div><div class="actions"><button class="btn" id="addTraineeBtn">حفظ المتدرب</button></div></div>
-<div class="card"><h2>سجل المتدربين</h2><div class="table-wrap"><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>البريد</th><th>الفرع</th><th>الحالة</th></tr></thead><tbody id="traineesRows"></tbody></table></div></div>
+<div class="card"><h2>سجل المتدربين</h2>
+<div class="grid">
+ <div class="field"><label for="traineeSearch">بحث بالاسم أو الهاتف أو البريد أو الرقم القومي</label><input id="traineeSearch" type="search" placeholder="ابحث في ملفات المتدربين"></div>
+ <div class="field"><label for="traineeBranchFilter">الفرع</label><select id="traineeBranchFilter"><option value="">كل الفروع المسموح بها</option></select></div>
+ <div class="field"><label for="traineeStatusFilter">حالة الملف</label><select id="traineeStatusFilter"><option value="">كل الحالات</option><option value="active">نشط</option><option value="inactive">غير نشط</option><option value="archived">مؤرشف</option></select></div>
+</div>
+<div class="table-wrap"><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>البريد</th><th>الفرع</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="traineesRows"></tbody></table></div>
+<p class="muted" id="traineeListNote">يتم عرض أول 1000 ملف متدرب ضمن نطاق صلاحيات حسابك.</p></div>
 </section>
 <section id="courses" class="panel">
 <div class="card"><h2>إضافة دورة إلى كتالوج المؤسسة</h2><div class="grid">
@@ -90,7 +97,7 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 <div class="field"><label>المدة</label><input id="catalogCourseDuration" placeholder="مثال: 40 ساعة"></div>
 <div class="field"><label>الفرع</label><select id="catalogCourseBranch"></select></div>
 </div><div class="actions"><button class="btn" id="saveCatalogCourseBtn">حفظ الدورة</button></div></div>
-<div class="card"><h2>كتالوج الدورات المتاحة</h2><div class="table-wrap"><table><thead><tr><th>الدورة</th><th>التخصص</th><th>المدة</th><th>الفرع</th><th>الحالة</th></tr></thead><tbody id="catalogCoursesRows"></tbody></table></div></div><div class="card"><h2>إنشاء مجموعة تدريبية</h2><div class="grid">
+<div class="card"><h2>كتالوج الدورات</h2><div class="table-wrap"><table><thead><tr><th>الدورة</th><th>التخصص</th><th>المدة</th><th>الفرع</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="catalogCoursesRows"></tbody></table></div></div><div class="card"><h2>إنشاء مجموعة تدريبية</h2><div class="grid">
 <div class="field"><label>الدورة *</label><select id="runCourse"></select></div>
 <div class="field"><label>اسم المجموعة</label><input id="runName" placeholder="دفعة نوفمبر"></div>
 <div class="field"><label>الفرع</label><select id="runBranch"></select></div>
@@ -105,7 +112,7 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 <div class="field"><label>المتدرب *</label><select id="enrollTrainee"></select></div>
 <div class="field"><label>حالة التسجيل</label><select id="enrollStatus"><option value="enrolled">مسجل</option><option value="attending">منتظم</option></select></div>
 </div><div class="actions"><button class="btn" id="enrollTraineeBtn">تسجيل المتدرب</button></div></div>
-<div class="card"><h2>سجل التسجيلات والحضور</h2><div class="table-wrap"><table><thead><tr><th>المتدرب</th><th>الدورة / المجموعة</th><th>الحالة</th><th>التسجيل</th><th>الحضور اليوم</th><th>إجراء</th></tr></thead><tbody id="enrollmentsRows"></tbody></table></div></div><div class="card"><h2>المجموعات التدريبية</h2><div class="table-wrap"><table><thead><tr><th>المجموعة</th><th>الدورة</th><th>الفرع</th><th>المدرب</th><th>الفترة</th><th>الحالة</th></tr></thead><tbody id="runsRows"></tbody></table></div></div>
+<div class="card"><h2>سجل التسجيلات والحضور</h2><div class="table-wrap"><table><thead><tr><th>المتدرب</th><th>الدورة / المجموعة</th><th>الحالة</th><th>التسجيل</th><th>الحضور اليوم</th><th>إجراء</th></tr></thead><tbody id="enrollmentsRows"></tbody></table></div></div><div class="card"><h2>إدارة المجموعات التدريبية</h2><div class="table-wrap"><table><thead><tr><th>المجموعة</th><th>الدورة</th><th>الفرع</th><th>المدرب</th><th>الفترة</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="runsRows"></tbody></table></div><p class="muted">يمكن تحديث حالة المجموعة وفق دورة التشغيل، دون حذف التسجيلات أو الحضور المرتبط بها.</p></div>
 </section>
 <section id="certificates" class="panel">
  <div class="card">
@@ -131,6 +138,24 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
  <div class="team-modal-card">
   <div class="team-modal-head"><h2 id="traineeProfileTitle">ملف المتدرب</h2><button class="btn light" type="button" id="closeTraineeProfile">إغلاق</button></div>
   <div id="traineeProfileContent"></div>
+ </div>
+</div>
+<div class="team-modal" id="traineeEditModal" role="dialog" aria-modal="true" aria-labelledby="traineeEditTitle">
+ <div class="team-modal-card">
+  <div class="team-modal-head"><h2 id="traineeEditTitle">تعديل ملف المتدرب</h2><button class="btn light" type="button" id="closeTraineeEdit">إغلاق</button></div>
+  <div class="grid">
+   <div class="field"><label for="editTraineeName">الاسم بالكامل *</label><input id="editTraineeName"></div>
+   <div class="field"><label for="editTraineeNameEn">الاسم بالإنجليزية</label><input id="editTraineeNameEn" dir="ltr"></div>
+   <div class="field"><label for="editTraineePhone">الهاتف</label><input id="editTraineePhone" dir="ltr"></div>
+   <div class="field"><label for="editTraineeEmail">البريد الإلكتروني</label><input id="editTraineeEmail" type="email" dir="ltr"></div>
+   <div class="field"><label for="editTraineeNational">الرقم القومي</label><input id="editTraineeNational" dir="ltr" maxlength="14"></div>
+   <div class="field"><label for="editTraineeGov">المحافظة</label><input id="editTraineeGov"></div>
+   <div class="field"><label for="editTraineeBranch">الفرع</label><select id="editTraineeBranch"></select></div>
+   <div class="field"><label for="editTraineeStatus">حالة الملف</label><select id="editTraineeStatus"><option value="active">نشط</option><option value="inactive">غير نشط</option><option value="archived">مؤرشف</option></select></div>
+   <div class="field" style="grid-column:1/-1"><label for="editTraineeNotes">ملاحظات داخلية</label><textarea id="editTraineeNotes" rows="3"></textarea></div>
+  </div>
+  <div class="team-modal-actions"><button class="btn" type="button" id="saveTraineeProfile">حفظ التعديلات</button><button class="btn light" type="button" id="cancelTraineeEdit">إلغاء</button></div>
+  <p class="muted">لن يتم حذف الملف. تغيير الفرع غير متاح إذا كان للمتدرب تسجيلات تدريبية مرتبطة.</p>
  </div>
 </div>
 <section id="reports" class="panel">
@@ -425,20 +450,78 @@ $('addTraineeBtn').addEventListener('click',async()=>{
  const {error}=await sb.from('institution_trainees').insert(row);if(error)return say(error.message,'error');
  ['traineeName','traineePhone','traineeEmail','traineeNational','traineeGov'].forEach(id=>$(id).value='');say('تم تسجيل المتدرب.','success');await loadTrainees();
 });
+let institutionTraineeRows=[],editingTraineeId=null;
+const traineeStatusLabels={active:'نشط',inactive:'غير نشط',archived:'مؤرشف'};
 async function loadTrainees(){
- const {data,error}=await sb.from('institution_trainees').select('id,full_name,phone,email,branch_id,status').eq('institution_id',org.id).order('created_at',{ascending:false}).limit(250);
- if(error){emptyRow('traineesRows',5,error.message);return;}
- $('traineesRows').innerHTML=(data||[]).map(t=>'<tr><td>'+esc(t.full_name)+'</td><td dir="ltr">'+esc(t.phone||'—')+'</td><td>'+esc(t.email||'—')+'</td><td>'+esc(branchById.get(t.branch_id)?.name||'عام')+'</td><td>'+esc(t.status)+'</td></tr>').join('')||'<tr><td colspan="5" class="empty">لا يوجد متدربون مسجلون بعد</td></tr>';
+ const {data,error}=await sb.from('institution_trainees').select('id,full_name,full_name_en,phone,email,national_id,governorate,branch_id,status,notes,created_at').eq('institution_id',org.id).order('created_at',{ascending:false}).limit(1000);
+ if(error){emptyRow('traineesRows',6,error.message);return;}
+ institutionTraineeRows=data||[];
+ const branchSelect=$('traineeBranchFilter'),selected=branchSelect.value;
+ branchSelect.innerHTML='<option value="">كل الفروع المسموح بها</option>'+branches.map(b=>'<option value="'+esc(b.id)+'">'+esc(b.name)+'</option>').join('');
+ if(branches.some(b=>b.id===selected))branchSelect.value=selected;
+ renderInstitutionTrainees();
+ $('traineeListNote').textContent=institutionTraineeRows.length===1000?'تم تحميل أول 1000 ملف. استخدم البحث والفلاتر لتضييق النتائج.':'يتم عرض الملفات المتاحة ضمن نطاق صلاحيات حسابك.';
 }
+function renderInstitutionTrainees(){
+ const q=$('traineeSearch').value.trim().toLocaleLowerCase('ar'),branch=$('traineeBranchFilter').value,status=$('traineeStatusFilter').value;
+ const rows=institutionTraineeRows.filter(t=>{
+  const hay=[t.full_name,t.full_name_en,t.phone,t.email,t.national_id,t.external_reference].join(' ').toLocaleLowerCase('ar');
+  return (!q||hay.includes(q))&&(!branch||t.branch_id===branch)&&(!status||t.status===status);
+ });
+ $('traineesRows').innerHTML=rows.map(t=>'<tr><td>'+esc(t.full_name)+'</td><td dir="ltr">'+esc(t.phone||'—')+'</td><td>'+esc(t.email||'—')+'</td><td>'+esc(branchById.get(t.branch_id)?.name||'عام')+'</td><td>'+esc(traineeStatusLabels[t.status]||t.status)+'</td><td><button class="btn light" type="button" data-edit-trainee="'+esc(t.id)+'">فتح / تعديل</button></td></tr>').join('')||'<tr><td colspan="6" class="empty">لا توجد ملفات تطابق معايير البحث.</td></tr>';
+ $('traineesRows').querySelectorAll('[data-edit-trainee]').forEach(btn=>btn.addEventListener('click',()=>openTraineeEditor(btn.dataset.editTrainee)));
+}
+async function openTraineeEditor(id){
+ const t=institutionTraineeRows.find(x=>x.id===id);if(!t)return;
+ if(!await allowed('trainees.manage',t.branch_id||null))return say('ليس لديك صلاحية تعديل ملف هذا المتدرب.','error');
+ editingTraineeId=id;
+ $('editTraineeName').value=t.full_name||'';$('editTraineeNameEn').value=t.full_name_en||'';
+ $('editTraineePhone').value=t.phone||'';$('editTraineeEmail').value=t.email||'';
+ $('editTraineeNational').value=t.national_id||'';$('editTraineeGov').value=t.governorate||'';
+ $('editTraineeNotes').value=t.notes||'';
+ $('editTraineeStatus').value=t.status||'active';
+ $('editTraineeBranch').innerHTML='<option value="">عام / غير محدد</option>'+branches.filter(b=>b.is_active).map(b=>'<option value="'+esc(b.id)+'">'+esc(b.name)+'</option>').join('');
+ $('editTraineeBranch').value=t.branch_id||'';
+ $('traineeEditModal').classList.add('open');
+}
+async function saveTraineeEditor(){
+ const t=institutionTraineeRows.find(x=>x.id===editingTraineeId);if(!t)return;
+ const full_name=$('editTraineeName').value.trim(),branch_id=$('editTraineeBranch').value||null;
+ if(full_name.length<2)return say('اسم المتدرب مطلوب ويجب ألا يقل عن حرفين.','error');
+ const oldBranch=t.branch_id||null;
+ if(!await allowed('trainees.manage',oldBranch)||!await allowed('trainees.manage',branch_id))return say('لا تملك صلاحية تعديل الملف في الفرع الحالي أو الفرع الجديد.','error');
+ if(oldBranch!==branch_id){
+  const {count,error:countError}=await sb.from('institution_enrollments').select('id',{count:'exact',head:true}).eq('institution_id',org.id).eq('trainee_id',t.id);
+  if(countError)return say('تعذر التحقق من تسجيلات المتدرب: '+countError.message,'error');
+  if((count||0)>0)return say('لا يمكن نقل المتدرب لفرع آخر لوجود تسجيلات تدريبية مرتبطة به. أنشئ ملفًا جديدًا للفرع الآخر إذا لزم الأمر.','error');
+ }
+ const payload={full_name,full_name_en:$('editTraineeNameEn').value.trim()||null,phone:$('editTraineePhone').value.trim()||null,email:$('editTraineeEmail').value.trim()||null,national_id:$('editTraineeNational').value.trim()||null,governorate:$('editTraineeGov').value.trim()||null,branch_id,status:$('editTraineeStatus').value,notes:$('editTraineeNotes').value.trim()||null};
+ const btn=$('saveTraineeProfile');btn.disabled=true;btn.textContent='جارٍ الحفظ...';
+ try{
+  const {error}=await sb.from('institution_trainees').update(payload).eq('id',t.id).eq('institution_id',org.id);
+  if(error)throw error;
+  $('traineeEditModal').classList.remove('open');editingTraineeId=null;
+  say('تم تحديث ملف المتدرب بنجاح.','success');
+  await loadTrainees();await loadCoursesAndRuns();
+ }catch(error){say('تعذر تحديث الملف: '+error.message,'error');}
+ finally{btn.disabled=false;btn.textContent='حفظ التعديلات';}
+}
+$('saveTraineeProfile').addEventListener('click',saveTraineeEditor);
+['closeTraineeEdit','cancelTraineeEdit'].forEach(id=>$(id).addEventListener('click',()=>{$('traineeEditModal').classList.remove('open');editingTraineeId=null;}));
+$('traineeEditModal').addEventListener('click',e=>{if(e.target===$('traineeEditModal')){$('traineeEditModal').classList.remove('open');editingTraineeId=null;}});
+['traineeSearch','traineeBranchFilter','traineeStatusFilter'].forEach(id=>$(id).addEventListener(id==='traineeSearch'?'input':'change',renderInstitutionTrainees));
 async function loadCoursesAndRuns(){
- const {data:cs,error:ce}=await sb.from('institution_courses').select('id,name,specialization,duration,branch_id,is_active').eq('institution_id',org.id).eq('is_active',true).order('name');
+ const {data:cs,error:ce}=await sb.from('institution_courses').select('id,name,specialization,duration,branch_id,is_active').eq('institution_id',org.id).order('name');
  if(ce){say(ce.message,'error');return;}courses=cs||[];
- $('runCourse').innerHTML='<option value="">اختر الدورة</option>'+courses.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('');
- $('catalogCoursesRows').innerHTML=courses.map(c=>'<tr><td>'+esc(c.name)+'</td><td>'+esc(c.specialization||'—')+'</td><td>'+esc(c.duration||'—')+'</td><td>'+esc(branchById.get(c.branch_id)?.name||'عام')+'</td><td>نشطة</td></tr>').join('')||'<tr><td colspan="5" class="empty">لا توجد دورات متاحة لهذا النطاق بعد</td></tr>';
+ $('runCourse').innerHTML='<option value="">اختر الدورة</option>'+courses.filter(x=>x.is_active).map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('');
+ $('catalogCoursesRows').innerHTML=courses.map(c=>'<tr><td>'+esc(c.name)+'</td><td>'+esc(c.specialization||'—')+'</td><td>'+esc(c.duration||'—')+'</td><td>'+esc(branchById.get(c.branch_id)?.name||'عام')+'</td><td>'+ (c.is_active?'نشطة':'موقوفة')+'</td><td><button class="btn light" type="button" data-toggle-course="'+esc(c.id)+'">'+(c.is_active?'إيقاف الدورة':'إعادة تفعيل')+'</button></td></tr>').join('')||'<tr><td colspan="6" class="empty">لا توجد دورات مسجلة بعد</td></tr>';
+ $('catalogCoursesRows').querySelectorAll('[data-toggle-course]').forEach(btn=>btn.addEventListener('click',()=>toggleInstitutionCourse(btn.dataset.toggleCourse)));
  const {data:runs,error}=await sb.from('institution_course_runs').select('id,run_name,instructor_name,start_date,end_date,status,branch_id,course_id,institution_courses(name)').eq('institution_id',org.id).order('created_at',{ascending:false}).limit(200);
  if(error){emptyRow('runsRows',6,error.message);return;}
  courseRuns=runs||[];
- $('runsRows').innerHTML=(runs||[]).map(r=>'<tr><td>'+esc(r.run_name||'مجموعة')+'</td><td>'+esc(r.institution_courses?.name||'—')+'</td><td>'+esc(branchById.get(r.branch_id)?.name||'عام')+'</td><td>'+esc(r.instructor_name||'—')+'</td><td>'+esc(r.start_date||'—')+' → '+esc(r.end_date||'—')+'</td><td>'+esc(r.status)+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">لم يتم إنشاء مجموعات تدريبية</td></tr>';
+ const runLabels={planned:'مخططة',open:'متاحة للتسجيل',in_progress:'جارية',completed:'مكتملة',cancelled:'ملغاة'};
+ $('runsRows').innerHTML=(runs||[]).map(r=>'<tr><td>'+esc(r.run_name||'مجموعة')+'</td><td>'+esc(r.institution_courses?.name||'—')+'</td><td>'+esc(branchById.get(r.branch_id)?.name||'عام')+'</td><td>'+esc(r.instructor_name||'—')+'</td><td>'+esc(r.start_date||'—')+' → '+esc(r.end_date||'—')+'</td><td>'+esc(runLabels[r.status]||r.status)+'</td><td><select data-run-next="'+esc(r.id)+'"><option value="planned" '+(r.status==='planned'?'selected':'')+'>مخططة</option><option value="open" '+(r.status==='open'?'selected':'')+'>متاحة للتسجيل</option><option value="in_progress" '+(r.status==='in_progress'?'selected':'')+'>جارية</option><option value="completed" '+(r.status==='completed'?'selected':'')+'>مكتملة</option><option value="cancelled" '+(r.status==='cancelled'?'selected':'')+'>ملغاة</option></select> <button class="btn light" type="button" data-save-run="'+esc(r.id)+'">حفظ</button></td></tr>').join('')||'<tr><td colspan="7" class="empty">لم يتم إنشاء مجموعات تدريبية</td></tr>';
+ $('runsRows').querySelectorAll('[data-save-run]').forEach(btn=>btn.addEventListener('click',()=>updateInstitutionRunStatus(btn.dataset.saveRun)));
  $('enrollRun').innerHTML='<option value="">اختر المجموعة</option>'+(runs||[]).filter(r=>!['completed','cancelled'].includes(r.status)).map(r=>'<option value="'+r.id+'">'+esc((r.institution_courses?.name||'دورة')+' — '+(r.run_name||'مجموعة'))+'</option>').join('');
  const {data:trainees,error:traineeError}=await sb.from('institution_trainees').select('id,full_name,branch_id').eq('institution_id',org.id).eq('status','active').order('full_name').limit(1000);
  if(traineeError){emptyRow('enrollmentsRows',5,traineeError.message);return;}
@@ -553,6 +636,27 @@ $('saveCatalogCourseBtn').addEventListener('click',async()=>{
  ['catalogCourseName','catalogCourseSpecialization','catalogCourseDuration'].forEach(id=>$(id).value='');
  say('تمت إضافة الدورة إلى الكتالوج.','success');await loadCoursesAndRuns();
 });
+async function toggleInstitutionCourse(id){
+ const course=courses.find(x=>x.id===id);if(!course)return;
+ if(!await allowed('courses.manage',course.branch_id||null))return say('ليس لديك صلاحية إدارة هذه الدورة.','error');
+ const next=!course.is_active;
+ if(!confirm(next?'إعادة تفعيل الدورة وإتاحتها للمجموعات الجديدة؟':'إيقاف الدورة عن التسجيلات والمجموعات الجديدة؟'))return;
+ const {error}=await sb.from('institution_courses').update({is_active:next}).eq('id',id).eq('institution_id',org.id);
+ if(error)return say('تعذر تحديث حالة الدورة: '+error.message,'error');
+ say(next?'تمت إعادة تفعيل الدورة.':'تم إيقاف الدورة. التسجيلات والمجموعات السابقة لم تُحذف.','success');
+ await loadCoursesAndRuns();
+}
+async function updateInstitutionRunStatus(id){
+ const run=courseRuns.find(x=>x.id===id);if(!run)return;
+ const select=$('runsRows').querySelector('[data-run-next="'+id+'"]'),next=select?.value;
+ if(!['planned','open','in_progress','completed','cancelled'].includes(next))return say('حالة المجموعة غير صحيحة.','error');
+ if(next===run.status)return say('المجموعة بالفعل على هذه الحالة.','info');
+ if(!await allowed('courses.manage',run.branch_id||null))return say('ليس لديك صلاحية إدارة هذه المجموعة.','error');
+ if(!confirm('تأكيد تغيير حالة المجموعة إلى "'+({planned:'مخططة',open:'متاحة للتسجيل',in_progress:'جارية',completed:'مكتملة',cancelled:'ملغاة'}[next])+'؟'))return;
+ const {error}=await sb.from('institution_course_runs').update({status:next}).eq('id',id).eq('institution_id',org.id);
+ if(error)return say('تعذر تحديث حالة المجموعة: '+error.message,'error');
+ say('تم تحديث حالة المجموعة التدريبية.','success');await loadCoursesAndRuns();
+}
 $('addRunBtn').addEventListener('click',async()=>{
  const course_id=$('runCourse').value,branch_id=$('runBranch').value||null;if(!course_id)return say('اختر الدورة أولاً.','error');
  if(!await allowed('courses.manage',branch_id))return say('ليس لديك صلاحية إنشاء مجموعة في هذا الفرع.','error');
