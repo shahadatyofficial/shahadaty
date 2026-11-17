@@ -288,6 +288,14 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 @media(max-width:760px){.support-chat{grid-template-columns:minmax(0,1fr)}.support-thread-box{height:55vh;min-height:300px}.support-compose button{padding:0 13px}}
 
 .stats-row .sc-trend{display:none}
+
+.training-stats-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:-6px 0 24px}
+.training-stat-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(3,105,161,.04)}
+.training-stat-icon{width:42px;height:42px;border-radius:12px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+.training-stat-card strong{display:block;font-size:23px;font-weight:900;color:var(--navy);line-height:1.2}
+.training-stat-card span{display:block;color:var(--muted);font-size:11px;margin-top:4px}
+@media(max-width:900px){.training-stats-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.training-stats-row{grid-template-columns:1fr;gap:10px}.training-stat-card{padding:13px 15px}}
 </style>
 </head>
 <body>
@@ -418,7 +426,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="page active" id="page-dashboard">
       <div class="date-filter">
         <span class="material-symbols-outlined">calendar_today</span>
-        <span id="dateRange">1 مايو - 31 مايو 2024</span>
+        <span id="dateRange">ملخص الشهر الحالي</span>
         <span class="material-symbols-outlined" style="font-size:16px">expand_more</span>
       </div>
 
@@ -427,7 +435,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
         <div class="stat-card">
           <div class="sc-top">
             <div class="sc-icon" style="background:#eff6ff"><span class="material-symbols-outlined" style="color:#0369a1">description</span></div>
-            <div class="sc-trend up"><span class="material-symbols-outlined">trending_up</span><span id="trendCerts">+18%</span></div>
+            <div class="sc-trend"><span>إجمالي تراكمي</span></div>
           </div>
           <span class="sc-val stat-num" id="dashTotal">—</span>
           <span class="sc-lbl">الشهادات الصادرة</span>
@@ -435,7 +443,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
         <div class="stat-card">
           <div class="sc-top">
             <div class="sc-icon" style="background:#f0fdf4"><span class="material-symbols-outlined" style="color:#059669">groups</span></div>
-            <div class="sc-trend up"><span class="material-symbols-outlined">trending_up</span>+22%</div>
+            <div class="sc-trend"><span>ملفات مسجلة</span></div>
           </div>
           <span class="sc-val stat-num" id="dashStudents">—</span>
           <span class="sc-lbl">إجمالي المستفيدين</span>
@@ -443,19 +451,24 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
         <div class="stat-card">
           <div class="sc-top">
             <div class="sc-icon" style="background:#f0f9ff"><span class="material-symbols-outlined" style="color:#0284c7">verified</span></div>
-            <div class="sc-trend up"><span class="material-symbols-outlined">trending_up</span>+16%</div>
+            <div class="sc-trend"><span>حالة الشهادات</span></div>
           </div>
           <span class="sc-val stat-num" id="dashVerified">—</span>
-          <span class="sc-lbl">الشهادات المتحقق منها</span>
+          <span class="sc-lbl">الشهادات السارية</span>
         </div>
         <div class="stat-card">
           <div class="sc-top">
             <div class="sc-icon" style="background:#fef9ee"><span class="material-symbols-outlined" style="color:#b08d48">donut_large</span></div>
-            <div class="sc-trend up"><span class="material-symbols-outlined">trending_up</span>+8%</div>
+            <div class="sc-trend"><span>من الإجمالي</span></div>
           </div>
-          <span class="sc-val stat-num" id="dashRate">86%</span>
-          <span class="sc-lbl">نسبة التحقق</span>
+          <span class="sc-val stat-num" id="dashRate">—</span>
+          <span class="sc-lbl">نسبة الشهادات السارية</span>
         </div>
+      </div>
+      <div class="training-stats-row">
+        <div class="training-stat-card"><div class="training-stat-icon">🏢</div><div><strong id="dashBranches">—</strong><span>الفروع النشطة</span></div></div>
+        <div class="training-stat-card"><div class="training-stat-icon">🎓</div><div><strong id="dashRuns">—</strong><span>المجموعات المتاحة والجارية</span></div></div>
+        <div class="training-stat-card"><div class="training-stat-icon">👥</div><div><strong id="dashEnrollments">—</strong><span>التسجيلات المنتظمة والحالية</span></div></div>
       </div>
 
       <!-- CHART + DONUT -->
@@ -485,9 +498,9 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
               </div>
               <div class="donut-legend">
                 <div class="legend-item"><div style="display:flex;align-items:center"><div class="legend-dot" style="background:#0369a1"></div><span class="legend-name">صالحة</span></div><span class="legend-val" id="legValid">—</span></div>
-                <div class="legend-item"><div style="display:flex;align-items:center"><div class="legend-dot" style="background:#f59e0b"></div><span class="legend-name">منتهية الصلاحية</span></div><span class="legend-val" id="legExp">—</span></div>
+                <div class="legend-item"><div style="display:flex;align-items:center"><div class="legend-dot" style="background:#f59e0b"></div><span class="legend-name">موقوفة مؤقتًا</span></div><span class="legend-val" id="legExp">—</span></div>
                 <div class="legend-item"><div style="display:flex;align-items:center"><div class="legend-dot" style="background:#dc2626"></div><span class="legend-name">ملغاة</span></div><span class="legend-val" id="legRev">—</span></div>
-                <div class="legend-item"><div style="display:flex;align-items:center"><div class="legend-dot" style="background:#94a3b8"></div><span class="legend-name">قيد المراجعة</span></div><span class="legend-val" id="legRev2">—</span></div>
+                
               </div>
             </div>
           </div>
@@ -529,6 +542,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
                 <div class="quick-btn" onclick="showPage('certs',null)"><span class="material-symbols-outlined">history</span><span class="quick-btn-lbl">الشهادات</span></div>
                 <div class="quick-btn" onclick="showPage('verify',null)"><span class="material-symbols-outlined">qr_code_scanner</span><span class="quick-btn-lbl">التحقق</span></div>
                 <div class="quick-btn" onclick="showPage('quota',null)"><span class="material-symbols-outlined">bar_chart</span><span class="quick-btn-lbl">تقارير</span></div>
+                <a class="quick-btn" href="institution-workspace.html" style="text-decoration:none;color:inherit"><span class="material-symbols-outlined">account_tree</span><span class="quick-btn-lbl">الفروع والتشغيل</span></a>
                 <div class="quick-btn"><span class="material-symbols-outlined">help</span><span class="quick-btn-lbl">المساعدة</span></div>
               </div>
             </div>
@@ -1157,32 +1171,43 @@ async function countUniqueInstitutionTrainees(){
 }
 async function loadDashboard(){
   if(!inst)return;
-  const [totalR,activeR,revokedR,certR]=await Promise.all([
+  const [totalR,activeR,suspendedR,revokedR,certR,branchesR,runsR,enrollmentsR]=await Promise.all([
     sb.from('certificates').select('id',{count:'exact',head:true}).eq('institution_id',inst.id),
     sb.from('certificates').select('id',{count:'exact',head:true}).eq('institution_id',inst.id).eq('status','active'),
+    sb.from('certificates').select('id',{count:'exact',head:true}).eq('institution_id',inst.id).eq('status','suspended'),
     sb.from('certificates').select('id',{count:'exact',head:true}).eq('institution_id',inst.id).eq('status','revoked'),
-    sb.from('certificates').select('created_at').eq('institution_id',inst.id).order('created_at',{ascending:true}).limit(5000)
+    sb.from('certificates').select('created_at').eq('institution_id',inst.id).order('created_at',{ascending:true}).limit(5000),
+    sb.from('institution_branches').select('id',{count:'exact',head:true}).eq('institution_id',inst.id).eq('is_active',true),
+    sb.from('institution_course_runs').select('id',{count:'exact',head:true}).eq('institution_id',inst.id).in('status',['open','in_progress']),
+    sb.from('institution_enrollments').select('id',{count:'exact',head:true}).eq('institution_id',inst.id).in('status',['enrolled','attending'])
   ]);
   let traineeCount;
   try{traineeCount=await countUniqueInstitutionTrainees();}catch(error){toast('تعذر تحميل عدد المتدربين: '+error.message,'err');return;}
-  const queryError=totalR.error||activeR.error||revokedR.error||certR.error;
+  const queryError=totalR.error||activeR.error||suspendedR.error||revokedR.error||certR.error||branchesR.error||runsR.error||enrollmentsR.error;
   if(queryError){toast('تعذر تحميل إحصائيات المؤسسة: '+queryError.message,'err');return;}
-  const total=totalR.count||0,active=activeR.count||0,revoked=revokedR.count||0;
+  const total=totalR.count||0,active=activeR.count||0,suspended=suspendedR.count||0,revoked=revokedR.count||0;
+  const activeRate=total?Math.round(active/total*100):0;
   document.getElementById('dashTotal').textContent=total.toLocaleString('ar');
   document.getElementById('dashStudents').textContent=traineeCount.toLocaleString('ar');
   document.getElementById('dashVerified').textContent=active.toLocaleString('ar');
+  document.getElementById('dashRate').textContent=activeRate.toLocaleString('ar')+'%';
+  document.getElementById('dashBranches').textContent=(branchesR.count||0).toLocaleString('ar');
+  document.getElementById('dashRuns').textContent=(runsR.count||0).toLocaleString('ar');
+  document.getElementById('dashEnrollments').textContent=(enrollmentsR.count||0).toLocaleString('ar');
   document.getElementById('donutTotal').textContent=total;
-  document.getElementById('legValid').textContent=active; document.getElementById('legExp').textContent=0; document.getElementById('legRev').textContent=revoked; document.getElementById('legRev2').textContent=0;
-  initCharts(certR.data||[],active,revoked); loadActivity(); loadTopCerts(); loadQuotaDetails();
+  document.getElementById('legValid').textContent=active;document.getElementById('legExp').textContent=suspended;document.getElementById('legRev').textContent=revoked;
+  const now=new Date();
+  document.getElementById('dateRange').textContent='ملخص '+now.toLocaleDateString('ar-EG',{month:'long',year:'numeric'});
+  initCharts(certR.data||[],active,suspended,revoked);loadActivity();loadTopCerts();loadQuotaDetails();
 }
 
-function initCharts(rows, active, revoked){
+function initCharts(rows, active, suspended, revoked){
   const now=new Date(), labels=[], keys=[]; for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);keys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);labels.push(d.toLocaleDateString('ar-EG',{month:'short'}));}
   const counts=Object.fromEntries(keys.map(k=>[k,0])); (rows||[]).forEach(r=>{const k=String(r.created_at).slice(0,7);if(counts[k]!=null)counts[k]++;});
   const lc=document.getElementById('lineChart').getContext('2d'); if(lineChart)lineChart.destroy();
   lineChart=new Chart(lc,{type:'line',data:{labels,datasets:[{label:'الشهادات',data:keys.map(k=>counts[k]),borderColor:'#0369a1',backgroundColor:'rgba(3,105,161,0.08)',fill:true,tension:.4,pointBackgroundColor:'#0369a1',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{rtl:true,textDirection:'rtl'}},scales:{y:{beginAtZero:true},x:{grid:{display:false}}}}});
   const dc=document.getElementById('donutChart').getContext('2d'); if(donutChart)donutChart.destroy();
-  donutChart=new Chart(dc,{type:'doughnut',data:{labels:['صالحة','منتهية','ملغاة'],datasets:[{data:[active,0,revoked],backgroundColor:['#0369a1','#f59e0b','#dc2626'],borderWidth:0,spacing:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{rtl:true}}}});
+  donutChart=new Chart(dc,{type:'doughnut',data:{labels:['سارية','موقوفة مؤقتًا','ملغاة'],datasets:[{data:[active,suspended,revoked],backgroundColor:['#0369a1','#f59e0b','#dc2626'],borderWidth:0,spacing:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{rtl:true}}}});
 }
 
 async function loadActivity(){
