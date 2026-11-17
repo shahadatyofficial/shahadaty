@@ -1100,7 +1100,28 @@ async function createGraduateClaim(traineeId){
   const link=new URL('graduate-claim.html',location.href);link.hash='code='+encodeURIComponent(data.claim_code);
   window.prompt('انسخ الرمز وسلم الرابط والرمز للطالب مرة واحدة. لن يظهر الرمز مرة أخرى بعد إغلاق النافذة:\n\nرابط الاستلام: '+link.href+'\n\nرمز الاستلام:',data.claim_code);
   toast('تم إنشاء رمز الاستلام. احتفظ به بشكل آمن ولا ترسله لشخص آخر.','ok');
- }catch(error){toast(error.message||'تعذر إنشاء رمز الاستلام.','err');}
+ }catch(error){
+  let detail=error?.message||'تعذر إنشاء رمز الاستلام.';
+  const response=error?.context;
+  if(response&&typeof response.clone==='function'){
+   try{
+    const payload=await response.clone().json();
+    const messages={
+     UNAUTHORIZED:'انتهت جلسة الدخول أو يلزم تسجيل الدخول مرة أخرى.',
+     INVALID_REQUEST:'بيانات طلب إنشاء الرمز غير مكتملة.',
+     TRAINEE_NOT_READY:'المتدرب غير نشط أو رقم الهاتف المصري غير صحيح.',
+     TRAINEE_MANAGEMENT_FORBIDDEN:'حساب المؤسسة لا يملك صلاحية إدارة المتدربين.',
+     INSTITUTION_NOT_ACTIVE:'حالة المؤسسة لا تسمح بإنشاء رمز الاستلام.',
+     PERMISSION_CHECK_FAILED:'تعذر التحقق من صلاحيات حساب المؤسسة. حاول تحديث الصفحة وتسجيل الدخول.',
+     TRAINEE_LOOKUP_FAILED:'تعذر قراءة بيانات المتدرب من قاعدة البيانات.',
+     CLAIM_CREATE_FAILED:'تعذر حفظ رمز الاستلام في قاعدة البيانات.'
+    };
+    detail=messages[payload?.error]||payload?.message||('فشل إنشاء الرمز ('+(payload?.error||response.status)+').');
+   }catch(_){detail+=' (HTTP '+(response.status||'غير معروف')+').';}
+  }
+  console.error('graduate-account-claim failed',error);
+  toast(detail,'err');
+ }
 }
 
 // ── Trainee directory (derived from issued certificates) ───────

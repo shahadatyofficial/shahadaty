@@ -82,22 +82,41 @@ Deno.serve(async (req: Request) => {
     const { data: trainee, error: traineeError } = await admin.from("institution_trainees")
       .select("id,institution_id,branch_id,full_name,phone,status")
       .eq("id", traineeId).eq("institution_id", institutionId).maybeSingle();
-    if (traineeError || !trainee || trainee.status !== "active" || !normalizePhone(String(trainee.phone || ""))) {
+    if (traineeError) {
+      console.error("graduate claim trainee lookup failed", traineeError.message);
+      return reply({ error: "TRAINEE_LOOKUP_FAILED" }, 500);
+    }
+    if (!trainee || trainee.status !== "active" || !normalizePhone(String(trainee.phone || ""))) {
       return reply({ error: "TRAINEE_NOT_READY", message: "تأكد من أن المتدرب نشط ورقم هاتفه المصري صحيح." }, 400);
     }
     const { data: permitted, error: permissionError } = await caller.rpc("institution_has_permission", {
       p_institution_id: institutionId, p_permission: "trainees.manage", p_branch_id: trainee.branch_id || null,
     });
-    if (permissionError || permitted !== true) return reply({ error: "TRAINEE_MANAGEMENT_FORBIDDEN" }, 403);
-    const { data: institution } = await admin.from("institutions").select("status").eq("id", institutionId).maybeSingle();
+    if (permissionError) {
+      console.error("graduate claim permission check failed", permissionError.message);
+      return reply({ error: "PERMISSION_CHECK_FAILED" }, 500);
+    }
+    if (permitted !== true) return reply({ error: "TRAINEE_MANAGEMENT_FORBIDDEN" }, 403);
+    const { data: institution, error: institutionError } = await admin.from("institutions").select("status").eq("id", institutionId).maybeSingle();
+    if (institutionError) {
+      console.error("graduate claim institution lookup failed", institutionError.message);
+      return reply({ error: "INSTITUTION_LOOKUP_FAILED" }, 500);
+    }
     if (institution?.status !== "approved") return reply({ error: "INSTITUTION_NOT_ACTIVE" }, 403);
 
     const rawToken = randomToken(), tokenHash = await hashToken(rawToken), now = new Date().toISOString();
-    await admin.from("graduate_account_claims").update({ consumed_at: now }).eq("trainee_id", traineeId).is("consumed_at", null);
+    const { error: revokeError } = await admin.from("graduate_account_claims").update({ consumed_at: now }).eq("trainee_id", traineeId).is("consumed_at", null);
+    if (revokeError) {
+      console.error("graduate claim previous token revoke failed", revokeError.message);
+      return reply({ error: "CLAIM_PREPARE_FAILED" }, 500);
+    }
     const { data: claim, error: insertError } = await admin.from("graduate_account_claims")
       .insert({ institution_id: institutionId, trainee_id: traineeId, token_hash: tokenHash, created_by: authData.user.id })
       .select("expires_at").single();
-    if (insertError || !claim) return reply({ error: "CLAIM_CREATE_FAILED" }, 500);
+    if (insertError || !claim) {
+      console.error("graduate claim insert failed", insertError?.message || "no row returned");
+      return reply({ error: "CLAIM_CREATE_FAILED" }, 500);
+    }
     return reply({ success: true, claim_code: rawToken, expires_at: claim.expires_at });
   }
 
