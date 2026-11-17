@@ -16,6 +16,21 @@ function normalizePhone(value: string) {
   if (d.length === 10 && d.startsWith("1")) d = "0" + d;
   return /^01[0125]\d{8}$/.test(d) ? d : null;
 }
+async function phoneAlreadyUsed(admin: any, mobile: string) {
+  for (const table of ["graduate_profiles", "graduate_access_requests"]) {
+    let from = 0;
+    while (from < 20000) {
+      let query = admin.from(table).select("phone").not("phone", "is", null).range(from, from + 999);
+      if (table === "graduate_access_requests") query = query.in("status", ["pending", "approved"]);
+      const { data, error } = await query;
+      if (error) throw error;
+      if ((data || []).some((row: any) => normalizePhone(String(row.phone || "")) === mobile)) return true;
+      if (!data || data.length < 1000) break;
+      from += 1000;
+    }
+  }
+  return false;
+}
 async function hashToken(token: string) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
   return Array.from(new Uint8Array(digest)).map(x => x.toString(16).padStart(2, "0")).join("");
@@ -106,12 +121,10 @@ Deno.serve(async (req: Request) => {
     const mobile = normalizePhone(String(trainee.phone || ""));
     if (!mobile) return reply({ error: "PHONE_REQUIRED" }, 400);
 
-    const [{ data: profiles, error: profileError }, { data: requests, error: requestError }] = await Promise.all([
-      admin.from("graduate_profiles").select("id").eq("phone", mobile).limit(1),
-      admin.from("graduate_access_requests").select("id").eq("phone", mobile).in("status", ["pending", "approved"]).limit(1),
-    ]);
-    if (profileError || requestError) return reply({ error: "DUPLICATE_CHECK_FAILED" }, 500);
-    if ((profiles || []).length || (requests || []).length) {
+    let alreadyUsed = false;
+    try { alreadyUsed = await phoneAlreadyUsed(admin, mobile); }
+    catch { return reply({ error: "DUPLICATE_CHECK_FAILED" }, 500); }
+    if (alreadyUsed) {
       return reply({ error: "ACCOUNT_EXISTS", message: "رقم الهاتف مرتبط بالفعل بحساب أو طلب خريج. استخدم تسجيل الدخول أو تواصل مع الإدارة لربط السجل." }, 409);
     }
 
