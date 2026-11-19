@@ -109,4 +109,18 @@ for page in PAGES:
             print(f"PASS {page} inline script #{number}")
 if failed:
     sys.exit(1)
+
+# Graduate direct-registration duplicate-phone regression guard.
+graduate_submit = Path("supabase/functions/graduate-application-submit/index.ts").read_text(encoding="utf-8")
+if '.from("graduate_access_requests").select("id,status").eq("phone",mobile).limit(1)' not in graduate_submit:
+    print("FAIL graduate direct registration must reject any prior phone request, regardless of status")
+    failed = True
+if '.in("status",["pending","approved"])' in graduate_submit:
+    print("FAIL graduate direct registration still filters out rejected phone requests")
+    failed = True
+else:
+    print("PASS graduate direct registration blocks reused phone numbers across all request statuses")
+if failed:
+    sys.exit(1)
+
 print(f"All {total_scripts} inline JavaScript blocks across {len(PAGES)} pages passed syntax validation.")
