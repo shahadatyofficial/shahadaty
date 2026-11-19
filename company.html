@@ -72,7 +72,16 @@
  <div class="muted" id="companyAiResult" role="status" aria-live="polite"></div>
 </div>
 
-<div class="panel"><h3>متابعة طلبات التوظيف</h3><div id="myApplications" class="muted">جاري التحميل...</div></div>
+<div class="panel">
+ <div class="row" style="align-items:center;justify-content:space-between">
+  <div><h3 style="margin:0">متابعة طلبات التوظيف</h3><p class="muted" style="margin:5px 0 0">تابع الطلبات الواردة على إعلانات شركتك فقط.</p></div>
+  <select class="field" id="applicationStatusFilter" aria-label="تصفية طلبات التوظيف حسب الحالة" onchange="filterCompanyApplications()" style="max-width:220px;margin:0">
+   <option value="">كل الحالات</option><option value="submitted">طلبات جديدة</option><option value="reviewing">قيد المراجعة</option><option value="shortlisted">قائمة مختصرة</option><option value="hired">تم التعيين</option><option value="rejected">مرفوضة</option><option value="withdrawn">منسحبة</option>
+  </select>
+ </div>
+ <div id="myApplicationStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px;margin:14px 0"></div>
+ <div id="myApplications" class="muted">جاري التحميل...</div>
+</div>
 </section>
 <section class="panel hide" id="requestsPanel"><h3>طلبات الاطلاع</h3><div id="requests" class="muted">لا توجد طلبات محملة.</div></section>
 </main>
@@ -200,6 +209,17 @@ async function loadRequests(){
  }
  $('requests').innerHTML=out.join('');
 }
+let companyApplicationsRows=[];
+const companyApplicationLabels={submitted:'جديد',reviewing:'قيد المراجعة',shortlisted:'قائمة مختصرة',rejected:'مرفوض',hired:'تم التعيين',withdrawn:'منسحب'};
+window.filterCompanyApplications=function(){
+ const rows=companyApplicationsRows||[],selected=$('applicationStatusFilter')?.value||'';
+ const counts={all:rows.length,submitted:0,reviewing:0,shortlisted:0,hired:0,rejected:0,withdrawn:0};
+ rows.forEach(a=>{if(Object.prototype.hasOwnProperty.call(counts,a.status))counts[a.status]++;});
+ const stats=[['إجمالي الطلبات',counts.all],['جديدة',counts.submitted],['قيد المراجعة',counts.reviewing],['قائمة مختصرة',counts.shortlisted],['تم التعيين',counts.hired]];
+ $('myApplicationStats').innerHTML=stats.map(([label,count])=>'<div style="background:#f3f7fb;border:1px solid #e1eaf2;border-radius:10px;padding:10px;text-align:center"><strong style="display:block;font-size:20px;color:#075985">'+count+'</strong><span class="muted">'+label+'</span></div>').join('');
+ const visible=selected?rows.filter(a=>a.status===selected):rows;
+ $('myApplications').innerHTML=visible.map(a=>'<div class="result"><div><b>'+esc(a.job_announcements?.title||'وظيفة')+'</b><div class="muted">طلب توظيف · '+(a.created_at?new Date(a.created_at).toLocaleDateString('ar-EG'):'—')+'</div></div><span class="status">'+esc(companyApplicationLabels[a.status]||a.status||'غير محدد')+'</span></div>').join('')||(rows.length?'لا توجد طلبات بهذه الحالة.':'لا توجد طلبات توظيف حتى الآن.');
+};
 async function loadCompanyJobs(){
  const {data:jobs,error:jobError}=await sb.from('job_announcements')
   .select('id,title,status,created_at,expires_at,qualification_required,specialization_required,governorate,center,skills_required,experience_years')
@@ -215,8 +235,9 @@ async function loadCompanyJobs(){
  const {data:apps,error:appError}=await sb.from('job_applications')
   .select('id,job_id,status,created_at,job_announcements(title)')
   .in('job_id',jobIds).order('created_at',{ascending:false}).limit(100);
- const statusLabels={submitted:'جديد',reviewing:'قيد المراجعة',shortlisted:'قائمة مختصرة',rejected:'مرفوض',hired:'تم التعيين',withdrawn:'منسحب'};
- $('myApplications').innerHTML=appError?esc(appError.message):(apps||[]).map(a=>'<div class="result"><div><b>'+esc(a.job_announcements?.title||'وظيفة')+'</b><div class="muted">طلب توظيف · '+new Date(a.created_at).toLocaleDateString('ar-EG')+'</div></div><span class="status">'+esc(statusLabels[a.status]||a.status)+'</span></div>').join('')||'لا توجد طلبات توظيف حتى الآن.';
+ companyApplicationsRows=apps||[];
+ if(appError){$('myApplications').innerHTML=esc(appError.message);$('myApplicationStats').innerHTML='';return;}
+ filterCompanyApplications();
 }
 window.matchCandidatesForJob=async id=>{
  const{data:j,error}=await sb.from('job_announcements').select('title,qualification_required,specialization_required,governorate,center,skills_required').eq('id',id).eq('company_id',companyId).maybeSingle();
