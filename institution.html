@@ -1444,7 +1444,7 @@ async function issueCertModal(){
     const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('mi_grade').value,student_phone:document.getElementById('mi_phone').value,governorate:document.getElementById('mi_gov').value,center:document.getElementById('mi_center')?.value||null,branch_id:document.getElementById('mi_branch')?.value||null,trainee_id:document.getElementById('mi_trainee')?.value||null,visible_to_companies:document.getElementById('mi_consent').checked});
     let accountResult=null;try{accountResult=await createGraduateAccountAfterIssue(row.cert_id);}catch(accountError){accountResult={success:false,message:'تم إصدار الشهادة، لكن تعذر إنشاء حساب الخريج تلقائيًا. '+String(accountError?.message||'')};}
     showRes(res,`✓ تم الإصدار — رقم الشهادة: <b>${row.cert_number}</b><br><a href="certificate.html?id=${encodeURIComponent(row.cert_number)}" target="_blank" style="color:var(--blue)">عرض الشهادة</a>`+graduateAccountResultHtml(accountResult),'ok');
-    await loadInst(); toast('✓ تم إصدار الشهادة بنجاح','ok'); setTimeout(closeIssueModal,1800);
+    await loadInst(); toast('✓ تم إصدار الشهادة بنجاح','ok'); if(!accountResult?.temporary_password)setTimeout(closeIssueModal,1800);
   }catch(e){showRes(res,dbErrorMessage(e),'err');}
 }
 async function issueFullCert(){
