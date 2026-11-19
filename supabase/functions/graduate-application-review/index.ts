@@ -24,7 +24,7 @@ Deno.serve(async(req:Request)=>{
   if(error)return reply({error:"REVIEW_FAILED"},500);
   return reply({success:true,status:"rejected",email:r.email,full_name:r.full_name,phone:r.phone});
  }
- const profile={auth_user_id:r.auth_user_id,full_name:r.full_name,email:r.email,phone:r.phone,governorate:r.governorate,center:r.center};
+ const profile={auth_user_id:r.auth_user_id,full_name:r.full_name,email:r.email,phone:r.phone,governorate:r.governorate,center:r.center,account_origin:r.account_origin||"direct",institution_id:r.institution_id||null,source_certificate_id:r.certificate_id||null};
  const {error:profileErr}=await admin.from("graduate_profiles").upsert(profile,{onConflict:"auth_user_id"});
  if(profileErr)return reply({error:"PROFILE_CREATE_FAILED",message:profileErr.message},500);
  const {data:target,error:targetErr}=await admin.auth.admin.getUserById(r.auth_user_id);
