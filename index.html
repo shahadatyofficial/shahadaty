@@ -684,8 +684,8 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
   </div>
   <div class="nav-actions">
     <div class="lang-toggle">
-      <button class="lang-btn active" id="btnAr" onclick="setLang('ar')">🇪🇬 العربية</button>
-      <button class="lang-btn" id="btnEn" onclick="setLang('en')">🇬🇧 English</button>
+      <button class="lang-btn active" id="btnAr" aria-pressed="true" onclick="setLang('ar')">🇪🇬 العربية</button>
+      <button class="lang-btn" id="btnEn" aria-pressed="false" onclick="setLang('en')">🇬🇧 English</button>
     </div>
     <details class="portal-menu">
       <summary class="portal-menu-trigger"><span>البوابات</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
@@ -1507,11 +1507,14 @@ function applyLanguage(lang){
   document.documentElement.lang=lang; document.documentElement.dir=lang==='ar'?'rtl':'ltr'; document.body.style.direction=lang==='ar'?'rtl':'ltr';
   document.body.style.fontFamily=lang==='ar'?"'Cairo',sans-serif":"Arial, sans-serif";
   document.getElementById('mainNav').style.direction=lang==='ar'?'rtl':'ltr';
-  document.getElementById('logoName').textContent=lang==='ar'?'شهادتي':'Shahadaty';
-  document.getElementById('btnAr').classList.toggle('active',lang==='ar'); document.getElementById('btnEn').classList.toggle('active',lang==='en');
+  document.getElementById('logoName').textContent=lang==='ar'?'شهادتي العلمية':'Shahadaty';
+  document.getElementById('btnAr').classList.toggle('active',lang==='ar'); document.getElementById('btnEn').classList.toggle('active',lang==='en'); document.getElementById('btnAr').setAttribute('aria-pressed',String(lang==='ar')); document.getElementById('btnEn').setAttribute('aria-pressed',String(lang==='en'));
   document.title=lang==='ar'?'شهادتي — الثقة تبدأ من شهادتك':'Shahadaty — Trust Begins with Your Certificate';
 }
+const LANGUAGE_STORAGE_KEY='shahadaty-site-language';
 function setLang(lang){
+  if(lang!=='ar'&&lang!=='en')return;
+  try{localStorage.setItem(LANGUAGE_STORAGE_KEY,lang);}catch(e){}
   applyLanguage(lang);
   if(typeof renderTs==='function')renderTs();
   if(typeof renderFaq==='function')renderFaq();
@@ -1521,6 +1524,9 @@ function setLang(lang){
 
 window.addEventListener('load',()=>{
   renderTs();renderFaq();
+  let preferredLang='ar';
+  try{preferredLang=localStorage.getItem(LANGUAGE_STORAGE_KEY)==='en'?'en':'ar';}catch(e){}
+  if(preferredLang==='en')setLang('en');
   const cert=new URLSearchParams(window.location.search).get('cert');
   if(cert){document.getElementById('sInp').value=cert;doSearch();}
 });
