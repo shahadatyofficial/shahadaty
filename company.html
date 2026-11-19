@@ -201,10 +201,22 @@ async function loadRequests(){
  $('requests').innerHTML=out.join('');
 }
 async function loadCompanyJobs(){
- const{data,error}=await sb.from('job_announcements').select('id,title,status,created_at,expires_at,qualification_required,specialization_required,governorate,center,skills_required,experience_years').eq('company_id',companyId).order('created_at',{ascending:false}).limit(50);
- $('myJobs').innerHTML=error?esc(error.message):(data||[]).map(j=>'<div class="result"><div><b>'+esc(j.title)+'</b><div class="muted">'+esc(j.qualification_required||'المؤهل غير محدد')+' · '+esc(j.governorate||'كل المحافظات')+'</div></div><div><span class="status">'+esc(j.status)+'</span> <button class="btn alt" type="button" onclick="matchCandidatesForJob(\''+j.id+'\')">مطابقة مرشحين</button></div></div>').join('')||'لا توجد إعلانات بعد.';
- const{data:apps, error:appError}=await sb.from('job_applications').select('id,status,created_at,job_announcements(title)').order('created_at',{ascending:false}).limit(100);
- $('myApplications').innerHTML=appError?esc(appError.message):(apps||[]).map(a=>'<div class="result"><div><b>'+esc(a.job_announcements?.title||'وظيفة')+'</b><div class="muted">طلب توظيف · '+new Date(a.created_at).toLocaleDateString('ar-EG')+'</div></div><span class="status">'+esc(a.status)+'</span></div>').join('')||'لا توجد طلبات توظيف حتى الآن.';
+ const {data:jobs,error:jobError}=await sb.from('job_announcements')
+  .select('id,title,status,created_at,expires_at,qualification_required,specialization_required,governorate,center,skills_required,experience_years')
+  .eq('company_id',companyId).order('created_at',{ascending:false}).limit(50);
+ const jobRows=jobs||[];
+ $('myJobs').innerHTML=jobError?esc(jobError.message):jobRows.map(j=>'<div class="result"><div><b>'+esc(j.title)+'</b><div class="muted">'+esc(j.qualification_required||'المؤهل غير محدد')+' · '+esc(j.governorate||'كل المحافظات')+'</div></div><div><span class="status">'+esc(j.status)+'</span> <button class="btn alt" type="button" onclick="matchCandidatesForJob(\''+j.id+'\')">مطابقة مرشحين</button></div></div>').join('')||'لا توجد إعلانات بعد.';
+ const jobIds=jobRows.map(j=>j.id);
+ if(jobError||!jobIds.length){
+  $('myApplications').innerHTML=jobError?'تعذر تحميل طلبات التوظيف.': 'لا توجد طلبات توظيف حتى الآن.';
+  return;
+ }
+ // Scope the application query to this company's own job IDs, in addition to database RLS.
+ const {data:apps,error:appError}=await sb.from('job_applications')
+  .select('id,job_id,status,created_at,job_announcements(title)')
+  .in('job_id',jobIds).order('created_at',{ascending:false}).limit(100);
+ const statusLabels={submitted:'جديد',reviewing:'قيد المراجعة',shortlisted:'قائمة مختصرة',rejected:'مرفوض',hired:'تم التعيين',withdrawn:'منسحب'};
+ $('myApplications').innerHTML=appError?esc(appError.message):(apps||[]).map(a=>'<div class="result"><div><b>'+esc(a.job_announcements?.title||'وظيفة')+'</b><div class="muted">طلب توظيف · '+new Date(a.created_at).toLocaleDateString('ar-EG')+'</div></div><span class="status">'+esc(statusLabels[a.status]||a.status)+'</span></div>').join('')||'لا توجد طلبات توظيف حتى الآن.';
 }
 window.matchCandidatesForJob=async id=>{
  const{data:j,error}=await sb.from('job_announcements').select('title,qualification_required,specialization_required,governorate,center,skills_required').eq('id',id).eq('company_id',companyId).maybeSingle();
