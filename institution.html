@@ -1424,13 +1424,26 @@ function dbErrorMessage(error){
   if(m.includes('AUTH_REQUIRED'))return 'انتهت جلسة الدخول، يرجى تسجيل الدخول مرة أخرى.';
   return m||'حدث خطأ غير متوقع.';
 }
+async function createGraduateAccountAfterIssue(certificateId){
+  if(!certificateId)return {success:false,account_created:false,message:'تعذر ربط حساب الخريج بمعرّف الشهادة.'};
+  const {data,error}=await sb.functions.invoke('graduate-institution-account-create',{body:{certificate_id:certificateId}});
+  if(error)throw error;
+  return data||{success:false,account_created:false,message:'لم يصل رد إنشاء الحساب.'};
+}
+function graduateAccountResultHtml(result){
+  if(result?.account_created&&result?.temporary_password){
+    return '<br><div style="margin-top:10px;padding:12px;border:1px solid var(--border);border-radius:10px"><b>تم إنشاء حساب الخريج — بانتظار موافقة الإدارة</b><br>اسم الدخول: <b>'+escapeHtml(result.phone)+'</b><br>كلمة المرور المؤقتة (تظهر مرة واحدة): <code style="user-select:all">'+escapeHtml(result.temporary_password)+'</code><br><small>سلّم كلمة المرور للخريج عبر قناة خاصة، وسيُطلب منه تغييرها بعد أول دخول. لا تغلق هذه النافذة قبل حفظها.</small></div>';
+  }
+  return '<br><small style="display:block;margin-top:8px;color:var(--muted)">'+escapeHtml(result?.message||'تم إصدار الشهادة. تعذر إنشاء حساب تلقائي، ويمكن للإدارة مراجعة الحالة.')+'</small>';
+}
 async function issueCertModal(){
   const student=document.getElementById('mi_student').value.trim(), course=document.getElementById('mi_course').value.trim(), date=document.getElementById('mi_date').value;
   const res=document.getElementById('mi_result');
   if(!student||!course||!date){showRes(res,'يرجى تعبئة الحقول المطلوبة *','err');return;}
   try{
     const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('mi_grade').value,student_phone:document.getElementById('mi_phone').value,governorate:document.getElementById('mi_gov').value,center:document.getElementById('mi_center')?.value||null,branch_id:document.getElementById('mi_branch')?.value||null,trainee_id:document.getElementById('mi_trainee')?.value||null,visible_to_companies:document.getElementById('mi_consent').checked});
-    showRes(res,`✓ تم الإصدار — رقم الشهادة: <b>${row.cert_number}</b><br><a href="certificate.html?id=${encodeURIComponent(row.cert_number)}" target="_blank" style="color:var(--blue)">عرض الشهادة</a>`,'ok');
+    let accountResult=null;try{accountResult=await createGraduateAccountAfterIssue(row.cert_id);}catch(accountError){accountResult={success:false,message:'تم إصدار الشهادة، لكن تعذر إنشاء حساب الخريج تلقائيًا. '+String(accountError?.message||'')};}
+    showRes(res,`✓ تم الإصدار — رقم الشهادة: <b>${row.cert_number}</b><br><a href="certificate.html?id=${encodeURIComponent(row.cert_number)}" target="_blank" style="color:var(--blue)">عرض الشهادة</a>`+graduateAccountResultHtml(accountResult),'ok');
     await loadInst(); toast('✓ تم إصدار الشهادة بنجاح','ok'); setTimeout(closeIssueModal,1800);
   }catch(e){showRes(res,dbErrorMessage(e),'err');}
 }
@@ -1442,7 +1455,8 @@ async function issueFullCert(){
   if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showRes(res,'صيغة البريد الإلكتروني غير صحيحة.','err');return;}
   if(national&&!/^\d{14}$/.test(national)){showRes(res,'الرقم القومي يجب أن يتكون من 14 رقمًا.','err');return;}
   const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,acquisition_date:date,grade:document.getElementById('fi_grade').value,specialization:document.getElementById('fi_spec').value,duration:document.getElementById('fi_duration')?.value||'',student_phone:document.getElementById('fi_phone').value,student_email:email,student_national_id:national,governorate:document.getElementById('fi_gov').value,center:document.getElementById('fi_center')?.value||null,branch_id:document.getElementById('fi_branch')?.value||null,trainee_id:document.getElementById('fi_trainee')?.value||null,visible_to_companies:document.getElementById('fi_consent').checked});
-    showRes(res,`✓ تم الإصدار بنجاح — رقم الشهادة: <strong>${row.cert_number}</strong> — <a href="certificate.html?id=${encodeURIComponent(row.cert_number)}" target="_blank" style="color:var(--blue)">عرض الشهادة ↗</a>`,'ok');
+    let accountResult=null;try{accountResult=await createGraduateAccountAfterIssue(row.cert_id);}catch(accountError){accountResult={success:false,message:'تم إصدار الشهادة، لكن تعذر إنشاء حساب الخريج تلقائيًا. '+String(accountError?.message||'')};}
+    showRes(res,`✓ تم الإصدار بنجاح — رقم الشهادة: <strong>${row.cert_number}</strong> — <a href="certificate.html?id=${encodeURIComponent(row.cert_number)}" target="_blank" style="color:var(--blue)">عرض الشهادة ↗</a>`+graduateAccountResultHtml(accountResult),'ok');
     clearIssueForm(); await loadInst();
   }catch(e){showRes(res,dbErrorMessage(e),'err');}
 }
