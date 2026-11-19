@@ -471,7 +471,7 @@ async function init(){
 }
 async function allowed(permission,branchId=null){const {data,error}=await sb.rpc('institution_has_permission',{p_institution_id:org.id,p_permission:permission,p_branch_id:branchId});return !error&&data===true;}
 async function allowedAnyBranch(permission){if(await allowed(permission,null))return true;for(const b of branches){if(await allowed(permission,b.id))return true;}return false;}
-function validateTraineeFields({phone,email,national_id}){const digits=String(phone||'').replace(/[^0-9]/g,'');if(phone&&(digits.length<10||digits.length>15))return 'رقم الهاتف يجب أن يحتوي على 10 إلى 15 رقمًا.';if(email&&!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(email))return 'صيغة البريد الإلكتروني غير صحيحة.';if(national_id&&!/^\\d{14}$/.test(national_id))return 'الرقم القومي يجب أن يتكون من 14 رقمًا.';return '';}
+function validateTraineeFields({phone,email,national_id}){const digits=String(phone||'').replace(/[^0-9]/g,'');if(phone&&(digits.length<10||digits.length>15))return 'رقم الهاتف يجب أن يحتوي على 10 إلى 15 رقمًا.';if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))return 'صيغة البريد الإلكتروني غير صحيحة.';if(national_id&&!/^\d{14}$/.test(national_id))return 'الرقم القومي يجب أن يتكون من 14 رقمًا.';return '';}
 async function applyWorkspaceRolePermissions(){const tabs=[['branches','branches.view'],['team','team.view'],['trainees','trainees.view'],['courses','courses.view'],['certificates','certificates.view']];for(const [id,p] of tabs){const btn=document.querySelector('.tab[data-tab="'+id+'"]');if(btn)btn.hidden=!(await allowedAnyBranch(p));}const canReports=await allowedAnyBranch('reports.view'),canAttendance=await allowedAnyBranch('trainees.manage');const reportTab=document.querySelector('.tab[data-tab="reports"]');if(reportTab)reportTab.hidden=!canReports&&!canAttendance;if(!await allowedAnyBranch('branches.manage'))$('addBranchBtn').closest('.card').hidden=true;if(!await allowedAnyBranch('team.manage'))$('inviteMemberBtn').closest('.card').hidden=true;if(!await allowedAnyBranch('trainees.manage')){$('addTraineeBtn').closest('.card').hidden=true;$('enrollTraineeBtn').closest('.card').hidden=true;}if(!await allowedAnyBranch('courses.manage'))['saveCatalogCourseBtn','addRunBtn','saveTrainerBtn','saveSessionBtn'].forEach(id=>$(id).closest('.card').hidden=true);if(!canAttendance)$('loadAttendanceRosterBtn').closest('.card').hidden=true;if(!canReports)Array.from($('reports').children).slice(1).forEach(el=>el.hidden=true);if(!Array.from(document.querySelectorAll('.tab')).some(x=>x.classList.contains('active')&&!x.hidden)){const first=Array.from(document.querySelectorAll('.tab')).find(x=>!x.hidden);if(first)first.click();}}
 async function loadBranches(){
  const {data,error}=await sb.from('institution_branches').select('id,branch_code,name,governorate,address,phone,is_main,is_active').eq('institution_id',org.id).order('is_main',{ascending:false}).order('name');
@@ -581,7 +581,7 @@ $('addTraineeBtn').addEventListener('click',async()=>{
 let institutionTraineeRows=[],editingTraineeId=null;
 const traineeStatusLabels={active:'نشط',inactive:'غير نشط',archived:'مؤرشف'};
 async function loadTrainees(){
- const {data,error}=await sb.from('institution_trainees').select('id,full_name,full_name_en,phone,email,national_id,governorate,branch_id,status,notes,created_at').eq('institution_id',org.id).order('created_at',{ascending:false}).limit(1000);
+ const {data,error}=await sb.from('institution_trainees').select('id,full_name,full_name_en,phone,email,national_id,external_reference,governorate,branch_id,status,notes,created_at').eq('institution_id',org.id).order('created_at',{ascending:false}).limit(1000);
  if(error){emptyRow('traineesRows',6,error.message);return;}
  institutionTraineeRows=data||[];
  const branchSelect=$('traineeBranchFilter'),selected=branchSelect.value;
@@ -681,7 +681,7 @@ async function loadEnrollments(){
  const {data,error}=await sb.from('institution_enrollments').select('id,status,enrolled_at,completed_at,trainee_id,course_run_id,institution_trainees!inner(id,full_name,full_name_en,phone,email,national_id,governorate,branch_id),institution_course_runs!inner(id,run_name,branch_id,course_id,status,institution_courses!inner(name,specialization,duration))').eq('institution_id',org.id).order('enrolled_at',{ascending:false}).limit(500);
  if(error){emptyRow('enrollmentsRows',6,error.message);return;}
  const rows=data||[];
- const {data:issued,error:issuedError}=await sb.from('certificates').select('id,cert_number,enrollment_id,status').eq('institution_id',org.id).eq('status','active').not('enrollment_id','is',null).limit(2000);
+ const {data:issued,error:issuedError}=await sb.from('certificates').select('id,cert_number,enrollment_id,status').eq('institution_id',org.id).not('enrollment_id','is',null).limit(2000);
  if(issuedError){emptyRow('enrollmentsRows',6,'تعذر التحقق من الشهادات الصادرة: '+issuedError.message);return;}
  const issuedMap=new Map((issued||[]).map(x=>[x.enrollment_id,x]));
  const branchKeys=[...new Set(rows.map(e=>e.institution_course_runs?.branch_id||''))];
