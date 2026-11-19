@@ -19,7 +19,7 @@ Deno.serve(async(req:Request)=>{
  if(attempts.size>3000){const now=Date.now();for(const [k,v] of attempts)if(v.reset<=now)attempts.delete(k);}
  const admin=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
  const [{data:requestRows,error:requestErr},{data:profileRows,error:profileErr}]=await Promise.all([
-  admin.from("graduate_access_requests").select("id").eq("phone",mobile).in("status",["pending","approved"]).limit(1),
+  admin.from("graduate_access_requests").select("id,status").eq("phone",mobile).limit(1),
   admin.from("graduate_profiles").select("id").eq("phone",mobile).limit(1)
  ]);
  if(requestErr||profileErr)return reply({error:"REQUEST_CHECK_FAILED"},500);
