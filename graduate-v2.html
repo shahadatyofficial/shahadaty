@@ -96,8 +96,17 @@ async function loadApprovedJobs(){if(!graduateMembershipActive)return;
  const card=document.getElementById('jobsCard');card.classList.remove('hidden');
  const{data,error}=await sb.from('job_announcements').select('id,title,company_display_name,teaser,description,governorate,center,qualification_required,specialization_required,experience_years,skills_required,expires_at').eq('status','approved').order('published_at',{ascending:false}).limit(100);
  const el=document.getElementById('jobsList');if(error){el.textContent='تعذر تحميل الوظائف: '+error.message;return;}
+ const now=Date.now();
+ const activeJobs=(data||[]).filter(j=>!j.expires_at||new Date(j.expires_at).getTime()>=now);
+ let myApplications=[];
+ if(alumniId){
+  const{data:apps,error:appsError}=await sb.from('job_applications').select('job_id,status').eq('alumni_id',alumniId);
+  if(appsError){console.warn('Could not load existing job applications',appsError);}
+  else myApplications=apps||[];
+ }
+ const applicationByJob=new Map(myApplications.map(a=>[a.job_id,a]));
  const certs=graduateCertificateContext||[];
- const jobs=(data||[]).map(j=>{
+ const jobs=activeJobs.map(j=>{
   let score=0;const reasons=[];
   const gov=(graduateCareerProfile.governorate||'').trim();
   const center=(graduateCareerProfile.center||'').trim();
@@ -109,18 +118,33 @@ async function loadApprovedJobs(){if(!graduateMembershipActive)return;
   if(!j.governorate)reasons.push('الوظيفة تقبل كل المحافظات');
   return {...j,matchScore:Math.min(score,100),matchReasons:reasons};
  }).sort((a,b)=>b.matchScore-a.matchScore);
- if(!jobs.length){el.textContent='لا توجد وظائف منشورة حاليًا.';return;}
+ if(!jobs.length){el.textContent='لا توجد وظائف منشورة وسارية حاليًا.';return;}
  el.innerHTML=jobs.map(j=>{
   const label=j.matchScore>=70?'توافق مرتفع':j.matchScore>=35?'توافق مبدئي':'توافق محدود';
-  return '<div class="cert" data-job-title="'+esc(j.title)+'"><b>'+esc(j.title)+'</b><p>'+esc(j.company_display_name)+' · '+esc(j.governorate||'كل المحافظات')+' '+esc(j.center||'')+'</p><p>'+esc(j.teaser||j.description)+'</p><p>المؤهل: '+esc(j.qualification_required||'غير محدد')+' · الخبرة: '+esc(j.experience_years??'غير محددة')+'</p><p><b>'+label+'</b> · '+esc(j.matchReasons.join('، ')||'راجع متطلبات الوظيفة')+'</p><small>ترشيح إرشادي مبني على البيانات المتاحة، وليس قرار قبول أو ضمان توظيف.</small><br><button onclick="applyForJob(\''+j.id+'\',this.parentElement.dataset.jobTitle)">التقديم على الوظيفة</button></div>';
+  const application=applicationByJob.get(j.id);
+  const applyButton=application
+   ? '<button type="button" disabled aria-disabled="true" class="job-applied-button">سبق التقديم · '+esc(graduateApplicationStatusLabels[application.status]||'طلب مسجل')+'</button>'
+   : '<button type="button" onclick="applyForJob(\\''+j.id+'\\',this.parentElement.dataset.jobTitle,this)">التقديم على الوظيفة</button>';
+  return '<div class="cert" data-job-title="'+esc(j.title)+'"><b>'+esc(j.title)+'</b><p>'+esc(j.company_display_name)+' · '+esc(j.governorate||'كل المحافظات')+' '+esc(j.center||'')+'</p><p>'+esc(j.teaser||j.description)+'</p><p>المؤهل: '+esc(j.qualification_required||'غير محدد')+' · الخبرة: '+esc(j.experience_years??'غير محددة')+'</p><p><b>'+label+'</b> · '+esc(j.matchReasons.join('، ')||'راجع متطلبات الوظيفة')+'</p><small>ترشيح إرشادي مبني على البيانات المتاحة، وليس قرار قبول أو ضمان توظيف.</small><br>'+applyButton+'</div>';
  }).join('');
 }
-async function applyForJob(jobId,jobTitle=''){
- const{data:alumniId,error:linkErr}=await sb.rpc('current_alumni_profile_id');if(linkErr||!alumniId){document.getElementById('careerTargetJob').value=jobTitle||(document.querySelector('#jobsList .cert b')?.textContent||'');document.getElementById('graduateCareerRequestCard').scrollIntoView({behavior:'smooth'});return msg('saveMsg','يمكنك إرسال طلب التوظيف لفريق شهادتي من النموذج التالي حتى يتم ربط ملفك المهني.');}
+async function applyForJob(jobId,jobTitle='',button=null){
+ const{data:alumniId,error:linkErr}=await sb.rpc('current_alumni_profile_id');
+ if(linkErr||!alumniId){document.getElementById('careerTargetJob').value=jobTitle||(document.querySelector('#jobsList .cert b')?.textContent||'');document.getElementById('graduateCareerRequestCard').scrollIntoView({behavior:'smooth'});return msg('saveMsg','يمكنك إرسال طلب التوظيف لفريق شهادتي من النموذج التالي حتى يتم ربط ملفك المهني.');}
+ const{data:existing,error:existingError}=await sb.from('job_applications').select('id,status').eq('job_id',jobId).eq('alumni_id',alumniId).maybeSingle();
+ if(existingError)return msg('saveMsg','تعذر التأكد من حالة طلبك السابق. حاول مرة أخرى.');
+ if(existing){msg('saveMsg','سبق أن قدمت على هذه الوظيفة، وحالة طلبك: '+(graduateApplicationStatusLabels[existing.status]||'طلب مسجل')+'.');if(button){button.disabled=true;button.textContent='سبق التقديم';}return;}
  const cover=prompt('اكتب رسالة قصيرة للشركة (اختياري):')||null;
+ if(button){button.disabled=true;button.textContent='جارٍ إرسال الطلب...';}
  const{error}=await sb.from('job_applications').insert({job_id:jobId,alumni_id:alumniId,cover_message:cover});
- msg('saveMsg',error?'تعذر إرسال الطلب: '+error.message:'تم إرسال طلب التوظيف بنجاح.');
- if(!error)await loadMyJobApplications();
+ if(error){
+  if(error.code==='23505'){msg('saveMsg','سبق أن قدمت على هذه الوظيفة.');if(button){button.disabled=true;button.textContent='سبق التقديم';}}
+  else{msg('saveMsg','تعذر إرسال الطلب: '+error.message);if(button){button.disabled=false;button.textContent='التقديم على الوظيفة';}}
+  return;
+ }
+ msg('saveMsg','تم إرسال طلب التوظيف بنجاح.');
+ await loadMyJobApplications();
+ await loadApprovedJobs();
 }
 const graduateApplicationStatusLabels={submitted:'تم استلام الطلب',reviewing:'قيد المراجعة',shortlisted:'ضمن القائمة المختصرة',rejected:'لم يتم الاختيار',hired:'تم التعيين',withdrawn:'منسحب'};
 async function loadMyJobApplications(){
