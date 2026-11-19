@@ -218,7 +218,28 @@ window.filterCompanyApplications=function(){
  const stats=[['إجمالي الطلبات',counts.all],['جديدة',counts.submitted],['قيد المراجعة',counts.reviewing],['قائمة مختصرة',counts.shortlisted],['تم التعيين',counts.hired]];
  $('myApplicationStats').innerHTML=stats.map(([label,count])=>'<div style="background:#f3f7fb;border:1px solid #e1eaf2;border-radius:10px;padding:10px;text-align:center"><strong style="display:block;font-size:20px;color:#075985">'+count+'</strong><span class="muted">'+label+'</span></div>').join('');
  const visible=selected?rows.filter(a=>a.status===selected):rows;
- $('myApplications').innerHTML=visible.map(a=>'<div class="result"><div><b>'+esc(a.job_announcements?.title||'وظيفة')+'</b><div class="muted">طلب توظيف · '+(a.created_at?new Date(a.created_at).toLocaleDateString('ar-EG'):'—')+'</div></div><span class="status">'+esc(companyApplicationLabels[a.status]||a.status||'غير محدد')+'</span></div>').join('')||(rows.length?'لا توجد طلبات بهذه الحالة.':'لا توجد طلبات توظيف حتى الآن.');
+ $('myApplications').innerHTML=visible.map(a=>{
+  const qualification=[a.qualification_name,a.specialization,a.graduation_year,a.governorate,a.center].filter(Boolean).join(' · ');
+  const actions=companyApplicationActions(a);
+  return '<div class="result"><div style="min-width:220px"><b>'+esc(a.applicant_name||'متقدم')+'</b><div class="muted">'+esc(a.job_title||'وظيفة')+' · طلب #'+esc(String(a.id||'').slice(0,8))+'</div><div class="muted">'+esc(qualification||'لم يضف المتقدم مؤهلاً ظاهراً')+'</div>'+(a.cover_message?'<div class="muted" style="margin-top:5px;white-space:pre-wrap">'+esc(a.cover_message)+'</div>':'')+'<div class="muted">تاريخ التقديم · '+(a.created_at?new Date(a.created_at).toLocaleDateString('ar-EG'):'—')+'</div></div><div><span class="status">'+esc(companyApplicationLabels[a.status]||a.status||'غير محدد')+'</span>'+actions+'</div></div>';
+ }).join('')||(rows.length?'لا توجد طلبات بهذه الحالة.':'لا توجد طلبات توظيف حتى الآن.');
+};
+const companyApplicationTransitions={submitted:['reviewing','shortlisted','rejected','hired'],reviewing:['shortlisted','rejected','hired'],shortlisted:['reviewing','rejected','hired']};
+const companyApplicationActionLabels={reviewing:'بدء المراجعة',shortlisted:'قائمة مختصرة',rejected:'رفض الطلب',hired:'تأكيد التعيين'};
+function companyApplicationActions(application){
+ const allowed=companyApplicationTransitions[application.status]||[];
+ if(!allowed.length)return '<div class="muted" style="margin-top:7px">تم إغلاق متابعة الطلب</div>';
+ return '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+allowed.map(status=>'<button class="btn alt" type="button" style="padding:6px 9px;font-size:11px" onclick="updateCompanyApplicationStatus(\''+esc(application.id)+'\',\''+status+'\')">'+companyApplicationActionLabels[status]+'</button>').join('')+'</div>';
+}
+window.updateCompanyApplicationStatus=async function(id,nextStatus){
+ const application=companyApplicationsRows.find(row=>row.id===id);
+ if(!application||!(companyApplicationTransitions[application.status]||[]).includes(nextStatus)){alert('حالة الطلب تغيرت أو لم يعد مسموحًا بتعديلها. حدّث القائمة وحاول مرة أخرى.');return;}
+ if(nextStatus==='rejected'&&!confirm('تأكيد رفض طلب التوظيف؟'))return;
+ if(nextStatus==='hired'&&!confirm('تأكيد تسجيل تعيين هذا المتقدم؟'))return;
+ const {data,error}=await sb.from('job_applications').update({status:nextStatus}).eq('id',id).eq('status',application.status).select('id').maybeSingle();
+ if(error){alert('تعذر تحديث حالة الطلب: '+error.message);return;}
+ if(!data){alert('لم يتم تحديث الطلب؛ ربما تغيرت حالته بالفعل.');return;}
+ await loadCompanyJobs();
 };
 async function loadCompanyJobs(){
  const {data:jobs,error:jobError}=await sb.from('job_announcements')
@@ -232,9 +253,7 @@ async function loadCompanyJobs(){
   return;
  }
  // Scope the application query to this company's own job IDs, in addition to database RLS.
- const {data:apps,error:appError}=await sb.from('job_applications')
-  .select('id,job_id,status,created_at,job_announcements(title)')
-  .in('job_id',jobIds).order('created_at',{ascending:false}).limit(100);
+ const {data:apps,error:appError}=await sb.rpc('company_list_job_applications',{p_limit:100});
  companyApplicationsRows=apps||[];
  if(appError){$('myApplications').innerHTML=esc(appError.message);$('myApplicationStats').innerHTML='';return;}
  filterCompanyApplications();
