@@ -26,7 +26,7 @@ Deno.serve(async(req:Request)=>{
  if(cert.trainee_id){const {data}=await admin.from("institution_trainees").select("id,full_name,phone,email,governorate").eq("id",cert.trainee_id).maybeSingle();trainee=data;}
  const mobile=normalizePhone(String(cert.student_phone||trainee?.phone||""));
  if(!mobile)return reply({success:false,account_created:false,reason:"PHONE_REQUIRED",message:"تم إصدار الشهادة، لكن لا يمكن إنشاء حساب الخريج دون رقم هاتف مصري صحيح."});
- const {data:existingRequests,error:requestCheck}=await admin.from("graduate_access_requests").select("id,account_origin").eq("phone",mobile).in("status",["pending","approved"]).limit(1);
+ const {data:existingRequests,error:requestCheck}=await admin.from("graduate_access_requests").select("id,account_origin,status").eq("phone",mobile).limit(1);
  if(requestCheck)return reply({error:"DUPLICATE_CHECK_FAILED"},500);
  const {data:existingProfiles,error:profileCheck}=await admin.from("graduate_profiles").select("id,account_origin").eq("phone",mobile).limit(1);
  if(profileCheck)return reply({error:"DUPLICATE_CHECK_FAILED"},500);
