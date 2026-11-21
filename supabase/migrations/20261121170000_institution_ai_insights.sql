@@ -69,15 +69,17 @@ BEGIN
       ),
       'sessions_upcoming_7_days', (
         SELECT COUNT(*) FROM public.institution_course_sessions s
+        JOIN public.institution_course_runs r ON r.id = s.course_run_id
         WHERE s.institution_id = p_institution_id
           AND s.session_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 7
-          AND (p_branch_id IS NULL OR s.branch_id = p_branch_id)
+          AND (p_branch_id IS NULL OR r.branch_id = p_branch_id)
       ),
       'sessions_overdue_without_attendance', (
         SELECT COUNT(*) FROM public.institution_course_sessions s
+        JOIN public.institution_course_runs r ON r.id = s.course_run_id
         WHERE s.institution_id = p_institution_id AND s.session_date < CURRENT_DATE
           AND s.status = 'planned'
-          AND (p_branch_id IS NULL OR s.branch_id = p_branch_id)
+          AND (p_branch_id IS NULL OR r.branch_id = p_branch_id)
           AND NOT EXISTS (SELECT 1 FROM public.institution_attendance a WHERE a.session_id = s.id)
       )
     ),
@@ -85,25 +87,29 @@ BEGIN
       'records_total', (
         SELECT COUNT(*) FROM public.institution_attendance a
         JOIN public.institution_course_sessions s ON s.id = a.session_id
-        WHERE s.institution_id = p_institution_id AND (p_branch_id IS NULL OR s.branch_id = p_branch_id)
+        JOIN public.institution_course_runs r ON r.id = s.course_run_id
+        WHERE s.institution_id = p_institution_id AND (p_branch_id IS NULL OR r.branch_id = p_branch_id)
       ),
       'present', (
         SELECT COUNT(*) FROM public.institution_attendance a
         JOIN public.institution_course_sessions s ON s.id = a.session_id
+        JOIN public.institution_course_runs r ON r.id = s.course_run_id
         WHERE s.institution_id = p_institution_id AND a.attendance_status = 'present'
-          AND (p_branch_id IS NULL OR s.branch_id = p_branch_id)
+          AND (p_branch_id IS NULL OR r.branch_id = p_branch_id)
       ),
       'absent', (
         SELECT COUNT(*) FROM public.institution_attendance a
         JOIN public.institution_course_sessions s ON s.id = a.session_id
+        JOIN public.institution_course_runs r ON r.id = s.course_run_id
         WHERE s.institution_id = p_institution_id AND a.attendance_status = 'absent'
-          AND (p_branch_id IS NULL OR s.branch_id = p_branch_id)
+          AND (p_branch_id IS NULL OR r.branch_id = p_branch_id)
       ),
       'late', (
         SELECT COUNT(*) FROM public.institution_attendance a
         JOIN public.institution_course_sessions s ON s.id = a.session_id
+        JOIN public.institution_course_runs r ON r.id = s.course_run_id
         WHERE s.institution_id = p_institution_id AND a.attendance_status = 'late'
-          AND (p_branch_id IS NULL OR s.branch_id = p_branch_id)
+          AND (p_branch_id IS NULL OR r.branch_id = p_branch_id)
       )
     ),
     'marketplace', jsonb_build_object(
