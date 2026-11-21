@@ -678,7 +678,7 @@ $('createStaffAccountBtn').addEventListener('click',async()=>{
  const password=$('staffPassword').value;
  const branch_ids=Array.from($('staffBranches').selectedOptions).map(o=>o.value);
  if(full_name.length<2)return say('اكتب اسم الموظف بالكامل.','error');
- if(!/^[a-z0-9][a-z0-9._-]{2,29}$/.test(username))return say('اسم المستخدم من 3 إلى 30 حرفًا إنجليزيًا صغيرًا أو رقمًا أو نقطة أو شرطة.','error');
+ if(!/^[a-z][a-z0-9._-]{2,29}$/.test(username))return say('اسم المستخدم يبدأ بحرف إنجليزي، ثم 2 إلى 29 حرفًا أو رقمًا أو نقطة أو شرطة.','error');
  if(password.length<10)return say('كلمة المرور يجب ألا تقل عن 10 أحرف.','error');
  if(!branch_ids.length)return say('حدد فرعًا واحدًا على الأقل للموظف.','error');
  const custom=$('staffCustomPermissions').checked;
