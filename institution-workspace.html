@@ -591,7 +591,7 @@ async function init(){
  const {data:i,error:ie}=await sb.from('institutions').select('id,name,status').eq('id',m.institution_id).maybeSingle();
  if(ie||!i||i.status!=='approved'){say('المؤسسة غير معتمدة أو تعذر تحميل بياناتها.','error');return;}org=i;$('orgTitle').textContent=org.name;
  await loadBranches();
- await loadInstitutionPublicProfile();
+ if(['owner','manager'].includes(m.role))await loadInstitutionPublicProfile();
  await applyWorkspaceRolePermissions();
  await Promise.all([loadTeam(),loadTrainees(),loadCoursesAndRuns()]);
  setupAttendanceManager();
