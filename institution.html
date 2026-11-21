@@ -1018,8 +1018,10 @@ async function completeStaffPasswordChange(){
   pendingInstitutionWorkspaceAction=null;
   if(action==='operations'){location.href='institution-workspace.html';return;}
   sb=workspaceSb;
+  await loadInstitutionBranches();
   await applyInstitutionCertificatePermissions();
   showPage('dashboard',document.querySelector('.sb-item[onclick*="dashboard"]'));
+  await loadDashboard();await loadCourses();
   window.scrollTo(0,0);
  }catch(error){msg.textContent='تعذر حفظ كلمة المرور: '+(error.message||'خطأ غير معروف');msg.style.display='block';}
  finally{btn.disabled=false;btn.textContent='حفظ كلمة المرور والمتابعة';}
