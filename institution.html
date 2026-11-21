@@ -1947,9 +1947,10 @@ async function confirmWorkspaceReauth(event){
   const isStaff=candidate.app_metadata?.account_type==='institution_staff'&&candidate.app_metadata?.institution_id===inst.id&&membership.role!=='owner';
   if(!isOwner&&!isStaff)throw new Error('هذا الحساب غير مخوّل لاستخدام مساحة عمل مؤسستك.');
   if(isStaff){
-   const {data:branches,error:branchError}=await workspaceSb.from('institution_branches').select('id').eq('institution_id',inst.id).eq('is_active',true);
-   if(branchError)throw new Error('تعذر التحقق من نطاق فروع الموظف.');
-   const branchIds=[null,...(branches||[]).map(b=>b.id)];
+   const {data:scopes,error:scopeError}=await workspaceSb.from('institution_user_branches').select('branch_id').eq('institution_user_id',membership.id);
+   if(scopeError)throw new Error('تعذر التحقق من الفروع المخصصة لحساب الموظف.');
+   const branchIds=(scopes||[]).map(scope=>scope.branch_id).filter(Boolean);
+   if(!branchIds.length)throw new Error('لا توجد فروع مخصصة لهذا الحساب. راجع مالك المؤسسة.');
    const keys=action==='certificates'
     ?['certificates.view','certificates.issue','certificates.revoke']
     :['dashboard.view','branches.view','branches.manage','team.view','team.manage','trainees.view','trainees.manage','courses.view','courses.manage','certificates.view','certificates.issue','reports.view'];
