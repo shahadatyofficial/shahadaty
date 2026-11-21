@@ -271,12 +271,22 @@ window.matchCandidatesForJob=async id=>{
  $('results').scrollIntoView({behavior:'smooth',block:'center'});
  $('searchForm').requestSubmit();
 };
+function parseJobExpiryDate(value){
+ if(!value)return {valid:true,iso:null};
+ const parts=value.split('-').map(Number);
+ if(parts.length!==3||parts.some(n=>!Number.isInteger(n)))return {valid:false,iso:null};
+ const [year,month,day]=parts;
+ const date=new Date(year,month-1,day,23,59,59,999);
+ if(date.getFullYear()!==year||date.getMonth()!==month-1||date.getDate()!==day||date.getTime()<=Date.now())return {valid:false,iso:null};
+ return {valid:true,iso:date.toISOString()};
+}
 $('publishJobBtn').onclick=async()=>{
  const title=$('jobTitle').value.trim(),description=$('jobDescription').value.trim();
  if(!title||!description){$('jobMsg').textContent='أدخل المسمى والتفاصيل.';return;}
+ const expiry=parseJobExpiryDate($('jobExpiry').value);if(!expiry.valid){$('jobMsg').textContent='حدد آخر موعد صحيحًا في المستقبل؛ ويظل الإعلان ساريًا حتى نهاية ذلك اليوم.';return;}
  const{data:companyName,error:nameError}=await sb.rpc('current_approved_company_name');
  if(nameError||!companyName){$('jobMsg').textContent='تعذر التحقق من الشركة المعتمدة.';return;}
- const skills=$('jobSkills').value.split(/[،,]/).map(x=>x.trim()).filter(Boolean).slice(0,30);const positions=Math.max(1,Math.min(1000,Number($('jobPositions').value)||1));const{error}=await sb.from('job_announcements').insert({company_id:companyId,company_display_name:companyName,title,teaser:$('jobTeaser').value.trim()||null,description,qualification_required:$('jobQualification').value.trim()||null,governorate:$('jobGovernorate').value.trim()||null,center:$('jobCenter').value||null,experience_years:$('jobExperience').value?Number($('jobExperience').value):null,expires_at:$('jobExpiry').value||null,employment_type:$('jobEmploymentType').value||null,work_mode:$('jobWorkMode').value||null,work_schedule:$('jobWorkSchedule').value||null,work_hours:$('jobWorkHours').value.trim()||null,positions_count:positions,salary_text:$('jobSalary').value.trim()||null,skills_required:skills,status:'pending'});
+ const skills=$('jobSkills').value.split(/[،,]/).map(x=>x.trim()).filter(Boolean).slice(0,30);const positions=Math.max(1,Math.min(1000,Number($('jobPositions').value)||1));const{error}=await sb.from('job_announcements').insert({company_id:companyId,company_display_name:companyName,title,teaser:$('jobTeaser').value.trim()||null,description,qualification_required:$('jobQualification').value.trim()||null,governorate:$('jobGovernorate').value.trim()||null,center:$('jobCenter').value||null,experience_years:$('jobExperience').value?Number($('jobExperience').value):null,expires_at:expiry.iso,employment_type:$('jobEmploymentType').value||null,work_mode:$('jobWorkMode').value||null,work_schedule:$('jobWorkSchedule').value||null,work_hours:$('jobWorkHours').value.trim()||null,positions_count:positions,salary_text:$('jobSalary').value.trim()||null,skills_required:skills,status:'pending'});
  $('jobMsg').textContent=error?'تعذر إرسال الإعلان: '+error.message:'تم إرسال الإعلان للإدارة للمراجعة.';
  if(!error){['jobTitle','jobTeaser','jobDescription','jobQualification','jobGovernorate','jobCenter','jobExperience','jobExpiry','jobWorkHours','jobSalary','jobSkills'].forEach(id=>$(id).value='');['jobEmploymentType','jobWorkMode','jobWorkSchedule'].forEach(id=>$(id).value='');$('jobPositions').value='1';loadCompanyJobs();}
 };
