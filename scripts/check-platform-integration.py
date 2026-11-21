@@ -59,6 +59,15 @@ checks = {
     "supabase/migrations/20261121180900_notification_scheduling.sql": [
         "enqueue_due_platform_reminders", "graduate-session", "shahadaty_notification_email_delivery",
     ],
+    "supabase/migrations/20261121181444_restrict_notification_cron_secret.sql": [
+        "REVOKE ALL ON FUNCTION public.is_notification_cron_secret", "TO service_role",
+    ],
+    "supabase/migrations/20261121181505_revoke_unused_company_search_v2.sql": [
+        "search_alumni_for_company_v2", "TO service_role",
+    ],
+    "supabase/migrations/20261121181551_email_queue_claiming.sql": [
+        "email_processing_at", "'processing'",
+    ],
     "supabase/migrations/20261121181007_fix_notification_reminder_concat.sql": [
         "enqueue_due_platform_reminders", "لم تتم مراجعته منذ أكثر من 48 ساعة",
     ],
