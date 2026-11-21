@@ -48,6 +48,7 @@ checks = {
         "get_admin_ai_insights_context", "admin_insights",
     ],
     "company.html": [
+        "platform_notifications", "loadCompanyPlatformNotifications", "companyEmailNotifications",
         "search_alumni_for_company", "alumni_access_requests",
         "company_get_approved_alumni_contact", "alumni_documents",
         "company_list_job_applications",
@@ -70,6 +71,7 @@ migration_paths = [
     "supabase/migrations/20261121120000_admin_ai_insights.sql",
     "supabase/migrations/20261121130000_platform_notifications.sql",
     "supabase/migrations/20261121140000_notification_scheduling.sql",
+    "supabase/config.toml",
 ]
 
 failed = False
