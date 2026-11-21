@@ -1522,13 +1522,24 @@ async function saveJobAnnouncement(){
 async function loadJobAnnouncements(){
  const el=document.getElementById('jobRows');if(!el)return;const{data,error}=await sb.from('job_announcements').select('id,announcement_number,company_display_name,title,status,expires_at').order('created_at',{ascending:false}).limit(100);
  if(error){el.textContent=error.message;return;}
- el.innerHTML=(data||[]).map(x=>'<div style="padding:10px;border-bottom:1px solid #e5edf5"><b>#'+adminEsc(x.announcement_number)+' '+adminEsc(x.title)+'</b> — '+adminEsc(x.company_display_name)+' <span class="badge">'+adminEsc(x.status)+'</span> '+(x.status==='pending'?'<button class="btn-p" onclick="moderateJobAnnouncement(\''+x.id+'\',\'approved\')">نشر الإعلان</button> <button class="btn-d" onclick="moderateJobAnnouncement(\''+x.id+'\',\'rejected\')">رفض</button>':x.status==='approved'?'<button class="btn-s" onclick="moderateJobAnnouncement(\''+x.id+'\',\'paused\')">إيقاف مؤقت</button>':x.status==='paused'?'<button class="btn-p" onclick="moderateJobAnnouncement(\''+x.id+'\',\'approved\')">إعادة النشر</button>':'')+'</div>').join('')||'لا توجد إعلانات';
+ const now=Date.now();
+ el.innerHTML=(data||[]).map(x=>{
+  const expired=!!x.expires_at&&new Date(x.expires_at).getTime()<=now;
+  const shownStatus=expired&&x.status==='approved'?'منتهي الصلاحية':x.status;
+  const actions=x.status==='pending'?(expired?'<span style="color:#b45309;font-size:11px">لا يمكن نشر إعلان منتهي</span>':'<button class="btn-p" onclick="moderateJobAnnouncement(\''+x.id+'\',\'approved\')">نشر الإعلان</button>')+(x.status==='pending'?' <button class="btn-d" onclick="moderateJobAnnouncement(\''+x.id+'\',\'rejected\')">رفض</button>':''):x.status==='approved'&&!expired?'<button class="btn-s" onclick="moderateJobAnnouncement(\''+x.id+'\',\'paused\')">إيقاف مؤقت</button>':x.status==='paused'&&!expired?'<button class="btn-p" onclick="moderateJobAnnouncement(\''+x.id+'\',\'approved\')">إعادة النشر</button>':'';
+  return '<div style="padding:10px;border-bottom:1px solid #e5edf5"><b>#'+adminEsc(x.announcement_number)+' '+adminEsc(x.title)+'</b> — '+adminEsc(x.company_display_name)+' <span class="badge">'+adminEsc(shownStatus)+'</span> '+(x.expires_at?'<small style="color:#64748b">ينتهي: '+new Date(x.expires_at).toLocaleDateString('ar-EG')+'</small> ':'')+actions+'</div>';
+ }).join('')||'لا توجد إعلانات';
 }
 async function moderateJobAnnouncement(id,status){
+ const{data:job,error:jobError}=await sb.from('job_announcements').select('status,expires_at').eq('id',id).maybeSingle();
+ if(jobError||!job){toast('تعذر تحميل بيانات الإعلان قبل تحديثه','err');return;}
+ const expired=!!job.expires_at&&new Date(job.expires_at).getTime()<=Date.now();
+ if(status==='approved'&&expired){toast('لا يمكن نشر إعلان انتهت صلاحيته. حدّث تاريخ الانتهاء من حساب الشركة أولاً.','err');return;}
  const patch={status,updated_at:new Date().toISOString()};
  if(status==='approved')patch.published_at=new Date().toISOString();
- const{error}=await sb.from('job_announcements').update(patch).eq('id',id);
+ const{data,error}=await sb.from('job_announcements').update(patch).eq('id',id).eq('status',job.status).select('id').maybeSingle();
  if(error){toast(error.message,'err');return;}
+ if(!data){toast('لم يتم تحديث الإعلان؛ ربما تغيرت حالته بالفعل.','err');return;}
  toast(status==='approved'?'تم نشر إعلان الوظيفة':'تم تحديث حالة الإعلان','ok');loadJobAnnouncements();
 }
 async function saveTrainingAnnouncement(){
