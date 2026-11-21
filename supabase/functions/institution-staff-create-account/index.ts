@@ -139,9 +139,10 @@ Deno.serve(async (req: Request) => {
       if (error) throw new Error("PERMISSION_OVERRIDES_CREATE_FAILED");
     }
 
-    await admin.auth.admin.updateUserById(createdUserId, {
+    const { error: metadataError } = await admin.auth.admin.updateUserById(createdUserId, {
       app_metadata: { account_type: "institution_staff", institution_id: institutionId, must_change_password: true },
     });
+    if (metadataError) throw new Error("STAFF_SECURITY_METADATA_CREATE_FAILED");
     return reply(origin, 200, { success: true, username, role, membership_status: "active" });
   } catch (error: unknown) {
     if (createdMembershipId) {
