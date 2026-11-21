@@ -9,7 +9,7 @@ RETURNS jsonb
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path TO 'public', 'pg_temp'
+SET search_path TO ''
 AS $function$
   SELECT jsonb_build_object(
     'profile', jsonb_build_object(
