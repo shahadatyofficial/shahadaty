@@ -70,9 +70,6 @@ set search_path = public, pg_temp
 as $$
 declare next_number integer;
 begin
-  if new.session_number is not null then
-    return new;
-  end if;
   perform 1 from public.institution_course_runs
     where id = new.course_run_id and institution_id = new.institution_id
     for update;
@@ -96,6 +93,12 @@ for each row execute function public.assign_institution_course_session_number();
 
 alter table public.institution_attendance
   add column if not exists session_id uuid references public.institution_course_sessions(id) on delete set null;
+alter table public.institution_attendance
+  drop constraint if exists institution_attendance_enrollment_id_session_date_key;
+alter table public.institution_attendance
+  add constraint institution_attendance_enrollment_id_session_id_key
+  unique (enrollment_id, session_id);
+
 create index if not exists institution_attendance_session_id_idx
   on public.institution_attendance(session_id) where session_id is not null;
 
@@ -211,6 +214,69 @@ begin
   return new;
 end;
 $$;
+
+create or replace function public.guard_institution_enrollment_completion()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $
+declare
+  v_session_count integer;
+  v_pending_count integer;
+  v_missing_attendance integer;
+begin
+  if new.status is distinct from 'completed'
+     or old.status is not distinct from 'completed' then
+    return new;
+  end if;
+  if new.course_run_id is null then
+    if new.completed_at is null then new.completed_at := now(); end if;
+    return new;
+  end if;
+
+  select count(*) into v_session_count
+  from public.institution_course_sessions s
+  where s.institution_id = new.institution_id
+    and s.course_run_id = new.course_run_id
+    and s.status <> 'cancelled';
+
+  if v_session_count > 0 then
+    select count(*) into v_pending_count
+    from public.institution_course_sessions s
+    where s.institution_id = new.institution_id
+      and s.course_run_id = new.course_run_id
+      and s.status not in ('completed','cancelled');
+
+    if v_pending_count > 0 then
+      raise exception 'TRAINING_SESSIONS_INCOMPLETE' using errcode = '23514';
+    end if;
+
+    select count(*) into v_missing_attendance
+    from public.institution_course_sessions s
+    where s.institution_id = new.institution_id
+      and s.course_run_id = new.course_run_id
+      and s.status <> 'cancelled'
+      and not exists (
+        select 1
+        from public.institution_attendance a
+        where a.institution_id = new.institution_id
+          and a.enrollment_id = new.id
+          and (
+            a.session_id = s.id
+            or (a.session_id is null and a.session_date = s.session_date)
+          )
+      );
+
+    if v_missing_attendance > 0 then
+      raise exception 'TRAINING_ATTENDANCE_INCOMPLETE' using errcode = '23514';
+    end if;
+  end if;
+
+  if new.completed_at is null then new.completed_at := now(); end if;
+  return new;
+end;
+$;
 
 drop policy if exists institution_enrollments_insert on public.institution_enrollments;
 create policy institution_enrollments_insert on public.institution_enrollments
