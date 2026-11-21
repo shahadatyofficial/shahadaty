@@ -344,6 +344,17 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     </div>
     <!-- OVERVIEW -->
     <div class="page active" id="page-overview">
+      <div class="card" style="margin:18px 0;border:1px solid #d9e6f2;background:linear-gradient(120deg,#f8fbff,#fff)">
+        <div class="card-head"><span class="card-title"><span class="material-symbols-outlined" style="vertical-align:middle;color:#1676b8">auto_awesome</span> المساعد الذكي للإدارة</span><button class="btn-p" type="button" id="runAdminAiInsights"><span class="material-symbols-outlined">analytics</span> تحليل وضع المنصة</button></div>
+        <div class="card-body"><p style="font-size:12px;color:var(--muted);line-height:1.9">يحلل المؤشرات الإجمالية للمؤسسات والاشتراكات والتدريب والشهادات والخريجين والشركات والدعم، دون إرسال أسماء أو أرقام هواتف أو بيانات سجلات فردية إلى خدمة الذكاء الاصطناعي.</p><div id="adminAiInsightsStatus" role="status" aria-live="polite" style="font-size:12px;color:var(--muted)">اضغط «تحليل وضع المنصة» للحصول على ملخص تنفيذي وأولويات العمل.</div><div id="adminAiInsightsResult" style="white-space:pre-wrap;line-height:2;font-size:13px;color:var(--navy);margin-top:12px"></div></div>
+      </div>
+      <div class="card" style="margin:18px 0">
+        <div class="card-head"><span class="card-title">إشعارات الإدارة</span><button class="btn-s" type="button" onclick="loadAdminPlatformNotifications()">تحديث</button></div>
+        <div class="card-body"><div id="adminPlatformNotificationsList" style="font-size:12px;line-height:1.9">جارٍ تحميل الإشعارات...</div>
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px"><label style="display:flex;align-items:center;gap:8px;margin:0"><input id="adminEmailNotifications" type="checkbox" style="width:auto"> استقبال الإشعارات المهمة على البريد</label><button class="btn-s" type="button" id="saveAdminNotificationPreferences">حفظ التفضيلات</button><button class="btn-p" type="button" id="sendQueuedNotificationEmails">إرسال رسائل البريد المعلقة</button></div>
+          <div id="adminNotificationStatus" role="status" aria-live="polite" style="font-size:11px;color:var(--muted);margin-top:8px">البريد يحتاج إعداد مزود الإرسال وتفعيل تفضيل البريد.</div>
+        </div>
+      </div>
       <div class="stats-row">
         <div class="stat-card">
           <div class="sc-top"><div class="sc-icon" style="background:#eff6ff"><span class="material-symbols-outlined" style="color:#0369a1">business</span></div><div class="sc-trend"><span class="material-symbols-outlined">trending_up</span>+12%</div></div>
@@ -1738,6 +1749,44 @@ async function openDoc(path){const tab=window.open('about:blank','_blank');if(!t
 function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=type==='ok'?'#0369a1':'#dc2626';t.style.display='block';setTimeout(()=>t.style.display='none',3500);}
 
 // ── INIT ──────────────────────────────────────────────────────
+function safeAdminNotificationUrl(value){const v=String(value||'');const allowed=['admin.html','institution.html','graduate-v2.html','company.html','training-marketplace.html'];return allowed.some(path=>v===path||v.startsWith(path+'?')||v.startsWith(path+'#'))?v:'#';}
+async function loadAdminPlatformNotifications(){
+ const el=document.getElementById('adminPlatformNotificationsList');if(!el)return;
+ const{data:{user}}=await sb.auth.getUser();if(!user)return;
+ const{data,error}=await sb.from('platform_notifications').select('id,title,body,action_url,read_at,created_at').eq('recipient_user_id',user.id).eq('in_app_visible',true).order('created_at',{ascending:false}).limit(30);
+ if(error){el.textContent='تعذر تحميل الإشعارات: '+error.message;return;}
+ const rows=data||[];el.innerHTML=rows.length?rows.map(n=>'<div style="padding:10px 0;border-bottom:1px solid #edf2f7"><b>'+adminEsc(n.title)+'</b><p style="margin:4px 0;color:var(--muted)">'+adminEsc(n.body||'')+'</p><small>'+new Date(n.created_at).toLocaleString('ar-EG')+'</small>'+(n.action_url?'<div><a href="'+adminEsc(safeAdminNotificationUrl(n.action_url))+'">فتح</a></div>':'')+(n.read_at?'':' <button class="btn-s" data-admin-notification-read="'+adminEsc(n.id)+'">تمت القراءة</button>')+'</div>').join(''):'لا توجد إشعارات جديدة.';
+ el.querySelectorAll('[data-admin-notification-read]').forEach(btn=>btn.addEventListener('click',async()=>{const{error}=await sb.from('platform_notifications').update({read_at:new Date().toISOString()}).eq('id',btn.dataset.adminNotificationRead);if(error){toast(error.message,'err');return;}await loadAdminPlatformNotifications();}));
+}
+async function loadAdminNotificationPreferences(userId){
+ const{data,error}=await sb.from('platform_notification_preferences').select('email_enabled').eq('user_id',userId).maybeSingle();
+ if(error){document.getElementById('adminNotificationStatus').textContent='تعذر تحميل تفضيلات البريد.';return;}
+ document.getElementById('adminEmailNotifications').checked=data?.email_enabled===true;
+}
+document.getElementById('saveAdminNotificationPreferences')?.addEventListener('click',async()=>{
+ const{data:{user}}=await sb.auth.getUser();if(!user)return;
+ const{error}=await sb.from('platform_notification_preferences').upsert({user_id:user.id,in_app_enabled:true,email_enabled:document.getElementById('adminEmailNotifications').checked,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+ document.getElementById('adminNotificationStatus').textContent=error?'تعذر حفظ التفضيلات: '+error.message:'تم حفظ تفضيلات الإشعارات.';
+});
+document.getElementById('sendQueuedNotificationEmails')?.addEventListener('click',async()=>{
+ const btn=document.getElementById('sendQueuedNotificationEmails'),status=document.getElementById('adminNotificationStatus');btn.disabled=true;btn.textContent='جارٍ الإرسال...';
+ try{const{data,error}=await sb.functions.invoke('send-platform-notification-emails',{body:{}});if(error)throw error;status.textContent='تمت معالجة '+(data?.processed||0)+' رسالة؛ أُرسلت '+(data?.sent||0)+'، وتعذر '+(data?.failed||0)+'.';}
+ catch(error){status.textContent='تعذر إرسال البريد: '+String(error?.message||error);}
+ finally{btn.disabled=false;btn.textContent='إرسال رسائل البريد المعلقة';}
+});
+async function runAdminAiInsights(){
+ const btn=document.getElementById('runAdminAiInsights'),status=document.getElementById('adminAiInsightsStatus'),result=document.getElementById('adminAiInsightsResult');
+ if(!btn||!status||!result)return;
+ btn.disabled=true;btn.textContent='جارٍ تحليل المؤشرات...';status.textContent='جارٍ التحقق من صلاحية الإدارة وتجميع المؤشرات الإجمالية...';result.textContent='';
+ try{
+  const{data,error}=await sb.functions.invoke('shahadaty-ai-assistant',{body:{task:'admin_insights'}});
+  if(error)throw error;
+  if(!data?.text)throw new Error(data?.error||'لم يصل تقرير من المساعد الذكي.');
+  result.textContent=data.text;status.textContent='تم إنشاء التقرير من مؤشرات مجمعة فقط. راجع التوصيات قبل اتخاذ أي إجراء.';
+ }catch(error){status.textContent='تعذر إنشاء التقرير: '+String(error?.message||error);result.textContent='تأكد من اتصال الإنترنت وإعداد خدمة الذكاء الاصطناعي، ثم حاول مرة أخرى.';}
+ finally{btn.disabled=false;btn.innerHTML='<span class="material-symbols-outlined">analytics</span> تحليل وضع المنصة';}
+}
+document.getElementById('runAdminAiInsights')?.addEventListener('click',runAdminAiInsights);
 window.addEventListener('load',async()=>{
   const{data:{session}}=await sb.auth.getSession();
   if(!session)return;
@@ -1745,7 +1794,7 @@ window.addEventListener('load',async()=>{
   if(error||!isAdmin){await sb.auth.signOut();return;}
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('adminEmail').textContent=session.user.email||'';
-  loadOverview();loadBadges();startSupportRealtime();loadSupportInbox();
+  loadOverview();loadBadges();startSupportRealtime();loadSupportInbox();loadAdminPlatformNotifications();loadAdminNotificationPreferences(session.user.id);
 });
 </script>
 </body>

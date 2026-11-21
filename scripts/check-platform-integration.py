@@ -4,6 +4,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 checks = {
     "admin.html": [
+        "runAdminAiInsights", "admin_insights", "platform_notifications", "send-platform-notification-emails",
         "admin_list_institutions", "admin_list_subscriptions",
         "admin_confirm_subscription_payment", "loadSupportInbox",
         "loadGraduateConsentAudit", "uploadAlumniDocument",
@@ -17,6 +18,8 @@ checks = {
         "complete_institution_staff_password_change", "workspaceSb.auth.signInWithPassword",
     ],
     "institution-workspace.html": [
+        "runPublicListing", "runInstitutionAiInsights", "institution_insights", "platform_notifications", "loadPlatformNotifications", "platform_notification_preferences", "institution_list_training_marketplace_applications",
+        "institution_review_training_marketplace_application",
         "institution_branches", "institution_users", "institution-staff-create-account",
         "institution_staff_profiles", "institution_user_permission_overrides",
         "createStaffAccountBtn", "staffPermissionsModal", "editStaffAccountModal",
@@ -28,9 +31,51 @@ checks = {
     "graduate-v2.html": [
         "graduate_publication_consents", "graduate-publication-consent-sync",
         "graduate-gold-private", "graduate_withdraw_job_application",
-        "graduate_my_certificates",
+        "graduate_my_certificates", "get_public_professional_profile",
+        "refreshPublicProfileShare", "public_profile_consent", "platform_notifications", "loadPlatformNotifications",
+        "graduate_list_my_training_applications", "digital_passport_public_consent", "digitalPassportConsent", "refreshDigitalPassportShare", "digital-passport.html",
+    ],
+    "training-marketplace.html": [
+        "get_public_training_marketplace", "submit_training_marketplace_application", "contactConsent",
+    ],
+    "digital-passport.html": [
+        "get_public_digital_passport", "QRCode", "verify.html?cert=", "noindex,nofollow",
+    ],
+    "professional-profile.html": [
+        "get_public_professional_profile", "qualifications", "skills", "experiences", "noindex,nofollow",
+    ],
+    "supabase/functions/send-platform-notification-emails/index.ts": [
+        "EMAIL_PROVIDER_NOT_CONFIGURED", "platform_notifications", "x-cron-secret",
+    ],
+    "supabase/functions/shahadaty-ai-assistant/index.ts": [
+        "get_admin_ai_insights_context", "admin_insights", "get_institution_ai_insights_context", "institution_insights",
+    ],
+    "supabase/migrations/20261121180825_training_marketplace.sql": [
+        "institution_review_training_marketplace_application", "COURSE_CAPACITY_REACHED", "v_enrolled",
+    ],
+    "supabase/migrations/20261121180853_platform_notifications.sql": [
+        "notify_graduate_certificate_event", "training_session_created", "certificate_status_update",
+    ],
+    "supabase/migrations/20261121180900_notification_scheduling.sql": [
+        "enqueue_due_platform_reminders", "graduate-session", "shahadaty_notification_email_delivery",
+    ],
+    "supabase/migrations/20261121181444_restrict_notification_cron_secret.sql": [
+        "REVOKE ALL ON FUNCTION public.is_notification_cron_secret", "TO service_role",
+    ],
+    "supabase/migrations/20261121181505_revoke_unused_company_search_v2.sql": [
+        "search_alumni_for_company_v2", "TO service_role",
+    ],
+    "supabase/migrations/20261121181551_email_queue_claiming.sql": [
+        "email_processing_at", "'processing'",
+    ],
+    "supabase/migrations/20261121181007_fix_notification_reminder_concat.sql": [
+        "enqueue_due_platform_reminders", "لم تتم مراجعته منذ أكثر من 48 ساعة",
+    ],
+    "supabase/migrations/20261121180919_institution_ai_insights.sql": [
+        "get_institution_ai_insights_context", "reports.view", "sessions_overdue_without_attendance",
     ],
     "company.html": [
+        "platform_notifications", "loadCompanyPlatformNotifications", "companyEmailNotifications", "search_alumni_for_company_v3", "public_profile_available", "digital_passport_available", "digital-passport.html",
         "search_alumni_for_company", "alumni_access_requests",
         "company_get_approved_alumni_contact", "alumni_documents",
         "company_list_job_applications",
@@ -48,6 +93,15 @@ migration_paths = [
     "supabase/migrations/202611210001_hide_expired_jobs_from_graduates.sql",
     "supabase/migrations/202611210002_atomic_employment_request_admin_updates.sql",
     "supabase/migrations/202611210003_graduate_job_application_withdrawal.sql",
+    "supabase/migrations/20261121180815_public_professional_profile_share.sql",
+    "supabase/migrations/20261121180825_training_marketplace.sql",
+    "supabase/migrations/20261121180847_admin_ai_insights.sql",
+    "supabase/migrations/20261121180853_platform_notifications.sql",
+    "supabase/migrations/20261121180900_notification_scheduling.sql",
+    "supabase/migrations/20261121180906_company_professional_profile_link.sql",
+    "supabase/migrations/20261121180914_digital_passport.sql",
+    "supabase/migrations/20261121180919_institution_ai_insights.sql",
+    "supabase/config.toml",
 ]
 
 failed = False
@@ -75,7 +129,7 @@ for item in migration_paths:
 # Public browser pages must never contain privileged Supabase server keys.
 public_pages = [ROOT / page for page in [
     "index.html", "admin.html", "institution.html", "institution-workspace.html",
-    "graduate-v2.html", "company.html", "register.html",
+    "graduate-v2.html", "professional-profile.html", "training-marketplace.html", "company.html", "register.html",
 ]]
 for path in public_pages:
     source = path.read_text(encoding="utf-8")

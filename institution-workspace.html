@@ -89,6 +89,8 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
   <div class="team-modal-actions"><button class="btn" type="button" id="saveTeamBranches">حفظ التخصيص</button><button class="btn light" type="button" id="cancelTeamBranches">إلغاء</button></div>
  </div>
 </div>
+<div class="card" id="platformNotificationsPanel" style="margin:14px 0"><h2>إشعارات المنصة</h2><div id="platformNotificationsList" class="muted">جارٍ تحميل الإشعارات...</div><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px"><label style="display:flex;align-items:center;gap:8px;margin:0"><input id="platformEmailNotifications" type="checkbox" style="width:auto"> أرسل لي الإشعارات المهمة على البريد الإلكتروني</label><button class="btn light" id="savePlatformNotificationPreferences" type="button">حفظ التفضيلات</button></div><p class="muted" id="platformNotificationPreferenceStatus">الإشعارات داخل المنصة مفعلة افتراضيًا. البريد الإلكتروني يحتاج تفعيل إعدادات الإرسال.</p></div>
+<div class="card" id="institutionAiInsightsCard" hidden style="margin:14px 0"><h2>المساعد الذكي لإدارة المؤسسة</h2><p class="muted">تحليل مؤشرات الدورات والمجموعات والحضور والاشتراكات وطلبات الالتحاق، حسب صلاحياتك ونطاق الفرع.</p><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><select id="institutionAiInsightsBranch" aria-label="نطاق التحليل" style="max-width:260px"><option value="">كل المؤسسة</option></select><button class="btn" id="runInstitutionAiInsights" type="button">تحليل الأداء</button></div><div id="institutionAiInsightsStatus" class="muted" role="status" aria-live="polite" style="margin-top:12px">اضغط تحليل الأداء لعرض ملخص وأولويات العمل.</div><div id="institutionAiInsightsResult" style="white-space:pre-wrap;line-height:2;margin-top:12px"></div></div>
 <div class="tabs">
 <button class="tab active" data-tab="branches">الفروع</button><button class="tab" data-tab="publicProfile">ملفي في دليل المراكز</button>
 <button class="tab" data-tab="team">الموظفون والصلاحيات</button>
@@ -169,8 +171,13 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 <div class="field"><label>تاريخ النهاية</label><input id="runEnd" type="date"></div>
 <div class="field"><label>السعة القصوى للمجموعة</label><input id="runCapacity" type="number" min="1" placeholder="مثال: 25"></div>
 <div class="field"><label>الحالة</label><select id="runStatus"><option value="planned">مخططة</option><option value="open">متاحة للتسجيل</option><option value="in_progress">جارية</option><option value="completed">مكتملة</option><option value="cancelled">ملغاة</option></select></div>
-</div><p class="muted">السعة هي أقصى عدد متدربين داخل هذه المجموعة فقط. التسجيل العام في الدورة لا يستهلك سعة مجموعة.</p><div class="actions"><button class="btn" id="addRunBtn">إنشاء المجموعة</button></div></div>
-<div class="card"><h2>إدارة المجموعات التدريبية</h2><div class="table-wrap"><table><thead><tr><th>المجموعة</th><th>الدورة</th><th>الفرع</th><th>المدرب</th><th>الفترة</th><th>السعة</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="runsRows"></tbody></table></div><p class="muted">يمكن تحديث حالة المجموعة وفق دورة التشغيل، دون حذف التسجيلات أو الحضور المرتبط بها.</p></div>
+<div class="field"><label>النشر في سوق الدورات</label><select id="runPublicListing"><option value="false">خاص بالمؤسسة</option><option value="true">عرض للجمهور</option></select></div>
+<div class="field"><label>رسوم الدورة (جنيه)</label><input id="runPrice" type="number" min="0" step="0.01" placeholder="اتركه فارغًا للتواصل"></div>
+<div class="field"><label>طريقة التدريب</label><select id="runDeliveryMode"><option value="onsite">حضوري</option><option value="online">عن بُعد</option><option value="hybrid">هجين</option></select></div>
+<div class="field"><label>آخر موعد للتسجيل</label><input id="runRegistrationDeadline" type="date"></div>
+<div class="field" style="grid-column:1/-1"><label>وصف الدورة للجمهور</label><textarea id="runPublicDescription" rows="2" maxlength="1200" placeholder="اكتب نبذة مختصرة تظهر في سوق الدورات"></textarea></div>
+</div><p class="muted">السعة هي أقصى عدد متدربين داخل هذه المجموعة فقط. التسجيل العام في الدورة لا يستهلك سعة مجموعة. لا تظهر الدورة في السوق إلا بعد نشرها صراحةً، واعتماد الملف العام للمؤسسة، وفتح التسجيل.</p><div class="actions"><button class="btn" id="addRunBtn">إنشاء المجموعة</button></div></div>
+<div class="card"><h2>إدارة المجموعات التدريبية</h2><div class="table-wrap"><table><thead><tr><th>المجموعة</th><th>الدورة</th><th>الفرع</th><th>المدرب</th><th>الفترة</th><th>السعة</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="runsRows"></tbody></table></div><p class="muted">يمكن تحديث حالة المجموعة وفق دورة التشغيل، دون حذف التسجيلات أو الحضور المرتبط بها.</p></div><div class="card"><h2>طلبات الالتحاق من سوق الدورات</h2><p class="muted">تظهر هنا طلبات المتدربين الذين وافقوا على مشاركة بيانات التواصل مع مؤسستك لمتابعة طلب الالتحاق.</p><div class="table-wrap"><table><thead><tr><th>المتدرب</th><th>الدورة / المجموعة</th><th>الهاتف</th><th>البريد</th><th>رسالة المتدرب</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="marketplaceApplicationsRows"><tr><td colspan="7" class="empty">جارٍ تحميل الطلبات...</td></tr></tbody></table></div></div>
 <div class="card"><h2>جدول جلسات التدريب</h2><p class="muted">كل جلسة ترتبط بمجموعة ومدرب وتاريخ ووقت. المنصة تنشئ رقم الجلسة تلقائيًا بالتتابع داخل المجموعة؛ وعند تسجيل الحضور تختار رقم الجلسة بدل كتابة رقم أو تاريخ يدويًا.</p><div class="grid">
 <div class="field"><label>المجموعة *</label><select id="sessionRun"></select></div>
 <div class="field"><label>عنوان الجلسة</label><input id="sessionTitle" placeholder="المحاضرة الأولى / تطبيق عملي"></div>
@@ -568,12 +575,56 @@ async function loadOperationalReadiness(){
  finally{if(button){button.disabled=false;button.textContent='تحديث المؤشر';}}
 }
 $('refreshOperationalReadinessBtn').addEventListener('click',loadOperationalReadiness);
+function safePlatformNotificationUrl(value){const v=String(value||'');const allowed=['admin.html','institution.html','graduate-v2.html','company.html','training-marketplace.html'];return allowed.some(path=>v===path||v.startsWith(path+'?')||v.startsWith(path+'#'))?v:'#';}
+async function loadPlatformNotifications(){
+ const el=$('platformNotificationsList');if(!el||!user)return;
+ const {data,error}=await sb.from('platform_notifications').select('id,notification_type,title,body,action_url,read_at,created_at').eq('recipient_user_id',user.id).eq('in_app_visible',true).order('created_at',{ascending:false}).limit(25);
+ if(error){el.textContent='تعذر تحميل الإشعارات: '+error.message;return;}
+ const rows=data||[];
+ el.innerHTML=rows.length?rows.map(n=>'<div style="padding:11px 0;border-bottom:1px solid #edf2f7;display:flex;gap:10px;justify-content:space-between;align-items:flex-start"><div><strong>'+esc(n.title)+'</strong><div class="muted">'+esc(n.body||'')+'</div><small class="muted">'+new Date(n.created_at).toLocaleString('ar-EG')+'</small>'+(n.action_url?'<div><a href="'+esc(safePlatformNotificationUrl(n.action_url))+'" style="color:#075985;font-weight:800">فتح</a></div>':'')+'</div>'+(n.read_at?'':'<button class="btn light" type="button" data-platform-notification-read="'+esc(n.id)+'">تمت القراءة</button>')+'</div>').join(''):'لا توجد إشعارات جديدة.';
+ el.querySelectorAll('[data-platform-notification-read]').forEach(btn=>btn.addEventListener('click',async()=>{const {error}=await sb.from('platform_notifications').update({read_at:new Date().toISOString()}).eq('id',btn.dataset.platformNotificationRead);if(error)return say('تعذر تحديث الإشعار: '+error.message,'error');await loadPlatformNotifications();}));
+}
+async function loadPlatformNotificationPreferences(){
+ if(!user)return;const {data,error}=await sb.from('platform_notification_preferences').select('email_enabled').eq('user_id',user.id).maybeSingle();
+ if(error)return $('platformNotificationPreferenceStatus').textContent='تعذر تحميل تفضيلات البريد.';
+ $('platformEmailNotifications').checked=data?.email_enabled===true;
+}
+$('savePlatformNotificationPreferences').addEventListener('click',async()=>{
+ const {error}=await sb.from('platform_notification_preferences').upsert({user_id:user.id,in_app_enabled:true,email_enabled:$('platformEmailNotifications').checked,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+ $('platformNotificationPreferenceStatus').textContent=error?'تعذر حفظ التفضيلات: '+error.message:'تم حفظ تفضيلات الإشعارات. البريد مفعّل حسب اختيارك.';
+});
+async function setupInstitutionAiInsights(){
+ const card=$('institutionAiInsightsCard'),select=$('institutionAiInsightsBranch');if(!card||!org||!membership)return;
+ const {data:allBranches,error}=await sb.from('institution_branches').select('id,name').eq('institution_id',org.id).eq('is_active',true).order('name');
+ if(error)return;
+ const {data:allScope}=await sb.rpc('institution_has_permission',{p_institution_id:org.id,p_permission:'reports.view',p_branch_id:null});
+ const allowedBranches=[];
+ if(allScope===true){allowedBranches.push(...(allBranches||[]));}
+ else{
+  const {data:scopes}=await sb.from('institution_user_branches').select('branch_id').eq('institution_user_id',membership.id);
+  for(const scope of scopes||[]){const branch=(allBranches||[]).find(b=>b.id===scope.branch_id);if(!branch)continue;const {data:ok}=await sb.rpc('institution_has_permission',{p_institution_id:org.id,p_permission:'reports.view',p_branch_id:branch.id});if(ok===true)allowedBranches.push(branch);}
+ }
+ if(allScope!==true&&!allowedBranches.length)return;
+ card.hidden=false;select.innerHTML=allScope===true?'<option value="">كل المؤسسة</option>':'';
+ select.innerHTML+=(allowedBranches||[]).map(b=>'<option value="'+esc(b.id)+'">'+esc(b.name)+'</option>').join('');
+}
+$('runInstitutionAiInsights').addEventListener('click',async()=>{
+ const btn=$('runInstitutionAiInsights'),status=$('institutionAiInsightsStatus'),result=$('institutionAiInsightsResult');if(!org)return;
+ btn.disabled=true;btn.textContent='جارٍ التحليل...';status.textContent='جارٍ التحقق من صلاحية التقارير وتجميع المؤشرات...';result.textContent='';
+ try{
+  const branchId=$('institutionAiInsightsBranch').value||null;
+  const {data,error}=await sb.functions.invoke('shahadaty-ai-assistant',{body:{task:'institution_insights',institution_id:org.id,branch_id:branchId}});
+  if(error)throw error;if(!data?.text)throw new Error(data?.error||'لم يصل تقرير من المساعد الذكي.');
+  result.textContent=data.text;status.textContent='تم إنشاء التقرير من مؤشرات المؤسسة أو الفرع المصرح بها فقط.';
+ }catch(error){status.textContent='تعذر إنشاء التقرير: '+String(error?.message||error);}
+ finally{btn.disabled=false;btn.textContent='تحليل الأداء';}
+});
 async function init(){
  const {data:{user:u},error}=await sb.auth.getUser();user=u;
  if(error||!user){say('سجّل الدخول من بوابة المؤسسة، ثم افتح البرنامج ببيانات المالك أو الموظف المصرح له.','error');return;}
  if(user.app_metadata?.account_type==='institution_staff'&&user.app_metadata.must_change_password===true){say('يجب تغيير كلمة المرور أولاً من نافذة الدخول التي فتحها مالك المؤسسة.','error');return;}
  const {data:m,error:me}=await sb.from('institution_users').select('id,institution_id,role,status').eq('auth_user_id',user.id).eq('status','active').order('created_at',{ascending:true}).limit(1).maybeSingle();
- if(me||!m){say('لم يتم العثور على عضوية مؤسسة نشطة لهذا الحساب.','error');return;}membership=m;$('operationalReadinessCard').hidden=m.role!=='owner';const publicProfileTab=document.querySelector('.tab[data-tab="publicProfile"]');if(publicProfileTab)publicProfileTab.hidden=!['owner','manager'].includes(m.role);
+ if(me||!m){say('لم يتم العثور على عضوية مؤسسة نشطة لهذا الحساب.','error');return;}membership=m;await loadPlatformNotifications();await loadPlatformNotificationPreferences();$('operationalReadinessCard').hidden=m.role!=='owner';const publicProfileTab=document.querySelector('.tab[data-tab="publicProfile"]');if(publicProfileTab)publicProfileTab.hidden=!['owner','manager'].includes(m.role);
  const workspacePermissions=['dashboard.view','branches.view','branches.manage','team.view','team.manage','trainees.view','trainees.manage','courses.view','courses.manage','certificates.view','certificates.issue','reports.view'];
  let allowedWorkspace=false;
  if(m.role==='owner'||m.role==='manager'){
@@ -593,6 +644,7 @@ async function init(){
  await loadBranches();
  if(['owner','manager'].includes(m.role))await loadInstitutionPublicProfile();
  await applyWorkspaceRolePermissions();
+ await setupInstitutionAiInsights();
  await Promise.all([loadTeam(),loadTrainees(),loadCoursesAndRuns()]);
  setupAttendanceManager();
  if(m.role==='owner')await loadOperationalReadiness();
@@ -926,7 +978,7 @@ async function loadCoursesAndRuns(){
  $('bulkEnrollCourse').innerHTML='<option value="">اختر الدورة</option>'+courses.filter(x=>x.is_active).map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('');
   $('catalogCoursesRows').innerHTML=courses.map(c=>{const canManage=courseManageByBranch.get(c.branch_id||'')===true;return '<tr><td>'+esc(c.name)+'</td><td>'+esc(c.specialization||'—')+'</td><td>'+esc(c.duration||'—')+'</td><td>'+esc(branchById.get(c.branch_id)?.name||'عام')+'</td><td>'+ (c.is_active?'نشطة':'موقوفة')+'</td><td>'+(canManage?'<button class="btn light" type="button" data-toggle-course="'+esc(c.id)+'">'+(c.is_active?'إيقاف الدورة':'إعادة تفعيل')+'</button>':'<span class="muted">عرض فقط</span>')+'</td></tr>';}).join('')||'<tr><td colspan="6" class="empty">لا توجد دورات مسجلة بعد</td></tr>';
  $('catalogCoursesRows').querySelectorAll('[data-toggle-course]').forEach(btn=>btn.addEventListener('click',()=>toggleInstitutionCourse(btn.dataset.toggleCourse)));
- const {data:runs,error}=await sb.from('institution_course_runs').select('id,run_name,instructor_name,trainer_id,start_date,end_date,status,branch_id,course_id,capacity,institution_courses(name),institution_trainers(id,full_name)').eq('institution_id',org.id).order('created_at',{ascending:false}).limit(200);
+ const {data:runs,error}=await sb.from('institution_course_runs').select('id,run_name,instructor_name,trainer_id,start_date,end_date,status,branch_id,course_id,capacity,is_publicly_listed,price_amount,delivery_mode,registration_deadline,institution_courses(name),institution_trainers(id,full_name)').eq('institution_id',org.id).order('created_at',{ascending:false}).limit(200);
  if(error){emptyRow('runsRows',6,error.message);return;}
  courseRuns=runs||[];
  const runLabels={planned:'مخططة',open:'متاحة للتسجيل',in_progress:'جارية',completed:'مكتملة',cancelled:'ملغاة'};
@@ -939,6 +991,21 @@ async function loadCoursesAndRuns(){
  try{await loadInstitutionSessions();}catch(error){emptyRow('sessionsRows',9,'تعذر تحميل الجلسات: '+(error?.message||error));}
  setupAttendanceManager();
  await loadEnrollments();
+ await loadMarketplaceApplications();
+}
+async function loadMarketplaceApplications(){
+ const body=$('marketplaceApplicationsRows');if(!body)return;
+ const {data,error}=await sb.rpc('institution_list_training_marketplace_applications',{p_limit:150});
+ if(error){body.innerHTML='<tr><td colspan="7" class="empty">تعذر تحميل طلبات سوق الدورات: '+esc(error.message)+'</td></tr>';return;}
+ const rows=data||[],labels={pending:'قيد المراجعة',accepted:'مقبول',rejected:'مرفوض',withdrawn:'مسحوب'};
+ body.innerHTML=rows.map(a=>'<tr><td>'+esc(a.graduate_name||'—')+'</td><td>'+esc((a.course_name||'دورة')+' — '+(a.run_name||'مجموعة'))+'</td><td dir="ltr">'+esc(a.graduate_phone||'—')+'</td><td>'+esc(a.graduate_email||'—')+'</td><td>'+esc(a.applicant_message||'—')+'</td><td>'+esc(labels[a.status]||a.status)+'</td><td>'+(a.status==='pending'?'<button class="btn" type="button" data-market-review="'+esc(a.application_id)+'" data-status="accepted">قبول</button> <button class="btn light" type="button" data-market-review="'+esc(a.application_id)+'" data-status="rejected">رفض</button>':'—')+'</td></tr>').join('')||'<tr><td colspan="7" class="empty">لا توجد طلبات التحاق جديدة.</td></tr>';
+ body.querySelectorAll('[data-market-review]').forEach(btn=>btn.addEventListener('click',()=>reviewMarketplaceApplication(btn.dataset.marketReview,btn.dataset.status)));
+}
+async function reviewMarketplaceApplication(id,status){
+ const label=status==='accepted'?'قبول':'رفض';if(!confirm('تأكيد '+label+' طلب الالتحاق؟'))return;
+ const {error}=await sb.rpc('institution_review_training_marketplace_application',{p_application_id:id,p_status:status});
+ if(error){const msg=String(error.message||'');return say(msg.includes('COURSE_CAPACITY_REACHED')?'لا يمكن قبول الطلب؛ اكتملت سعة المجموعة.':msg.includes('NOT_ALLOWED')?'ليس لديك صلاحية مراجعة طلبات الالتحاق.':'تعذر تحديث الطلب: '+msg,'error');}
+ say('تم '+label+' طلب الالتحاق.','success');await loadMarketplaceApplications();
 }
 function syncBulkEnrollmentGroupOptions(){
  const courseId=$('bulkEnrollCourse').value,select=$('bulkEnrollGroup'),previous=select.value;
@@ -1152,8 +1219,8 @@ $('addRunBtn').addEventListener('click',async()=>{
  const start_date=$('runStart').value||null,end_date=$('runEnd').value||null,capacityRaw=$('runCapacity').value.trim(),capacity=capacityRaw?Number(capacityRaw):null;
  if(start_date&&end_date&&end_date<start_date)return say('تاريخ نهاية المجموعة يجب أن يكون بعد تاريخ البداية أو مساويًا له.','error');
  if(capacity!==null&&(!Number.isInteger(capacity)||capacity<1))return say('سعة المجموعة يجب أن تكون رقمًا صحيحًا أكبر من صفر.','error');
- const row={institution_id:org.id,course_id,branch_id,run_name:$('runName').value.trim()||null,instructor_name:$('runInstructor').value.trim()||null,trainer_id,start_date,end_date,capacity,status:$('runStatus').value,created_by:user.id};
- const {error}=await sb.from('institution_course_runs').insert(row);if(error)return say(error.message.includes('FEATURE_LIMIT_REACHED')?'تم الوصول إلى الحد المسموح للدورات في باقتك.':error.message,'error');say('تم إنشاء المجموعة التدريبية.','success');await loadCoursesAndRuns();
+ const priceRaw=$('runPrice').value.trim(),price_amount=priceRaw?Number(priceRaw):null;if(price_amount!==null&&(!Number.isFinite(price_amount)||price_amount<0))return say('رسوم الدورة يجب أن تكون صفرًا أو أكثر.','error');const is_publicly_listed=$('runPublicListing').value==='true';const row={institution_id:org.id,course_id,branch_id,run_name:$('runName').value.trim()||null,instructor_name:$('runInstructor').value.trim()||null,trainer_id,start_date,end_date,capacity,status:$('runStatus').value,created_by:user.id,is_publicly_listed,public_description:$('runPublicDescription').value.trim()||null,price_amount,currency_code:'EGP',delivery_mode:$('runDeliveryMode').value,registration_deadline:$('runRegistrationDeadline').value||null};
+ const {error}=await sb.from('institution_course_runs').insert(row);if(error)return say(error.message.includes('FEATURE_LIMIT_REACHED')?'تم الوصول إلى الحد المسموح للدورات في باقتك.':error.message,'error');['runName','runInstructor','runStart','runEnd','runCapacity','runPrice','runRegistrationDeadline','runPublicDescription'].forEach(id=>$(id).value='');$('runPublicListing').value='false';$('runDeliveryMode').value='onsite';say('تم إنشاء المجموعة التدريبية.','success');await loadCoursesAndRuns();
 });
 init();
 </script></body></html>
