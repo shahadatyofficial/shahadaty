@@ -39,10 +39,10 @@ checks = {
         "get_public_training_marketplace", "submit_training_marketplace_application", "contactConsent",
     ],
     "digital-passport.html": [
-        "get_public_digital_passport", "QRCode", "verify.html?cert=",
+        "get_public_digital_passport", "QRCode", "verify.html?cert=", "noindex,nofollow",
     ],
     "professional-profile.html": [
-        "get_public_professional_profile", "qualifications", "skills", "experiences",
+        "get_public_professional_profile", "qualifications", "skills", "experiences", "noindex,nofollow",
     ],
     "supabase/functions/send-platform-notification-emails/index.ts": [
         "EMAIL_PROVIDER_NOT_CONFIGURED", "platform_notifications", "x-cron-secret",
