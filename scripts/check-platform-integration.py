@@ -33,7 +33,7 @@ checks = {
         "graduate-gold-private", "graduate_withdraw_job_application",
         "graduate_my_certificates", "get_public_professional_profile",
         "refreshPublicProfileShare", "public_profile_consent", "platform_notifications", "loadPlatformNotifications",
-        "graduate_list_my_training_applications",
+        "graduate_list_my_training_applications", "digital_passport_public_consent", "refreshDigitalPassportShare",
     ],
     "training-marketplace.html": [
         "get_public_training_marketplace", "submit_training_marketplace_application", "contactConsent",
@@ -48,7 +48,7 @@ checks = {
         "get_admin_ai_insights_context", "admin_insights",
     ],
     "company.html": [
-        "platform_notifications", "loadCompanyPlatformNotifications", "companyEmailNotifications", "search_alumni_for_company_v2", "public_profile_available",
+        "platform_notifications", "loadCompanyPlatformNotifications", "companyEmailNotifications", "search_alumni_for_company_v3", "public_profile_available", "digital_passport_available",
         "search_alumni_for_company", "alumni_access_requests",
         "company_get_approved_alumni_contact", "alumni_documents",
         "company_list_job_applications",
@@ -72,6 +72,7 @@ migration_paths = [
     "supabase/migrations/20261121130000_platform_notifications.sql",
     "supabase/migrations/20261121140000_notification_scheduling.sql",
     "supabase/migrations/20261121150000_company_professional_profile_link.sql",
+    "supabase/migrations/20261121160000_digital_passport.sql",
     "supabase/config.toml",
 ]
 
