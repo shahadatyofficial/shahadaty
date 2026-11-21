@@ -77,6 +77,12 @@ Deno.serve(async (req: Request) => {
         (startDate && !/^\d{4}-\d{2}-\d{2}$/.test(startDate))) {
       return reply(origin, 400, { error: "INVALID_REQUEST" });
     }
+    const grantedPermissions = new Set(permissions);
+    if (grantedPermissions.has("team.manage")) grantedPermissions.add("team.view");
+    if (grantedPermissions.has("branches.manage")) grantedPermissions.add("branches.view");
+    if (grantedPermissions.has("trainees.manage")) grantedPermissions.add("trainees.view");
+    if (grantedPermissions.has("courses.manage")) grantedPermissions.add("courses.view");
+    if (grantedPermissions.has("certificates.issue") || grantedPermissions.has("certificates.revoke")) grantedPermissions.add("certificates.view");
     if (role !== "manager" && branchIds.length === 0) return reply(origin, 400, { error: "BRANCH_ASSIGNMENT_REQUIRED" });
 
     const { data: permitted, error: permissionError } = await caller.rpc("institution_has_permission", {
@@ -127,7 +133,7 @@ Deno.serve(async (req: Request) => {
     if (Array.isArray(body?.permissions)) {
       const overrides = permissionKeys.map((permission_key: string) => ({
         institution_id: institutionId, institution_user_id: createdMembershipId,
-        permission_key, is_granted: permissions.includes(permission_key),
+        permission_key, is_granted: grantedPermissions.has(permission_key),
       }));
       const { error } = await admin.from("institution_user_permission_overrides").insert(overrides);
       if (error) throw new Error("PERMISSION_OVERRIDES_CREATE_FAILED");
