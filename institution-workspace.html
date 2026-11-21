@@ -90,6 +90,7 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
  </div>
 </div>
 <div class="card" id="platformNotificationsPanel" style="margin:14px 0"><h2>إشعارات المنصة</h2><div id="platformNotificationsList" class="muted">جارٍ تحميل الإشعارات...</div><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px"><label style="display:flex;align-items:center;gap:8px;margin:0"><input id="platformEmailNotifications" type="checkbox" style="width:auto"> أرسل لي الإشعارات المهمة على البريد الإلكتروني</label><button class="btn light" id="savePlatformNotificationPreferences" type="button">حفظ التفضيلات</button></div><p class="muted" id="platformNotificationPreferenceStatus">الإشعارات داخل المنصة مفعلة افتراضيًا. البريد الإلكتروني يحتاج تفعيل إعدادات الإرسال.</p></div>
+<div class="card" id="institutionAiInsightsCard" hidden style="margin:14px 0"><h2>المساعد الذكي لإدارة المؤسسة</h2><p class="muted">تحليل مؤشرات الدورات والمجموعات والحضور والاشتراكات وطلبات الالتحاق، حسب صلاحياتك ونطاق الفرع.</p><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><select id="institutionAiInsightsBranch" aria-label="نطاق التحليل" style="max-width:260px"><option value="">كل المؤسسة</option></select><button class="btn" id="runInstitutionAiInsights" type="button">تحليل الأداء</button></div><div id="institutionAiInsightsStatus" class="muted" role="status" aria-live="polite" style="margin-top:12px">اضغط تحليل الأداء لعرض ملخص وأولويات العمل.</div><div id="institutionAiInsightsResult" style="white-space:pre-wrap;line-height:2;margin-top:12px"></div></div>
 <div class="tabs">
 <button class="tab active" data-tab="branches">الفروع</button><button class="tab" data-tab="publicProfile">ملفي في دليل المراكز</button>
 <button class="tab" data-tab="team">الموظفون والصلاحيات</button>
@@ -592,6 +593,32 @@ $('savePlatformNotificationPreferences').addEventListener('click',async()=>{
  const {error}=await sb.from('platform_notification_preferences').upsert({user_id:user.id,in_app_enabled:true,email_enabled:$('platformEmailNotifications').checked,updated_at:new Date().toISOString()},{onConflict:'user_id'});
  $('platformNotificationPreferenceStatus').textContent=error?'تعذر حفظ التفضيلات: '+error.message:'تم حفظ تفضيلات الإشعارات. البريد مفعّل حسب اختيارك.';
 });
+async function setupInstitutionAiInsights(){
+ const card=$('institutionAiInsightsCard'),select=$('institutionAiInsightsBranch');if(!card||!org||!membership)return;
+ const {data:allBranches,error}=await sb.from('institution_branches').select('id,name').eq('institution_id',org.id).eq('is_active',true).order('name');
+ if(error)return;
+ const {data:allScope}=await sb.rpc('institution_has_permission',{p_institution_id:org.id,p_permission:'reports.view',p_branch_id:null});
+ const allowedBranches=[];
+ if(allScope===true){allowedBranches.push(...(allBranches||[]));}
+ else{
+  const {data:scopes}=await sb.from('institution_user_branches').select('branch_id').eq('institution_user_id',membership.id);
+  for(const scope of scopes||[]){const branch=(allBranches||[]).find(b=>b.id===scope.branch_id);if(!branch)continue;const {data:ok}=await sb.rpc('institution_has_permission',{p_institution_id:org.id,p_permission:'reports.view',p_branch_id:branch.id});if(ok===true)allowedBranches.push(branch);}
+ }
+ if(allScope!==true&&!allowedBranches.length)return;
+ card.hidden=false;select.innerHTML=allScope===true?'<option value="">كل المؤسسة</option>':'';
+ select.innerHTML+=(allowedBranches||[]).map(b=>'<option value="'+esc(b.id)+'">'+esc(b.name)+'</option>').join('');
+}
+$('runInstitutionAiInsights').addEventListener('click',async()=>{
+ const btn=$('runInstitutionAiInsights'),status=$('institutionAiInsightsStatus'),result=$('institutionAiInsightsResult');if(!org)return;
+ btn.disabled=true;btn.textContent='جارٍ التحليل...';status.textContent='جارٍ التحقق من صلاحية التقارير وتجميع المؤشرات...';result.textContent='';
+ try{
+  const branchId=$('institutionAiInsightsBranch').value||null;
+  const {data,error}=await sb.functions.invoke('shahadaty-ai-assistant',{body:{task:'institution_insights',institution_id:org.id,branch_id:branchId}});
+  if(error)throw error;if(!data?.text)throw new Error(data?.error||'لم يصل تقرير من المساعد الذكي.');
+  result.textContent=data.text;status.textContent='تم إنشاء التقرير من مؤشرات المؤسسة أو الفرع المصرح بها فقط.';
+ }catch(error){status.textContent='تعذر إنشاء التقرير: '+String(error?.message||error);}
+ finally{btn.disabled=false;btn.textContent='تحليل الأداء';}
+});
 async function init(){
  const {data:{user:u},error}=await sb.auth.getUser();user=u;
  if(error||!user){say('سجّل الدخول من بوابة المؤسسة، ثم افتح البرنامج ببيانات المالك أو الموظف المصرح له.','error');return;}
@@ -617,6 +644,7 @@ async function init(){
  await loadBranches();
  if(['owner','manager'].includes(m.role))await loadInstitutionPublicProfile();
  await applyWorkspaceRolePermissions();
+ await setupInstitutionAiInsights();
  await Promise.all([loadTeam(),loadTrainees(),loadCoursesAndRuns()]);
  setupAttendanceManager();
  if(m.role==='owner')await loadOperationalReadiness();
