@@ -62,6 +62,25 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
   <div class="actions"><button class="btn" type="button" id="saveStaffPermissions">حفظ الصلاحيات</button><button class="btn light" type="button" id="resetStaffPermissions">استعادة صلاحيات الدور</button></div>
  </div>
 </div>
+<div class="team-modal" id="editStaffAccountModal" role="dialog" aria-modal="true" aria-labelledby="editStaffAccountTitle">
+ <div class="team-modal-card">
+  <div class="team-modal-head"><h2 id="editStaffAccountTitle">تعديل بيانات الموظف</h2><button class="btn light" type="button" id="closeEditStaffAccount">إغلاق</button></div>
+  <p class="muted">اترك كلمة المرور فارغة إذا كنت لا تريد تغييرها. لن نعرض كلمة المرور الحالية.</p>
+  <div class="grid" style="grid-template-columns:1fr 1fr">
+   <div class="field"><label for="editStaffFullName">اسم الموظف *</label><input id="editStaffFullName" maxlength="160"></div>
+   <div class="field"><label for="editStaffUsername">اسم المستخدم *</label><input id="editStaffUsername" dir="ltr" maxlength="30"></div>
+   <div class="field"><label for="editStaffNewPassword">كلمة مرور جديدة (اختياري)</label><input id="editStaffNewPassword" type="password" minlength="10" autocomplete="new-password"></div>
+   <div class="field"><label for="editStaffRole">الدور الوظيفي</label><select id="editStaffRole"><option value="manager">مدير مؤسسة</option><option value="training_manager">مدير تدريب</option><option value="registrar">مسؤول المتدربين</option><option value="certificate_issuer">مسؤول إصدار الشهادات</option><option value="branch_manager">مدير فرع</option><option value="viewer">مشاهدة</option></select></div>
+   <div class="field"><label for="editStaffPhone">رقم الهاتف</label><input id="editStaffPhone" dir="ltr"></div>
+   <div class="field"><label for="editStaffEmail">البريد الإلكتروني</label><input id="editStaffEmail" type="email" dir="ltr"></div>
+   <div class="field"><label for="editStaffJobTitle">المسمى الوظيفي</label><input id="editStaffJobTitle"></div>
+   <div class="field"><label for="editStaffStartDate">تاريخ بداية العمل</label><input id="editStaffStartDate" type="date"></div>
+   <div class="field" style="grid-column:1/-1"><label for="editStaffBranches">الفروع المخصصة</label><select id="editStaffBranches" multiple size="5"></select></div>
+  </div>
+  <div class="team-modal-actions"><button class="btn" type="button" id="saveEditStaffAccount">حفظ التعديلات</button><button class="btn light" type="button" id="cancelEditStaffAccount">إلغاء</button></div>
+  <p class="muted" id="editStaffAccountMessage" role="status" style="margin-top:10px"></p>
+ </div>
+</div>
 <div class="team-modal" id="teamBranchModal" role="dialog" aria-modal="true" aria-labelledby="teamBranchModalTitle">
  <div class="team-modal-card">
   <div class="team-modal-head"><h2 id="teamBranchModalTitle">تخصيص فروع الموظف</h2><button class="btn light" type="button" id="closeTeamBranchModal">إغلاق</button></div>
@@ -642,7 +661,7 @@ async function loadTeam(){
   const assigned=(branchesByMember.get(m.id)||[]).map(id=>branchById.get(id)?.name).filter(Boolean).join('، ')||'كل الفروع / غير محدد';
   const identity=p?'<b>'+esc(p.full_name)+'</b><small class="muted" style="display:block" dir="ltr">'+esc(p.username)+'</small><small class="muted" style="display:block">'+esc(p.job_title||'')+'</small>':'<b>'+(m.role==='owner'?'مالك المؤسسة':'عضو قديم')+'</b><small class="muted" style="display:block" dir="ltr">'+esc(m.auth_user_id)+'</small>';
   const nextStatus=m.status==='active'?'suspended':'active';
-  return '<tr><td>'+identity+'</td><td><select data-role="'+esc(m.id)+'" '+(canEdit?'':'disabled')+'>'+roleOptions.map(([v,l])=>'<option value="'+v+'" '+(m.role===v?'selected':'')+'>'+l+'</option>').join('')+'</select></td><td><span class="pill">'+esc(statusLabel)+'</span></td><td>'+esc(assigned)+'<br><button class="btn light" data-branches="'+esc(m.id)+'" '+(canEdit?'':'disabled')+'>تعديل الفروع</button></td><td><button class="btn light" data-permissions="'+esc(m.id)+'" '+(canEdit?'':'disabled')+'>الصلاحيات</button> <button class="btn team-status-btn '+(m.status==='active'?'danger':'light')+'" data-status="'+esc(m.id)+'" data-next-status="'+nextStatus+'" '+(canEdit?'':'disabled')+'>'+(m.status==='active'?'إيقاف الحساب':'إعادة التفعيل')+'</button></td></tr>';
+  return '<tr><td>'+identity+'</td><td><select data-role="'+esc(m.id)+'" '+(canEdit?'':'disabled')+'>'+roleOptions.map(([v,l])=>'<option value="'+v+'" '+(m.role===v?'selected':'')+'>'+l+'</option>').join('')+'</select></td><td><span class="pill">'+esc(statusLabel)+'</span></td><td>'+esc(assigned)+'<br><button class="btn light" data-branches="'+esc(m.id)+'" '+(canEdit?'':'disabled')+'>تعديل الفروع</button></td><td><button class="btn light" data-edit-staff="'+esc(m.id)+'" '+(canEdit?'':'disabled')+'>تعديل البيانات</button> <button class="btn light" data-permissions="'+esc(m.id)+'" '+(canEdit?'':'disabled')+'>الصلاحيات</button> <button class="btn team-status-btn '+(m.status==='active'?'danger':'light')+'" data-status="'+esc(m.id)+'" data-next-status="'+nextStatus+'" '+(canEdit?'':'disabled')+'>'+(m.status==='active'?'إيقاف الحساب':'إعادة التفعيل')+'</button></td></tr>';
  }).join('')||'<tr><td colspan="5" class="empty">لا يوجد أعضاء فريق</td></tr>';
  $('teamRows').querySelectorAll('[data-role]').forEach(sel=>sel.addEventListener('change',async()=>{
   if(!await allowed('team.manage'))return say('ليس لديك صلاحية إدارة الفريق.','error');
@@ -653,6 +672,7 @@ async function loadTeam(){
  }));
  $('teamRows').querySelectorAll('[data-branches]').forEach(btn=>btn.addEventListener('click',()=>manageBranches(btn.dataset.branches)));
  $('teamRows').querySelectorAll('[data-permissions]').forEach(btn=>btn.addEventListener('click',()=>manageStaffMemberPermissions(btn.dataset.permissions)));
+ $('teamRows').querySelectorAll('[data-edit-staff]').forEach(btn=>btn.addEventListener('click',()=>openStaffAccountEditor(btn.dataset.editStaff)));
 
  $('teamRows').querySelectorAll('[data-status]').forEach(btn=>btn.addEventListener('click',async()=>{
   if(!await allowed('team.manage'))return say('ليس لديك صلاحية إدارة الفريق.','error');
@@ -664,6 +684,46 @@ async function loadTeam(){
   say(next==='suspended'?'تم إيقاف الحساب مؤقتًا.':'تمت إعادة تفعيل الحساب.','success');await loadTeam();
  }));
 }
+let editingStaffAccountMemberId=null;
+function closeStaffAccountEditor(){ $('editStaffAccountModal').classList.remove('open');editingStaffAccountMemberId=null;$('editStaffNewPassword').value='';$('editStaffAccountMessage').textContent=''; }
+async function openStaffAccountEditor(memberId){
+ if(!await allowed('team.manage'))return say('ليس لديك صلاحية تعديل حسابات الموظفين.','error');
+ const {data:member,error:memberError}=await sb.from('institution_users').select('id,auth_user_id,role,status').eq('id',memberId).eq('institution_id',org.id).maybeSingle();
+ if(memberError||!member||member.role==='owner'||member.auth_user_id===user.id)return say('هذا الحساب لا يمكن تعديله من هنا.','error');
+ const {data:profile,error:profileError}=await sb.from('institution_staff_profiles').select('username,full_name,phone,contact_email,job_title,employment_start_date').eq('institution_user_id',memberId).eq('institution_id',org.id).maybeSingle();
+ if(profileError||!profile)return say('تعذر تحميل بيانات حساب الموظف.','error');
+ const {data:assigned,error:branchError}=await sb.from('institution_user_branches').select('branch_id').eq('institution_user_id',memberId);
+ if(branchError)return say('تعذر تحميل فروع الموظف.','error');
+ editingStaffAccountMemberId=memberId;
+ $('editStaffFullName').value=profile.full_name||'';$('editStaffUsername').value=profile.username||'';
+ $('editStaffPhone').value=profile.phone||'';$('editStaffEmail').value=profile.contact_email||'';
+ $('editStaffJobTitle').value=profile.job_title||'';$('editStaffStartDate').value=profile.employment_start_date||'';
+ $('editStaffRole').value=member.role;$('editStaffNewPassword').value='';
+ const selected=new Set((assigned||[]).map(x=>x.branch_id));
+ $('editStaffBranches').innerHTML=branches.filter(b=>b.is_active||selected.has(b.id)).map(b=>'<option value="'+esc(b.id)+'" '+(selected.has(b.id)?'selected':'')+' '+(!b.is_active?'disabled':'')+'>'+esc(b.name)+(b.is_active?'':' — موقوف')+'</option>').join('');
+ $('editStaffAccountMessage').textContent='';$('editStaffAccountModal').classList.add('open');
+}
+async function saveStaffAccountEditor(){
+ if(!editingStaffAccountMemberId)return;
+ if(!await allowed('team.manage'))return say('ليس لديك صلاحية تعديل حسابات الموظفين.','error');
+ const username=$('editStaffUsername').value.trim().toLowerCase(),full_name=$('editStaffFullName').value.trim(),password=$('editStaffNewPassword').value;
+ const branch_ids=Array.from($('editStaffBranches').selectedOptions).map(o=>o.value);
+ if(!/^[a-z][a-z0-9._-]{2,29}$/.test(username))return say('اسم المستخدم يجب أن يبدأ بحرف إنجليزي ويتكون من 3 إلى 30 حرفًا أو رقمًا أو نقطة أو شرطة.','error');
+ if(full_name.length<2)return say('اسم الموظف مطلوب.','error');
+ if(password&&password.length<10)return say('كلمة المرور الجديدة يجب ألا تقل عن 10 أحرف.','error');
+ const body={institution_id:org.id,institution_user_id:editingStaffAccountMemberId,username,full_name,password,role:$('editStaffRole').value,phone:$('editStaffPhone').value.trim()||null,contact_email:$('editStaffEmail').value.trim()||null,job_title:$('editStaffJobTitle').value.trim()||null,employment_start_date:$('editStaffStartDate').value||null,branch_ids};
+ const btn=$('saveEditStaffAccount');btn.disabled=true;btn.textContent='جارٍ الحفظ...';
+ try{
+  const {data,error}=await sb.functions.invoke('institution-staff-update-account',{body});
+  if(error||!data?.success)throw new Error(data?.error||error?.message||'تعذر تحديث حساب الموظف.');
+  closeStaffAccountEditor();say('تم تحديث بيانات حساب الموظف واسم المستخدم'+(data.password_updated?' وكلمة المرور':'')+' بنجاح.','success');await loadTeam();
+ }catch(error){say('تعذر تحديث الحساب: '+(error.message||'خطأ غير معروف'),'error');}
+ finally{btn.disabled=false;btn.textContent='حفظ التعديلات';}
+}
+$('closeEditStaffAccount').addEventListener('click',closeStaffAccountEditor);
+$('cancelEditStaffAccount').addEventListener('click',closeStaffAccountEditor);
+$('saveEditStaffAccount').addEventListener('click',saveStaffAccountEditor);
+$('editStaffAccountModal').addEventListener('click',e=>{if(e.target===$('editStaffAccountModal'))closeStaffAccountEditor();});
 let editingPermissionMemberId=null,editingPermissionRole=null;
 function closeStaffPermissionsModal(){$('staffPermissionsModal').classList.remove('open');editingPermissionMemberId=null;editingPermissionRole=null;}
 function renderEditStaffPermissions(selected){
