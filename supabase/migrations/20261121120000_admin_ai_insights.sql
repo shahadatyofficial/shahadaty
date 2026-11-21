@@ -33,10 +33,19 @@ BEGIN
       'courses_active', (SELECT COUNT(*) FROM public.institution_courses WHERE is_active IS TRUE),
       'groups_open', (SELECT COUNT(*) FROM public.institution_course_runs WHERE status = 'open'),
       'groups_in_progress', (SELECT COUNT(*) FROM public.institution_course_runs WHERE status = 'in_progress'),
+      'groups_overdue', (SELECT COUNT(*) FROM public.institution_course_runs WHERE end_date < CURRENT_DATE AND status NOT IN ('completed','cancelled')),
+      'sessions_overdue', (SELECT COUNT(*) FROM public.institution_course_sessions WHERE session_date < CURRENT_DATE AND status = 'planned'),
+      'past_sessions_without_attendance', (
+        SELECT COUNT(*) FROM public.institution_course_sessions s
+        WHERE s.session_date < CURRENT_DATE AND s.status = 'planned'
+          AND NOT EXISTS (SELECT 1 FROM public.institution_attendance a WHERE a.session_id = s.id)
+      ),
       'enrollments_total', (SELECT COUNT(*) FROM public.institution_enrollments),
       'enrollments_active', (SELECT COUNT(*) FROM public.institution_enrollments WHERE status IN ('enrolled','attending')),
+      'attendance_records_total', (SELECT COUNT(*) FROM public.institution_attendance),
       'attendance_present', (SELECT COUNT(*) FROM public.institution_attendance WHERE attendance_status = 'present'),
       'attendance_absent', (SELECT COUNT(*) FROM public.institution_attendance WHERE attendance_status = 'absent'),
+      'attendance_late', (SELECT COUNT(*) FROM public.institution_attendance WHERE attendance_status = 'late'),
       'public_course_listings', (SELECT COUNT(*) FROM public.institution_course_runs WHERE is_publicly_listed IS TRUE AND status IN ('open','in_progress')),
       'marketplace_applications_pending', (SELECT COUNT(*) FROM public.training_marketplace_applications WHERE status = 'pending')
     ),
