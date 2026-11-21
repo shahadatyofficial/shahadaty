@@ -360,14 +360,24 @@ $('clearCertificateFiltersBtn').addEventListener('click',()=>{
 const attendanceLabels={present:'حاضر',absent:'غائب',late:'متأخر',excused:'معذور'};
 let attendanceRosterRows=[];
 function setupAttendanceManager(){
- const today=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
- $('attendanceSessionDate').value=today;
+ const selectedRun=$('attendanceRunFilter').value;
  $('attendanceRunFilter').innerHTML='<option value="">اختر المجموعة</option>'+courseRuns.filter(r=>!['completed','cancelled'].includes(r.status)).map(r=>'<option value="'+esc(r.id)+'">'+esc((r.institution_courses?.name||'دورة')+' — '+(r.run_name||'مجموعة')+' — '+(branchById.get(r.branch_id)?.name||'عام'))+'</option>').join('');
+ if(courseRuns.some(r=>r.id===selectedRun))$('attendanceRunFilter').value=selectedRun;
+ syncAttendanceSessionOptions();
+}
+function syncAttendanceSessionOptions(){
+ const runId=$('attendanceRunFilter').value,select=$('attendanceSessionFilter'),previous=select.value;
+ const options=institutionSessions.filter(s=>s.course_run_id===runId&&s.status!=='cancelled').sort((a,b)=>a.session_date.localeCompare(b.session_date)||a.session_number-b.session_number);
+ select.innerHTML='<option value="">اختر الجلسة</option>'+options.map(s=>'<option value="'+esc(s.id)+'">جلسة '+esc(s.session_number)+' — '+esc(s.session_date)+(s.title?' — '+esc(s.title):'')+'</option>').join('');
+ select.disabled=!runId||!options.length;
+ if(options.some(s=>s.id===previous))select.value=previous;
+ const current=options.find(s=>s.id===select.value);$('attendanceSessionDate').value=current?.session_date||'';
 }
 async function loadAttendanceRoster(){
- const runId=$('attendanceRunFilter').value,date=$('attendanceSessionDate').value;
- if(!runId||!date)return say('اختر المجموعة وتاريخ الجلسة أولاً.','error');
- const run=courseRuns.find(r=>r.id===runId);if(!run)return say('المجموعة المحددة غير متاحة. حدّث الصفحة.','error');
+ const runId=$('attendanceRunFilter').value,sessionId=$('attendanceSessionFilter').value,session=institutionSessions.find(s=>s.id===sessionId),date=session?.session_date;
+ if(!runId||!sessionId||!date)return say('اختر المجموعة والجلسة المجدولة أولاً.','error');
+ const run=courseRuns.find(r=>r.id===runId);if(!run||session.course_run_id!==runId)return say('الجلسة لا تتبع المجموعة المحددة.','error');
+ $('attendanceSessionDate').value=date;
  if(!await allowed('trainees.view',run.branch_id||null))return say('ليس لديك صلاحية عرض متدربي هذا الفرع.','error');
  const btn=$('loadAttendanceRosterBtn');btn.disabled=true;btn.textContent='جارٍ تحميل الكشف...';
  try{
@@ -375,42 +385,34 @@ async function loadAttendanceRoster(){
   if(error)throw error;
   const roster=(data||[]).filter(e=>(e.institution_trainees?.branch_id||null)===(run.branch_id||null));
   const ids=roster.map(e=>e.id);let existing=[];
-  if(ids.length){
-   const result=await sb.from('institution_attendance').select('id,enrollment_id,attendance_status,notes').eq('institution_id',org.id).eq('session_date',date).in('enrollment_id',ids);
-   if(result.error)throw result.error;existing=result.data||[];
-  }
+  if(ids.length){const result=await sb.from('institution_attendance').select('id,enrollment_id,session_id,attendance_status,notes').eq('institution_id',org.id).eq('session_date',date).in('enrollment_id',ids);if(result.error)throw result.error;existing=result.data||[];}
   const existingMap=new Map(existing.map(a=>[a.enrollment_id,a]));
   attendanceRosterRows=roster.map(e=>({...e,attendance:existingMap.get(e.id)||null,selectedStatus:existingMap.get(e.id)?.attendance_status||'',notes:existingMap.get(e.id)?.notes||''}));
-  $('attendanceRosterRows').innerHTML=attendanceRosterRows.map(e=>{
-   const t=e.institution_trainees||{};
-   return '<tr data-attendance-enrollment="'+esc(e.id)+'"><td>'+esc(t.full_name||'—')+'</td><td>'+esc(branchById.get(run.branch_id)?.name||'عام')+'</td><td>'+esc(e.attendance?attendanceLabels[e.attendance.attendance_status]||e.attendance.attendance_status:'لم يسجل')+'</td><td><select data-attendance-status="'+esc(e.id)+'"><option value="">لم يحدد</option><option value="present" '+(e.selectedStatus==='present'?'selected':'')+'>حاضر</option><option value="absent" '+(e.selectedStatus==='absent'?'selected':'')+'>غائب</option><option value="late" '+(e.selectedStatus==='late'?'selected':'')+'>متأخر</option><option value="excused" '+(e.selectedStatus==='excused'?'selected':'')+'>معذور</option></select></td><td><input data-attendance-notes="'+esc(e.id)+'" value="'+esc(e.notes)+'" placeholder="ملاحظة اختيارية"></td></tr>';
-  }).join('')||'<tr><td colspan="5" class="empty">لا يوجد متدربون مسجلون بهذه المجموعة.</td></tr>';
+  $('attendanceRosterRows').innerHTML=attendanceRosterRows.map(e=>{const t=e.institution_trainees||{};return '<tr data-attendance-enrollment="'+esc(e.id)+'"><td>'+esc(t.full_name||'—')+'</td><td>'+esc(branchById.get(run.branch_id)?.name||'عام')+'</td><td>'+esc(e.attendance?attendanceLabels[e.attendance.attendance_status]||e.attendance.attendance_status:'لم يسجل')+'</td><td><select data-attendance-status="'+esc(e.id)+'"><option value="">لم يحدد</option><option value="present" '+(e.selectedStatus==='present'?'selected':'')+'>حاضر</option><option value="absent" '+(e.selectedStatus==='absent'?'selected':'')+'>غائب</option><option value="late" '+(e.selectedStatus==='late'?'selected':'')+'>متأخر</option><option value="excused" '+(e.selectedStatus==='excused'?'selected':'')+'>معذور</option></select></td><td><input data-attendance-notes="'+esc(e.id)+'" value="'+esc(e.notes)+'" placeholder="ملاحظة اختيارية"></td></tr>';}).join('')||'<tr><td colspan="5" class="empty">لا يوجد متدربون مسجلون بهذه المجموعة.</td></tr>';
   $('saveAttendanceRosterBtn').disabled=!attendanceRosterRows.length;
-  $('attendanceRosterNote').textContent='عدد المتدربين: '+attendanceRosterRows.length+' — السجلات الموجودة ستُحدّث لنفس تاريخ الجلسة دون تكرار.';
+  $('attendanceRosterNote').textContent='جلسة رقم '+session.session_number+' بتاريخ '+date+' — عدد المتدربين: '+attendanceRosterRows.length+'. السجلات الموجودة ستُحدّث دون تكرار.';
  }catch(error){emptyRow('attendanceRosterRows',5,'تعذر تحميل الكشف: '+(error.message||'خطأ غير معروف'));say('تعذر تحميل كشف الحضور: '+error.message,'error');}
  finally{btn.disabled=false;btn.textContent='عرض كشف الحضور';}
 }
 async function saveAttendanceRoster(){
- const runId=$('attendanceRunFilter').value,date=$('attendanceSessionDate').value;
- const run=courseRuns.find(r=>r.id===runId);if(!run||!date)return say('اختر المجموعة والتاريخ أولاً.','error');
+ const runId=$('attendanceRunFilter').value,sessionId=$('attendanceSessionFilter').value,session=institutionSessions.find(s=>s.id===sessionId),date=session?.session_date,run=courseRuns.find(r=>r.id===runId);
+ if(!run||!session||session.course_run_id!==runId||!date)return say('اختر المجموعة والجلسة المجدولة أولاً.','error');
  const changes=attendanceRosterRows.map(e=>({enrollment:e,status:$('attendanceRosterRows').querySelector('[data-attendance-status="'+e.id+'"]')?.value||'',notes:$('attendanceRosterRows').querySelector('[data-attendance-notes="'+e.id+'"]')?.value.trim()||''})).filter(x=>x.status);
  if(!changes.length)return say('حدد حالة حضور لمتدرب واحد على الأقل.','error');
  if(!await allowed('trainees.manage',run.branch_id||null))return say('ليس لديك صلاحية تسجيل الحضور لهذا الفرع.','error');
  const btn=$('saveAttendanceRosterBtn');btn.disabled=true;btn.textContent='جارٍ الحفظ...';
  try{
-  const payload=changes.map(x=>({institution_id:org.id,enrollment_id:x.enrollment.id,session_date:date,attendance_status:x.status,notes:x.notes||null,recorded_by:user.id}));
-  const {error}=await sb.from('institution_attendance').upsert(payload,{onConflict:'enrollment_id,session_date'});
-  if(error)throw error;
-  say('تم حفظ '+changes.length+' سجل حضور/تحديث بنجاح.','success');
-  await loadAttendanceRoster();
-  if($('reportFrom').value&&$('reportTo').value)await loadInstitutionReport();
+  const payload=changes.map(x=>({institution_id:org.id,enrollment_id:x.enrollment.id,session_id:sessionId,session_date:date,attendance_status:x.status,notes:x.notes||null,recorded_by:user.id}));
+  const {error}=await sb.from('institution_attendance').upsert(payload,{onConflict:'enrollment_id,session_date'});if(error)throw error;
+  say('تم حفظ '+changes.length+' سجل حضور للجلسة رقم '+session.session_number+'.','success');
+  await loadAttendanceRoster();if($('reportFrom').value&&$('reportTo').value)await loadInstitutionReport();
  }catch(error){say('تعذر حفظ الحضور: '+(error.message||'خطأ غير معروف'),'error');}
  finally{btn.disabled=false;btn.textContent='حفظ حضور المجموعة';}
 }
 $('loadAttendanceRosterBtn').addEventListener('click',loadAttendanceRoster);
 $('saveAttendanceRosterBtn').addEventListener('click',saveAttendanceRoster);
-$('attendanceRunFilter').addEventListener('change',()=>{$('saveAttendanceRosterBtn').disabled=true;emptyRow('attendanceRosterRows',5,'اعرض الكشف بعد اختيار المجموعة.');});
-$('attendanceSessionDate').addEventListener('change',()=>{$('saveAttendanceRosterBtn').disabled=true;emptyRow('attendanceRosterRows',5,'اعرض الكشف بعد اختيار التاريخ.');});
+$('attendanceRunFilter').addEventListener('change',()=>{syncAttendanceSessionOptions();$('saveAttendanceRosterBtn').disabled=true;emptyRow('attendanceRosterRows',5,'اختر الجلسة ثم اعرض الكشف.');});
+$('attendanceSessionFilter').addEventListener('change',()=>{const s=institutionSessions.find(x=>x.id===$('attendanceSessionFilter').value);$('attendanceSessionDate').value=s?.session_date||'';$('saveAttendanceRosterBtn').disabled=true;emptyRow('attendanceRosterRows',5,'اعرض كشف الجلسة المحددة.');});
 
 let institutionReportRows=[];
 let enrollmentActionData=new Map();
@@ -844,12 +846,16 @@ function refreshEnrollmentTrainees(){
  $('enrollTrainee').innerHTML='<option value="">اختر متدربًا من نفس الفرع</option>'+matching.map(t=>'<option value="'+t.id+'">'+esc(t.full_name)+'</option>').join('');
 }
 $('enrollTraineeBtn').addEventListener('click',async()=>{
- const course_run_id=$('enrollRun').value,trainee_id=$('enrollTrainee').value;
- if(!course_run_id||!trainee_id)return say('اختر المجموعة والمتدرب.','error');
- const selectedRun=courseRuns.find(r=>r.id===course_run_id);
- if(!selectedRun||!['open','in_progress'].includes(selectedRun.status))return say('التسجيل متاح فقط للمجموعات المفتوحة أو الجارية.','error');if(!await allowed('trainees.manage',selectedRun.branch_id))return say('ليس لديك صلاحية تسجيل المتدربين في هذا الفرع.','error');
- const {error}=await sb.from('institution_enrollments').insert({institution_id:org.id,course_run_id,trainee_id,status:$('enrollStatus').value});
- if(error){const message=String(error.message||'');if(message.includes('COURSE_RUN_CAPACITY_REACHED'))return say('اكتملت سعة المجموعة التدريبية. لا يمكن تسجيل متدربين إضافيين.','error');if(message.includes('COURSE_RUN_NOT_OPEN'))return say('المجموعة لم تُفتح للتسجيل بعد أو تم إغلاقها.','error');if(message.includes('COURSE_RUN_CLOSED'))return say('المجموعة مكتملة أو ملغاة ولا تقبل تسجيلات جديدة.','error');if(error.code==='23505')return say('المتدرب مسجل بالفعل في هذه المجموعة.','error');return say(message,'error');}say('تم تسجيل المتدرب في المجموعة.','success');await loadEnrollments();
+ const course_id=$('enrollCourse').value,trainee_id=$('enrollTrainee').value;
+ if(!course_id||!trainee_id)return say('اختر الدورة والمتدرب.','error');
+ const course=courses.find(c=>c.id===course_id),selectedRun=$('enrollInGroup').checked?courseRuns.find(r=>r.id===$('enrollRun').value):null;
+ if($('enrollInGroup').checked&&(!selectedRun||selectedRun.course_id!==course_id))return say('اختر مجموعة تابعة للدورة المحددة.','error');
+ if(selectedRun&&!['open','in_progress'].includes(selectedRun.status))return say('التسجيل متاح فقط للمجموعات المفتوحة أو الجارية.','error');
+ const trainee=institutionTraineeRows.find(t=>t.id===trainee_id),branchId=selectedRun?.branch_id||trainee?.branch_id||course?.branch_id||null;
+ if(!await allowed('trainees.manage',branchId))return say('ليس لديك صلاحية تسجيل المتدرب في هذا النطاق.','error');
+ const {error}=await sb.from('institution_enrollments').insert({institution_id:org.id,course_id,course_run_id:selectedRun?.id||null,trainee_id,status:$('enrollStatus').value});
+ if(error){const message=String(error.message||'');if(message.includes('COURSE_RUN_CAPACITY_REACHED'))return say('اكتملت سعة المجموعة التدريبية. لا يمكن تسجيل متدربين إضافيين.','error');if(message.includes('COURSE_RUN_NOT_OPEN'))return say('المجموعة لم تُفتح للتسجيل بعد أو تم إغلاقها.','error');if(error.code==='23505')return say('المتدرب مسجل بالفعل في هذه الدورة أو المجموعة.','error');return say(message,'error');}
+ say(selectedRun?'تم تسجيل المتدرب في الدورة والمجموعة.':'تم تسجيل المتدرب في الدورة بشكل عام دون مجموعة.','success');await loadEnrollments();
 });
 async function loadEnrollments(){
  const {data,error}=await sb.from('institution_enrollments').select('id,status,enrolled_at,completed_at,trainee_id,course_id,course_run_id,institution_trainees!inner(id,full_name,full_name_en,phone,email,national_id,governorate,branch_id),institution_courses(name,specialization,duration,branch_id),institution_course_runs(id,run_name,branch_id,course_id,status)').eq('institution_id',org.id).order('enrolled_at',{ascending:false}).limit(500);
@@ -991,10 +997,12 @@ async function toggleInstitutionTrainer(id){
  say(trainer.is_active?'تم إيقاف المدرب.':'تم تفعيل المدرب.','success');await loadInstitutionTrainers();
 }
 async function loadInstitutionSessions(){
- const {data,error}=await sb.from('institution_course_sessions').select('id,course_run_id,trainer_id,title,session_date,starts_at,ends_at,location,status,institution_course_runs!inner(run_name,branch_id,institution_courses(name)),institution_trainers(full_name)').eq('institution_id',org.id).order('session_date',{ascending:true}).limit(500);
- if(error){emptyRow('sessionsRows',8,error.message);return;}
+ const {data,error}=await sb.from('institution_course_sessions').select('id,session_number,course_run_id,trainer_id,title,session_date,starts_at,ends_at,location,status,institution_course_runs!inner(run_name,branch_id,institution_courses(name)),institution_trainers(full_name)').eq('institution_id',org.id).order('session_date',{ascending:true}).limit(500);
+ if(error){emptyRow('sessionsRows',9,error.message);return;}
+ institutionSessions=data||[];
  const labels={planned:'مجدولة',completed:'منفذة',cancelled:'ملغاة'};
- $('sessionsRows').innerHTML=(data||[]).map(s=>'<tr><td>'+esc(s.session_date)+'</td><td dir="ltr">'+esc((s.starts_at||'—').slice(0,5)+' – '+(s.ends_at||'—').slice(0,5))+'</td><td>'+esc(s.title||'جلسة تدريبية')+'</td><td>'+esc((s.institution_course_runs?.institution_courses?.name||'دورة')+' — '+(s.institution_course_runs?.run_name||'مجموعة'))+'</td><td>'+esc(s.institution_trainers?.full_name||'—')+'</td><td>'+esc(s.location||'—')+'</td><td>'+esc(labels[s.status]||s.status)+'</td><td><select data-session-status="'+s.id+'"><option value="planned" '+(s.status==='planned'?'selected':'')+'>مجدولة</option><option value="completed" '+(s.status==='completed'?'selected':'')+'>منفذة</option><option value="cancelled" '+(s.status==='cancelled'?'selected':'')+'>ملغاة</option></select><button class="btn light" data-session-save="'+s.id+'">حفظ</button></td></tr>').join('')||'<tr><td colspan="8" class="empty">لا توجد جلسات في الجدول بعد</td></tr>';
+ $('sessionsRows').innerHTML=institutionSessions.map(s=>'<tr><td><strong>'+esc(s.session_number)+'</strong></td><td>'+esc(s.session_date)+'</td><td dir="ltr">'+esc((s.starts_at||'—').slice(0,5)+' – '+(s.ends_at||'—').slice(0,5))+'</td><td>'+esc(s.title||'جلسة تدريبية')+'</td><td>'+esc((s.institution_course_runs?.institution_courses?.name||'دورة')+' — '+(s.institution_course_runs?.run_name||'مجموعة'))+'</td><td>'+esc(s.institution_trainers?.full_name||'—')+'</td><td>'+esc(s.location||'—')+'</td><td>'+esc(labels[s.status]||s.status)+'</td><td><select data-session-status="'+s.id+'"><option value="planned" '+(s.status==='planned'?'selected':'')+'>مجدولة</option><option value="completed" '+(s.status==='completed'?'selected':'')+'>منفذة</option><option value="cancelled" '+(s.status==='cancelled'?'selected':'')+'>ملغاة</option></select><button class="btn light" data-session-save="'+s.id+'">حفظ</button></td></tr>').join('')||'<tr><td colspan="9" class="empty">لا توجد جلسات في الجدول بعد</td></tr>';
+ setupAttendanceManager();
  $('sessionsRows').querySelectorAll('[data-session-save]').forEach(btn=>btn.addEventListener('click',()=>updateInstitutionSessionStatus(btn.dataset.sessionSave)));
 }
 $('saveSessionBtn').addEventListener('click',async()=>{
