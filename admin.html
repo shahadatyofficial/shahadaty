@@ -1614,12 +1614,22 @@ async function loadEmploymentContactRequests(){
 }
 async function saveEmploymentContactRequest(id,oldStatus){
  const status=document.getElementById('employmentStatus_'+id)?.value,note=document.getElementById('employmentNote_'+id)?.value.trim()||null;
- const{data:{user}}=await sb.auth.getUser();
- const{error}=await sb.from('employment_contact_requests').update({status,admin_notes:note,updated_at:new Date().toISOString(),last_action_at:new Date().toISOString()}).eq('id',id);
- if(error){toast('تعذر حفظ التحديث: '+error.message,'err');return;}
- const{error:eventError}=await sb.from('employment_contact_request_events').insert({request_id:id,actor_id:user?.id||null,event_type:'admin_update',old_status:oldStatus,new_status:status,note});
- if(eventError)toast('تم تحديث الطلب لكن تعذر تسجيل حدث المتابعة: '+eventError.message,'err');else toast('تم حفظ تحديث الطلب وسجل المتابعة','ok');
- loadEmploymentContactRequests();
+ const allowed=employmentRequestStatuses.map(([value])=>value);
+ if(!allowed.includes(status)){toast('حالة الطلب غير صالحة','err');return;}
+ const{data,error}=await sb.rpc('admin_update_employment_contact_request',{
+  p_request_id:id,
+  p_expected_status:oldStatus,
+  p_new_status:status,
+  p_admin_notes:note
+ });
+ if(error){
+  const message=error.message||'تعذر حفظ التحديث';
+  toast(message.includes('STATUS_CONFLICT')?'تغيرت حالة الطلب بواسطة مستخدم آخر. حدّث القائمة وحاول مرة أخرى.':'تعذر حفظ التحديث وسجل المتابعة: '+message,'err');
+  return;
+ }
+ if(!data){toast('لم يتم تأكيد تحديث الطلب. حدّث القائمة للتحقق.','err');return;}
+ toast('تم تحديث الطلب وتسجيل الحدث في عملية واحدة','ok');
+ await loadEmploymentContactRequests();
 }
 async function loadEmploymentRequestEvents(id){
  const box=document.getElementById('employmentEvents_'+id);if(!box)return;box.textContent='جاري تحميل سجل المتابعة...';
