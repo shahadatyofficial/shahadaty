@@ -30,7 +30,10 @@ checks = {
         "graduate-gold-private", "graduate_withdraw_job_application",
         "graduate_my_certificates", "get_public_professional_profile", "refreshPublicProfileShare",
     ],
-    "professional-profile.html": [\n        "get_public_professional_profile", "publication_consent", "verification_status",\n    ],\n    "company.html": [
+    "professional-profile.html": [
+        "get_public_professional_profile", "publication_consent", "verification_status",
+    ],
+    "company.html": [
         "search_alumni_for_company", "alumni_access_requests",
         "company_get_approved_alumni_contact", "alumni_documents",
         "company_list_job_applications",
