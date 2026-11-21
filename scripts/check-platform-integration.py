@@ -4,7 +4,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 checks = {
     "admin.html": [
-        "runAdminAiInsights", "admin_insights",
+        "runAdminAiInsights", "admin_insights", "platform_notifications", "send-platform-notification-emails",
         "admin_list_institutions", "admin_list_subscriptions",
         "admin_confirm_subscription_payment", "loadSupportInbox",
         "loadGraduateConsentAudit", "uploadAlumniDocument",
@@ -18,7 +18,7 @@ checks = {
         "complete_institution_staff_password_change", "workspaceSb.auth.signInWithPassword",
     ],
     "institution-workspace.html": [
-        "runPublicListing", "institution_list_training_marketplace_applications",
+        "runPublicListing", "platform_notifications", "loadPlatformNotifications", "platform_notification_preferences", "institution_list_training_marketplace_applications",
         "institution_review_training_marketplace_application",
         "institution_branches", "institution_users", "institution-staff-create-account",
         "institution_staff_profiles", "institution_user_permission_overrides",
@@ -32,7 +32,7 @@ checks = {
         "graduate_publication_consents", "graduate-publication-consent-sync",
         "graduate-gold-private", "graduate_withdraw_job_application",
         "graduate_my_certificates", "get_public_professional_profile",
-        "refreshPublicProfileShare", "public_profile_consent",
+        "refreshPublicProfileShare", "public_profile_consent", "platform_notifications", "loadPlatformNotifications",
         "graduate_list_my_training_applications",
     ],
     "training-marketplace.html": [
@@ -40,6 +40,9 @@ checks = {
     ],
     "professional-profile.html": [
         "get_public_professional_profile", "qualifications", "skills",
+    ],
+    "supabase/functions/send-platform-notification-emails/index.ts": [
+        "EMAIL_PROVIDER_NOT_CONFIGURED", "platform_notifications",
     ],
     "supabase/functions/shahadaty-ai-assistant/index.ts": [
         "get_admin_ai_insights_context", "admin_insights",
@@ -65,6 +68,7 @@ migration_paths = [
     "supabase/migrations/20261121100000_public_professional_profile_share.sql",
     "supabase/migrations/20261121110000_training_marketplace.sql",
     "supabase/migrations/20261121120000_admin_ai_insights.sql",
+    "supabase/migrations/20261121130000_platform_notifications.sql",
 ]
 
 failed = False
