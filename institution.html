@@ -324,6 +324,19 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 .training-stat-card span{display:block;color:var(--muted);font-size:11px;margin-top:4px}
 @media(max-width:900px){.training-stats-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.training-stats-row{grid-template-columns:1fr;gap:10px}.training-stat-card{padding:13px 15px}}
+
+/* Per-workspace credential confirmation */
+.workspace-reauth-overlay{position:fixed;inset:0;z-index:10050;background:rgba(4,20,38,.72);display:none;align-items:center;justify-content:center;padding:18px}
+.workspace-reauth-overlay.open{display:flex}
+.workspace-reauth-box{width:100%;max-width:430px;background:#fff;border-radius:20px;padding:28px;box-shadow:0 24px 80px #0005}
+.workspace-reauth-box h2{font-size:20px;color:var(--navy);margin:0 0 8px}
+.workspace-reauth-box p{font-size:13px;color:var(--muted);line-height:1.9;margin-bottom:18px}
+.workspace-reauth-actions{display:flex;gap:10px;margin-top:16px}
+.workspace-reauth-actions button{flex:1;padding:11px;border-radius:10px;font-family:'Cairo',sans-serif;font-weight:800;cursor:pointer}
+.workspace-reauth-cancel{border:1px solid var(--border);background:#fff;color:var(--muted)}
+.workspace-reauth-submit{border:0;background:var(--blue);color:#fff}
+.workspace-reauth-submit:disabled{opacity:.6;cursor:wait}
+@media(max-width:480px){.workspace-reauth-box{padding:22px 18px}}
 </style>
 </head>
 <body>
@@ -909,6 +922,21 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     </div>
   </div>
 </div>
+
+
+<section class="workspace-reauth-overlay" id="workspaceReauthOverlay" role="dialog" aria-modal="true" aria-labelledby="workspaceReauthTitle">
+ <div class="workspace-reauth-box">
+  <div style="font-size:30px;margin-bottom:8px">🔐</div>
+  <h2 id="workspaceReauthTitle">تأكيد الهوية قبل الدخول</h2>
+  <p id="workspaceReauthDescription">أعد إدخال اسم المستخدم وكلمة المرور للتأكد من هويتك قبل فتح مساحة العمل. ستظل جلستك الحالية محفوظة.</p>
+  <form id="workspaceReauthForm">
+   <div class="form-group"><label class="form-label" for="workspaceReauthIdentifier">البريد الإلكتروني للمالك أو اسم المستخدم للموظف</label><input class="form-inp" id="workspaceReauthIdentifier" autocomplete="username" required></div>
+   <div class="form-group"><label class="form-label" for="workspaceReauthPassword">كلمة المرور</label><input class="form-inp" id="workspaceReauthPassword" type="password" autocomplete="current-password" required></div>
+   <div class="login-err" id="workspaceReauthError" role="alert"></div>
+   <div class="workspace-reauth-actions"><button type="button" class="workspace-reauth-cancel" id="workspaceReauthCancel">إلغاء</button><button type="submit" class="workspace-reauth-submit" id="workspaceReauthSubmit">تأكيد والدخول</button></div>
+  </form>
+ </div>
+</section>
 
 <div id="toast" class="toast" style="display:none"></div>
 
@@ -1849,15 +1877,74 @@ async function applyInstitutionCertificatePermissions(){
  }
  const issueButton=document.querySelector('.btn-issue');if(issueButton)issueButton.hidden=!(await hasInstitutionPermission('certificates.issue'));
 }
-document.getElementById('openCertificateDashboard').addEventListener('click',async()=>{
- document.getElementById('institutionWorkspaceChooser').classList.remove('open');
- await applyInstitutionCertificatePermissions();
- showPage('dashboard',document.querySelector('.sb-item[onclick*="dashboard"]'));
- window.scrollTo(0,0);
-});
-document.getElementById('openInstitutionProgram').addEventListener('click',()=>{
- location.href='institution-workspace.html';
-});
+let pendingInstitutionWorkspaceAction=null;
+function openWorkspaceReauth(action){
+ pendingInstitutionWorkspaceAction=action;
+ const overlay=document.getElementById('workspaceReauthOverlay');
+ const identifier=document.getElementById('workspaceReauthIdentifier');
+ const password=document.getElementById('workspaceReauthPassword');
+ const error=document.getElementById('workspaceReauthError');
+ const title=document.getElementById('workspaceReauthTitle');
+ const {data:{user}}=sb.auth.getUser ? {data:{user:null}} : {data:{user:null}};
+ sb.auth.getUser().then(({data})=>{
+  const current=data?.user;
+  identifier.value=current?.app_metadata?.account_type==='institution_staff'
+   ?String(current.email||'').split('@')[0]
+   :(current?.email||'');
+ });
+ title.textContent=action==='certificates'?'تأكيد الهوية لدخول لوحة الشهادات':'تأكيد الهوية لدخول برنامج إدارة المؤسسة';
+ password.value='';error.style.display='none';error.textContent='';
+ overlay.classList.add('open');
+ setTimeout(()=>identifier.focus(),50);
+}
+function closeWorkspaceReauth(){
+ document.getElementById('workspaceReauthOverlay').classList.remove('open');
+ document.getElementById('workspaceReauthForm').reset();
+ pendingInstitutionWorkspaceAction=null;
+}
+async function confirmWorkspaceReauth(event){
+ event.preventDefault();
+ const identifier=document.getElementById('workspaceReauthIdentifier').value.trim();
+ const password=document.getElementById('workspaceReauthPassword').value;
+ const error=document.getElementById('workspaceReauthError');
+ const submit=document.getElementById('workspaceReauthSubmit');
+ error.style.display='none';
+ if(!identifier||!password){error.textContent='أدخل اسم المستخدم وكلمة المرور.';error.style.display='block';return;}
+ submit.disabled=true;submit.textContent='جارٍ التحقق...';
+ let temporaryClient=null;
+ try{
+  const {data:{user:activeUser},error:activeError}=await sb.auth.getUser();
+  if(activeError||!activeUser)throw new Error('انتهت جلستك الحالية. سجل الدخول مرة أخرى.');
+  let email;
+  if(identifier.includes('@'))email=identifier.toLowerCase();
+  else if(/^[a-z][a-z0-9._-]{2,29}$/i.test(identifier))email=identifier.toLowerCase()+'@staff.shahadaty.invalid';
+  else throw new Error('أدخل البريد الإلكتروني للمالك أو اسم المستخدم الصحيح للموظف.');
+  temporaryClient=supabase.createClient(SU,SK,{auth:{autoRefreshToken:false,persistSession:false,detectSessionInUrl:false,storageKey:'shahadaty-card-reauth-temp'}});
+  const {data,error:authError}=await temporaryClient.auth.signInWithPassword({email,password});
+  if(authError||!data?.user)throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة.');
+  if(data.user.id!==activeUser.id)throw new Error('بيانات الدخول لا تخص الحساب المفتوح حاليًا. استخدم بيانات حسابك نفسه.');
+  const action=pendingInstitutionWorkspaceAction;
+  closeWorkspaceReauth();
+  if(action==='certificates'){
+   document.getElementById('institutionWorkspaceChooser').classList.remove('open');
+   await applyInstitutionCertificatePermissions();
+   showPage('dashboard',document.querySelector('.sb-item[onclick*="dashboard"]'));
+   window.scrollTo(0,0);
+  }else if(action==='operations'){
+   location.href='institution-workspace.html';
+  }
+ }catch(err){
+  error.textContent=err?.message||'تعذر تأكيد الهوية. حاول مرة أخرى.';
+  error.style.display='block';
+ }finally{
+  if(temporaryClient){try{await temporaryClient.auth.signOut({scope:'local'});}catch(_){}}
+  submit.disabled=false;submit.textContent='تأكيد والدخول';
+ }
+}
+document.getElementById('workspaceReauthForm').addEventListener('submit',confirmWorkspaceReauth);
+document.getElementById('workspaceReauthCancel').addEventListener('click',closeWorkspaceReauth);
+document.getElementById('openCertificateDashboard').addEventListener('click',()=>openWorkspaceReauth('certificates'));
+document.getElementById('openInstitutionProgram').addEventListener('click',()=>openWorkspaceReauth('operations'));
 
 // ── Init ─────────────────────────────────────────────────────────
 window.addEventListener('load',async()=>{
