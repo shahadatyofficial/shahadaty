@@ -748,6 +748,29 @@ $('addTraineeBtn').addEventListener('click',async()=>{
  const {error}=await sb.from('institution_trainees').insert(row);if(error)return say(error.message,'error');
  ['traineeName','traineePhone','traineeEmail','traineeNational','traineeGov'].forEach(id=>$(id).value='');say('تم تسجيل المتدرب.','success');await loadTrainees();
 });
+function updateBulkSelectionCount(){
+ const count=$('traineesRows').querySelectorAll('[data-select-trainee]:checked').length;
+ $('bulkEnrollSelectionCount').textContent=count?('تم تحديد '+count+' متدرب'):'لم يتم تحديد متدربين';
+}
+$('bulkEnrollSelectedBtn').addEventListener('click',async()=>{
+ const ids=[...$('traineesRows').querySelectorAll('[data-select-trainee]:checked')].map(x=>x.dataset.selectTrainee);
+ const courseId=$('bulkEnrollCourse').value,course=courses.find(c=>c.id===courseId),useGroup=$('bulkEnrollInGroup').checked,run=useGroup?courseRuns.find(r=>r.id===$('bulkEnrollGroup').value):null;
+ if(!ids.length)return say('حدد متدربًا واحدًا على الأقل من السجل.','error');
+ if(!course)return say('اختر الدورة أولاً.','error');
+ if(useGroup&&(!run||run.course_id!==courseId||!['open','in_progress'].includes(run.status)))return say('اختر مجموعة مفتوحة تابعة للدورة المحددة.','error');
+ let done=0,skipped=0,failed=[];
+ for(const id of ids){
+  const trainee=institutionTraineeRows.find(t=>t.id===id);if(!trainee){skipped++;continue;}
+  if(run&&(run.branch_id||null)!==(trainee.branch_id||null)){failed.push(trainee.full_name+': الفرع لا يطابق المجموعة');continue;}
+  const branchId=run?.branch_id||trainee.branch_id||course.branch_id||null;
+  if(!await allowed('trainees.manage',branchId)){failed.push(trainee.full_name+': لا توجد صلاحية');continue;}
+  const {error}=await sb.from('institution_enrollments').insert({institution_id:org.id,course_id:courseId,course_run_id:run?.id||null,trainee_id:id,status:'enrolled'});
+  if(error){if(error.code==='23505'){skipped++;continue;}failed.push(trainee.full_name+': '+error.message);continue;}
+  done++;
+ }
+ say('تم تسجيل '+done+' متدرب. المكرر/المتجاوز: '+skipped+'. الأخطاء: '+failed.length+(failed.length?' — '+failed.slice(0,3).join(' | '):''),failed.length?'error':'success');
+ await loadEnrollments();
+});
 let institutionTraineeRows=[],editingTraineeId=null;
 const traineeStatusLabels={active:'نشط',inactive:'غير نشط',archived:'مؤرشف'};
 async function loadTrainees(){
@@ -766,7 +789,11 @@ function renderInstitutionTrainees(){
   const hay=[t.full_name,t.full_name_en,t.phone,t.email,t.national_id,t.external_reference].join(' ').toLocaleLowerCase('ar');
   return (!q||hay.includes(q))&&(!branch||t.branch_id===branch)&&(!status||t.status===status);
  });
- $('traineesRows').innerHTML=rows.map(t=>'<tr><td>'+esc(t.full_name)+'</td><td dir="ltr">'+esc(t.phone||'—')+'</td><td>'+esc(t.email||'—')+'</td><td>'+esc(branchById.get(t.branch_id)?.name||'عام')+'</td><td>'+esc(traineeStatusLabels[t.status]||t.status)+'</td><td><button class="btn light" type="button" data-open-trainee-history="'+esc(t.id)+'">الملف الموحد</button> <button class="btn light" type="button" data-edit-trainee="'+esc(t.id)+'">تعديل</button></td></tr>').join('')||'<tr><td colspan="6" class="empty">لا توجد ملفات تطابق معايير البحث.</td></tr>';
+ $('traineesRows').innerHTML=rows.map(t=>'<tr><td><input type="checkbox" data-select-trainee="'+esc(t.id)+'" aria-label="تحديد '+esc(t.full_name)+'" style="width:auto"></td><td>'+esc(t.full_name)+'</td><td dir="ltr">'+esc(t.phone||'—')+'</td><td>'+esc(t.email||'—')+'</td><td>'+esc(branchById.get(t.branch_id)?.name||'عام')+'</td><td>'+esc(traineeStatusLabels[t.status]||t.status)+'</td><td><button class="btn light" type="button" data-open-trainee-history="'+esc(t.id)+'">الملف الموحد</button> <button class="btn light" type="button" data-edit-trainee="'+esc(t.id)+'">تعديل</button></td></tr>').join('')||'<tr><td colspan="7" class="empty">لا توجد ملفات تطابق معايير البحث.</td></tr>';
+ $('selectAllTrainees').checked=false;
+ $('selectAllTrainees').onchange=()=>{$('traineesRows').querySelectorAll('[data-select-trainee]').forEach(box=>box.checked=$('selectAllTrainees').checked);updateBulkSelectionCount();};
+ $('traineesRows').querySelectorAll('[data-select-trainee]').forEach(box=>box.addEventListener('change',updateBulkSelectionCount));
+ updateBulkSelectionCount();
  $('traineesRows').querySelectorAll('[data-edit-trainee]').forEach(btn=>btn.addEventListener('click',()=>openTraineeEditor(btn.dataset.editTrainee)));
  $('traineesRows').querySelectorAll('[data-open-trainee-history]').forEach(btn=>btn.addEventListener('click',()=>openTraineeHistoryProfile(btn.dataset.openTraineeHistory)));
 }
@@ -838,13 +865,33 @@ async function loadCoursesAndRuns(){
  refreshEnrollmentTrainees();
  await loadEnrollments();
 }
-// Keep enrollment choices aligned with the selected run's branch to satisfy DB scope checks.
-function refreshEnrollmentTrainees(){
- const run=courseRuns.find(r=>r.id===$('enrollRun').value);
- const branchId=run?.branch_id||null;
- const matching=enrollmentTrainees.filter(t=>(t.branch_id||null)===branchId);
- $('enrollTrainee').innerHTML='<option value="">اختر متدربًا من نفس الفرع</option>'+matching.map(t=>'<option value="'+t.id+'">'+esc(t.full_name)+'</option>').join('');
+function syncEnrollmentGroupOptions(){
+ const courseId=$('enrollCourse').value,select=$('enrollRun'),previous=select.value;
+ const options=courseRuns.filter(r=>r.course_id===courseId&&['open','in_progress'].includes(r.status));
+ select.innerHTML='<option value="">اختر المجموعة</option>'+options.map(r=>'<option value="'+esc(r.id)+'">'+esc((r.run_name||'مجموعة')+' — '+(branchById.get(r.branch_id)?.name||'عام'))+'</option>').join('');
+ if(options.some(r=>r.id===previous))select.value=previous;
+ select.disabled=!$('enrollInGroup').checked||!courseId;
+ refreshEnrollmentTrainees();
 }
+function syncBulkEnrollmentGroupOptions(){
+ const courseId=$('bulkEnrollCourse').value,select=$('bulkEnrollGroup'),previous=select.value;
+ const options=courseRuns.filter(r=>r.course_id===courseId&&['open','in_progress'].includes(r.status));
+ select.innerHTML='<option value="">اختر المجموعة</option>'+options.map(r=>'<option value="'+esc(r.id)+'">'+esc((r.run_name||'مجموعة')+' — '+(branchById.get(r.branch_id)?.name||'عام'))+'</option>').join('');
+ if(options.some(r=>r.id===previous))select.value=previous;
+ select.disabled=!$('bulkEnrollInGroup').checked||!courseId;
+}
+// The course selector is primary; a group is an optional, narrower placement.
+function refreshEnrollmentTrainees(){
+ const course=courses.find(c=>c.id===$('enrollCourse').value),run=$('enrollInGroup').checked?courseRuns.find(r=>r.id===$('enrollRun').value):null;
+ const branchId=run?.branch_id||course?.branch_id||null;
+ const matching=enrollmentTrainees.filter(t=>!branchId||(t.branch_id||null)===branchId);
+ $('enrollTrainee').innerHTML='<option value="">اختر متدربًا</option>'+matching.map(t=>'<option value="'+t.id+'">'+esc(t.full_name)+'</option>').join('');
+}
+$('enrollCourse').addEventListener('change',syncEnrollmentGroupOptions);
+$('enrollInGroup').addEventListener('change',syncEnrollmentGroupOptions);
+$('bulkEnrollCourse').addEventListener('change',syncBulkEnrollmentGroupOptions);
+$('bulkEnrollInGroup').addEventListener('change',syncBulkEnrollmentGroupOptions);
+$('enrollRun').addEventListener('change',refreshEnrollmentTrainees);
 $('enrollTraineeBtn').addEventListener('click',async()=>{
  const course_id=$('enrollCourse').value,trainee_id=$('enrollTrainee').value;
  if(!course_id||!trainee_id)return say('اختر الدورة والمتدرب.','error');
