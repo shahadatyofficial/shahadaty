@@ -73,7 +73,7 @@ CREATE POLICY training_marketplace_applications_select_scoped
     OR public.institution_has_permission(institution_id, 'courses.view', branch_id)
   );
 
-REVOKE ALL ON TABLE public.training_marketplace_applications FROM anon, authenticated;
+REVOKE ALL ON TABLE public.training_marketplace_applications FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.training_marketplace_applications TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.get_public_training_marketplace(
@@ -302,7 +302,7 @@ AS $function$
   JOIN public.institution_course_runs r ON r.id = a.course_run_id
   JOIN public.institution_courses c ON c.id = r.course_id
   LEFT JOIN public.institution_branches b ON b.id = a.branch_id
-  WHERE public.institution_has_permission(a.institution_id, 'courses.view', a.branch_id)
+  WHERE public.institution_has_permission(a.institution_id, 'courses.manage', a.branch_id)
   ORDER BY a.created_at DESC
   LIMIT GREATEST(1,LEAST(COALESCE(p_limit,100),200));
 $function$;
