@@ -1978,10 +1978,14 @@ async function confirmWorkspaceReauth(event){
    if(!permitted)throw new Error('لا توجد لديك صلاحية للدخول إلى هذا البرنامج. راجع مالك المؤسسة.');
   }
   if(isStaff&&candidate.app_metadata?.must_change_password===true){
+   // The chooser must be hidden as well; otherwise its fixed overlay covers the first-login password screen.
    document.getElementById('workspaceReauthOverlay').classList.remove('open');
+   document.getElementById('institutionWorkspaceChooser').classList.remove('open');
    document.getElementById('workspaceReauthForm').reset();
    document.getElementById('loginScreen').style.display='none';
-   const screen=document.getElementById('staffPasswordChangeScreen');screen.hidden=false;screen.style.display='grid';
+   const screen=document.getElementById('staffPasswordChangeScreen');
+   screen.hidden=false;screen.style.display='grid';
+   document.getElementById('staffNewPassword').focus();
    return;
   }
   closeWorkspaceReauth();
