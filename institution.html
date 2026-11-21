@@ -1732,7 +1732,7 @@ async function saveSettings(){
 document.getElementById('openCertificateDashboard').addEventListener('click',()=>{
  document.getElementById('institutionWorkspaceChooser').classList.remove('open');
  showPage('dashboard',document.querySelector('.sb-item[onclick*="dashboard"]'));
- window.scrollTo({top:0,behavior:'instant'});
+ window.scrollTo(0,0);
 });
 document.getElementById('openInstitutionProgram').addEventListener('click',()=>{
  location.href='institution-workspace.html';
