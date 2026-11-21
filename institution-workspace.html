@@ -574,7 +574,7 @@ async function loadOperationalReadiness(){
  finally{if(button){button.disabled=false;button.textContent='تحديث المؤشر';}}
 }
 $('refreshOperationalReadinessBtn').addEventListener('click',loadOperationalReadiness);
-function safePlatformNotificationUrl(value){const v=String(value||'');return /^(admin\\.html|institution\\.html|graduate-v2\\.html|company\\.html|training-marketplace\\.html)([?#].*)?$/.test(v)?v:'#';}
+function safePlatformNotificationUrl(value){const v=String(value||'');const allowed=['admin.html','institution.html','graduate-v2.html','company.html','training-marketplace.html'];return allowed.some(path=>v===path||v.startsWith(path+'?')||v.startsWith(path+'#'))?v:'#';}
 async function loadPlatformNotifications(){
  const el=$('platformNotificationsList');if(!el||!user)return;
  const {data,error}=await sb.from('platform_notifications').select('id,notification_type,title,body,action_url,read_at,created_at').eq('recipient_user_id',user.id).eq('in_app_visible',true).order('created_at',{ascending:false}).limit(25);
