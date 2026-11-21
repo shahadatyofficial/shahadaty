@@ -82,50 +82,24 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 <div class="card"><h2>الفروع المسجلة</h2><div class="table-wrap"><table><thead><tr><th>الفرع</th><th>الكود</th><th>الموقع</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="branchesRows"></tbody></table></div></div>
 </section>
 <section id="team" class="panel">
-<div class="notice">الصلاحيات تُطبّق من قاعدة البيانات، وليس من إخفاء الأزرار فقط. الموظف لا يرى إلا الفروع المخصصة له، بينما المالك ومدير المؤسسة يملكان صلاحيات الإدارة حسب الدور.</div>
-<div class="card"><h2>إنشاء حساب موظف جديد</h2><p class="muted">ينشئ المدير حسابًا واحدًا للموظف يعمل في لوحة الشهادات وبرنامج إدارة المؤسسة، دون إرسال دعوة بريد إلكتروني.</p>
+<div class="notice">أنشئ حساب الموظف مرة واحدة فقط. نفس اسم المستخدم وكلمة المرور يفتحان البرنامجين، والصلاحيات والفروع المخصصة له تتحكم فيما يستطيع رؤيته وتنفيذه.</div>
+<div class="card"><h2>إنشاء حساب موظف جديد</h2><p class="muted">لا نرسل دعوات بريدية. مدير المؤسسة يحدد بيانات الدخول ويُسلّمها للموظف مباشرة.</p>
 <div class="grid">
 <div class="field"><label>اسم الموظف بالكامل *</label><input id="staffFullName" maxlength="160" autocomplete="off"></div>
 <div class="field"><label>رقم الهاتف</label><input id="staffPhone" dir="ltr" autocomplete="off"></div>
 <div class="field"><label>البريد الإلكتروني (اختياري)</label><input id="staffContactEmail" type="email" dir="ltr" autocomplete="off"></div>
 <div class="field"><label>اسم المستخدم *</label><input id="staffUsername" dir="ltr" minlength="3" maxlength="30" autocomplete="off" placeholder="islam.staff"></div>
-<div class="field"><label>كلمة المرور المؤقتة *</label><input id="staffPassword" type="password" minlength="10" autocomplete="new-password"></div>
+<div class="field"><label>كلمة المرور *</label><input id="staffPassword" type="password" minlength="10" autocomplete="new-password"></div>
 <div class="field"><label>تاريخ بداية العمل</label><input id="staffStartDate" type="date"></div>
 <div class="field"><label>المسمى الوظيفي</label><input id="staffJobTitle" placeholder="مسؤول شؤون المتدربين"></div>
 <div class="field"><label>الدور الوظيفي</label><select id="staffRole"><option value="training_manager">مدير تدريب</option><option value="registrar">مسؤول المتدربين</option><option value="certificate_issuer">مسؤول إصدار الشهادات</option><option value="branch_manager">مدير فرع</option><option value="viewer">موظف مشاهدة</option></select></div>
-<div class="field"><label>الفروع المخصصة (يمكن اختيار أكثر من فرع) *</label><select id="staffBranches" multiple size="4"></select></div>
+<div class="field"><label>الفروع المخصصة *</label><select id="staffBranches" multiple size="4"></select></div>
 </div>
 <div style="margin-top:12px"><label style="display:flex;align-items:center;gap:8px"><input id="staffCustomPermissions" type="checkbox" style="width:auto"> تخصيص الصلاحيات يدويًا بدل الصلاحيات الافتراضية للدور</label>
 <div id="staffPermissionOptions" hidden style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-top:12px"></div></div>
 <div class="actions"><button class="btn" id="createStaffAccountBtn" type="button">إنشاء حساب الموظف</button></div>
-<p class="muted">اسم المستخدم وكلمة المرور نفسهما يُستخدمان في البرنامجين. سلّم كلمة المرور للموظف بطريقة آمنة؛ لن نرسلها بالبريد أو نخزنها كنص مكشوف.</p></div>
-<div class="card"><h2>موظفو المؤسسة وحساباتهم</h2><p class="muted">يمكن تعديل الدور، تخصيص الفروع، أو إيقاف الحساب وإعادة تفعيله.</p><div class="table-wrap"><table><thead><tr><th>بيانات الموظف</th><th>الدور</th><th>الحالة</th><th>الفروع</th><th>إدارة الحساب</th></tr></thead><tbody id="teamRows"></tbody></table></div></div><div class="card"><h2>أعضاء فريق المؤسسة</h2><p class="muted">يمكن تغيير الدور أو إيقاف العضوية مؤقتًا وإعادة تفعيلها. لا يمكن إيقاف حسابك الحالي أو سحب صلاحية المالك من هنا.</p><div class="table-wrap"><table><thead><tr><th>معرّف الحساب</th><th>الدور</th><th>الحالة</th><th>تخصيص الفروع</th><th>إدارة العضوية</th></tr></thead><tbody id="teamRows"></tbody></table></div></div>
-<div class="card"><h2>سجل الدعوات</h2><p class="muted">آخر الدعوات وحالتها وتاريخ انتهائها.</p><div class="table-wrap"><table><thead><tr><th>البريد</th><th>الدور</th><th>الحالة</th><th>تاريخ الدعوة</th><th>تنتهي في</th></tr></thead><tbody id="invitationRows"></tbody></table></div></div>
-<div class="card"><h2>قاموس الأدوار</h2><div class="table-wrap"><table><thead><tr><th>الدور</th><th>المهام الأساسية</th></tr></thead><tbody>
-<tr><td>مدير المؤسسة</td><td>إدارة التشغيل والفروع والفريق والدورات والشهادات</td></tr>
-<tr><td>مدير التدريب</td><td>إدارة الدورات والمجموعات والمتدربين والتقارير</td></tr>
-<tr><td>مسؤول شؤون المتدربين</td><td>ملفات المتدربين والتسجيلات</td></tr>
-<tr><td>مسؤول إصدار الشهادات</td><td>عرض المتدربين والدورات وإصدار الشهادات</td></tr>
-<tr><td>مدير فرع</td><td>إدارة تشغيل الفرع المخصص فقط</td></tr>
-<tr><td>مشاهد</td><td>عرض البيانات والتقارير دون تعديل</td></tr>
-</tbody></table></div></div>
-</section>
-<section id="trainees" class="panel">
-<div class="card"><h2>إضافة متدرب</h2><div class="grid">
-<div class="field"><label>اسم المتدرب *</label><input id="traineeName"></div>
-<div class="field"><label>رقم الهاتف</label><input id="traineePhone" dir="ltr"></div>
-<div class="field"><label>البريد الإلكتروني</label><input id="traineeEmail" type="email" dir="ltr"></div>
-<div class="field"><label>الرقم القومي</label><input id="traineeNational" dir="ltr" maxlength="14"></div>
-<div class="field"><label>الفرع</label><select id="traineeBranch"></select></div>
-<div class="field"><label>المحافظة</label><input id="traineeGov"></div></div><div class="actions"><button class="btn" id="addTraineeBtn">حفظ المتدرب</button></div></div>
-<div class="card"><h2>سجل المتدربين</h2>
-<div class="grid">
- <div class="field"><label for="traineeSearch">بحث بالاسم أو الهاتف أو البريد أو الرقم القومي</label><input id="traineeSearch" type="search" placeholder="ابحث في ملفات المتدربين"></div>
- <div class="field"><label for="traineeBranchFilter">الفرع</label><select id="traineeBranchFilter"><option value="">كل الفروع المسموح بها</option></select></div>
- <div class="field"><label for="traineeStatusFilter">حالة الملف</label><select id="traineeStatusFilter"><option value="">كل الحالات</option><option value="active">نشط</option><option value="inactive">غير نشط</option><option value="archived">مؤرشف</option></select></div>
-</div>
-<div class="table-wrap"><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>البريد</th><th>الفرع</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="traineesRows"></tbody></table></div>
-<p class="muted" id="traineeListNote">يتم عرض أول 1000 ملف متدرب ضمن نطاق صلاحيات حسابك.</p></div>
+<p class="muted">اسم المستخدم وكلمة المرور نفسهما يُستخدمان في البرنامجين. كلمة المرور لا تُرسل بالبريد ولا تُخزن كنص مكشوف.</p></div>
+<div class="card"><h2>موظفو المؤسسة وحساباتهم</h2><div class="table-wrap"><table><thead><tr><th>بيانات الموظف</th><th>الدور</th><th>الحالة</th><th>الفروع</th><th>إدارة الحساب</th></tr></thead><tbody id="teamRows"></tbody></table></div></div>
 </section>
 <section id="courses" class="panel">
 <div class="card"><h2>إضافة دورة إلى كتالوج المؤسسة</h2><div class="grid">
@@ -568,7 +542,7 @@ async function init(){
 async function allowed(permission,branchId=null){const {data,error}=await sb.rpc('institution_has_permission',{p_institution_id:org.id,p_permission:permission,p_branch_id:branchId});return !error&&data===true;}
 async function allowedAnyBranch(permission){if(await allowed(permission,null))return true;for(const b of branches){if(await allowed(permission,b.id))return true;}return false;}
 function validateTraineeFields({phone,email,national_id}){const digits=String(phone||'').replace(/[^0-9]/g,'');if(phone&&(digits.length<10||digits.length>15))return 'رقم الهاتف يجب أن يحتوي على 10 إلى 15 رقمًا.';if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))return 'صيغة البريد الإلكتروني غير صحيحة.';if(national_id&&!/^\d{14}$/.test(national_id))return 'الرقم القومي يجب أن يتكون من 14 رقمًا.';return '';}
-async function applyWorkspaceRolePermissions(){const tabs=[['branches','branches.view'],['team','team.view'],['trainees','trainees.view'],['courses','courses.view'],['certificates','certificates.view']];for(const [id,p] of tabs){const btn=document.querySelector('.tab[data-tab="'+id+'"]');if(btn)btn.hidden=!(await allowedAnyBranch(p));}const canReports=await allowedAnyBranch('reports.view'),canAttendance=await allowedAnyBranch('trainees.manage');const reportTab=document.querySelector('.tab[data-tab="reports"]');if(reportTab)reportTab.hidden=!canReports&&!canAttendance;if(!await allowedAnyBranch('branches.manage'))$('addBranchBtn').closest('.card').hidden=true;if(!await allowedAnyBranch('team.manage'))$('inviteMemberBtn').closest('.card').hidden=true;if(!await allowedAnyBranch('trainees.manage')){$('addTraineeBtn').closest('.card').hidden=true;$('enrollTraineeBtn').closest('.card').hidden=true;}if(!await allowedAnyBranch('courses.manage'))['saveCatalogCourseBtn','addRunBtn','saveTrainerBtn','saveSessionBtn'].forEach(id=>$(id).closest('.card').hidden=true);if(!canAttendance)$('loadAttendanceRosterBtn').closest('.card').hidden=true;if(!canReports)Array.from($('reports').children).slice(1).forEach(el=>el.hidden=true);if(!Array.from(document.querySelectorAll('.tab')).some(x=>x.classList.contains('active')&&!x.hidden)){const first=Array.from(document.querySelectorAll('.tab')).find(x=>!x.hidden);if(first)first.click();}}
+async function applyWorkspaceRolePermissions(){const tabs=[['branches','branches.view'],['team','team.view'],['trainees','trainees.view'],['courses','courses.view'],['certificates','certificates.view']];for(const [id,p] of tabs){const btn=document.querySelector('.tab[data-tab="'+id+'"]');if(btn)btn.hidden=!(await allowedAnyBranch(p));}const canReports=await allowedAnyBranch('reports.view'),canAttendance=await allowedAnyBranch('trainees.manage');const reportTab=document.querySelector('.tab[data-tab="reports"]');if(reportTab)reportTab.hidden=!canReports&&!canAttendance;if(!await allowedAnyBranch('branches.manage'))$('addBranchBtn').closest('.card').hidden=true;if(!await allowedAnyBranch('team.manage'))$('createStaffAccountBtn').closest('.card').hidden=true;if(!await allowedAnyBranch('trainees.manage')){$('addTraineeBtn').closest('.card').hidden=true;$('enrollTraineeBtn').closest('.card').hidden=true;}if(!await allowedAnyBranch('courses.manage'))['saveCatalogCourseBtn','addRunBtn','saveTrainerBtn','saveSessionBtn'].forEach(id=>$(id).closest('.card').hidden=true);if(!canAttendance)$('loadAttendanceRosterBtn').closest('.card').hidden=true;if(!canReports)Array.from($('reports').children).slice(1).forEach(el=>el.hidden=true);if(!Array.from(document.querySelectorAll('.tab')).some(x=>x.classList.contains('active')&&!x.hidden)){const first=Array.from(document.querySelectorAll('.tab')).find(x=>!x.hidden);if(first)first.click();}}
 async function loadBranches(){
  const {data,error}=await sb.from('institution_branches').select('id,branch_code,name,governorate,address,phone,is_main,is_active').eq('institution_id',org.id).order('is_main',{ascending:false}).order('name');
  if(error){say('تعذر تحميل الفروع: '+error.message,'error');return;}branches=data||[];branchById=new Map(branches.map(b=>[b.id,b]));
