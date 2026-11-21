@@ -31,3 +31,15 @@ Review the backup schedule, retention period, and the most recent successful bac
 - Read-only production introspection can confirm schema, RLS policies, bucket privacy, migration state, and row counts.
 - No synthetic accounts, certificates, job applications, support conversations, or other test rows are to be inserted into production.
 - End-to-end login and cross-account authorization tests require authorized real accounts and must be performed with explicit controlled test identities, not fabricated production records.
+
+## Andalus Center pilot — 2026-11-21
+
+- Code baseline before the pilot: commit `0e5def5a58ce315c5a9d63c97cceac1a45cfa621`, preserved on branch `baseline/2026-11-21-pre-andalus-pilot`.
+- Pilot development branch: `pilot/andalus-center-2026-11-21`.
+- The existing approved institution record for **مركز الاندلس للتدريب** is reused; do not create a duplicate institution.
+- The pilot readiness panel is read-only and counts the center's existing branches, team, trainees, courses, groups, trainers, sessions, enrollments, attendance, and certificates.
+- No production rows, migrations, Auth users, storage objects, or Edge Functions are created or changed by this pilot UI update.
+- Initial read-only snapshot: 1 active team membership, 0 branches, 1 trainee, 0 courses, 0 course runs, 0 trainers, 0 sessions, 0 enrollments, 0 attendance rows, and 1 certificate.
+- Code rollback: revert the pilot PR/merge commit and redeploy the prior `main` version. The preserved baseline branch identifies the exact pre-pilot source commit.
+- Database caution: code rollback does not erase operational records entered by the center during the pilot. Do not bulk-delete those records or restore the whole production database as a shortcut; any data cleanup requires a separate reviewed, center-scoped decision and a verified backup.
+- Before real staff enter new business records, confirm the latest successful Supabase database backup and arrange separate backup for private Storage objects. This pilot has not triggered a restore or claimed a new backup.

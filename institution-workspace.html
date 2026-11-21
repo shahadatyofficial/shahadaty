@@ -29,6 +29,30 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 <header><div><h1>إدارة الفروع والفريق</h1><p id="orgTitle">مساحة تشغيل المؤسسة متعددة الفروع</p></div><a href="institution.html">العودة إلى لوحة المؤسسة ←</a></header>
 <main>
 <div id="message" class="notice" style="display:none"></div>
+<section class="card" id="operationalReadinessCard" aria-labelledby="operationalReadinessTitle">
+ <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+  <div><h2 id="operationalReadinessTitle" style="margin:0">مؤشر جاهزية تشغيل المركز</h2><p class="muted" style="margin:5px 0 0">ملخص مباشر لبيانات التشغيل، دون إنشاء أو تعديل أي سجلات.</p></div>
+  <button class="btn light" type="button" id="refreshOperationalReadinessBtn">تحديث المؤشر</button>
+ </div>
+ <div class="stats" id="operationalReadinessStats" aria-live="polite" style="margin-top:14px">
+  <div class="stat"><span class="muted">الفروع النشطة</span><b data-readiness-count="branches">—</b></div>
+  <div class="stat"><span class="muted">أعضاء الفريق النشطون</span><b data-readiness-count="members">—</b></div>
+  <div class="stat"><span class="muted">المتدربون النشطون</span><b data-readiness-count="trainees">—</b></div>
+  <div class="stat"><span class="muted">الدورات النشطة</span><b data-readiness-count="courses">—</b></div>
+  <div class="stat"><span class="muted">المجموعات التدريبية</span><b data-readiness-count="runs">—</b></div>
+  <div class="stat"><span class="muted">المدربون النشطون</span><b data-readiness-count="trainers">—</b></div>
+  <div class="stat"><span class="muted">جلسات التدريب</span><b data-readiness-count="sessions">—</b></div>
+  <div class="stat"><span class="muted">التسجيلات</span><b data-readiness-count="enrollments">—</b></div>
+  <div class="stat"><span class="muted">سجلات الحضور</span><b data-readiness-count="attendance">—</b></div>
+  <div class="stat"><span class="muted">الشهادات الصادرة</span><b data-readiness-count="certificates">—</b></div>
+ </div>
+ <div style="margin-top:16px">
+  <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><b style="font-size:13px">مسار تشغيل المركز (مؤشر وجود بيانات بكل مرحلة)</b><span class="pill" id="operationalReadinessProgressLabel">جارٍ حساب الجاهزية...</span></div>
+  <div style="height:9px;background:#e8eef5;border-radius:20px;overflow:hidden;margin:9px 0 12px"><div id="operationalReadinessProgress" style="height:100%;width:0;background:linear-gradient(90deg,#0369a1,#b08d48);transition:width .2s"></div></div>
+  <div id="operationalReadinessSteps" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px" aria-live="polite"><p class="muted">جارٍ تحميل بيانات التشغيل...</p></div>
+ </div>
+ <p class="muted" style="margin:12px 0 0">المؤشر يعرض وجود سجلات في كل مرحلة فقط، ولا يقيّم جودة البيانات أو ترابطها؛ لا يضيف أي بيانات ولا يغيّر سجلات المركز.</p>
+</section>
 <div class="graduate-access-modal" id="graduateAccessModal" role="dialog" aria-modal="true" aria-labelledby="graduateAccessTitle"><div class="graduate-access-card"><h2 id="graduateAccessTitle">تم إصدار الشهادة وإنشاء حساب الخريج</h2><p class="muted">الحساب بانتظار موافقة الإدارة. كلمة المرور المؤقتة تظهر هنا مرة واحدة فقط؛ سلّمها للخريج عبر قناة خاصة وسيُطلب منه تغييرها بعد أول دخول.</p><div class="field"><label>اسم الدخول (رقم الهاتف)</label><input id="graduateAccessPhone" readonly dir="ltr"></div><div class="field" style="margin-top:10px"><label>كلمة المرور المؤقتة</label><input id="graduateAccessPassword" class="password-field" readonly dir="ltr"></div><div class="actions"><button class="btn" type="button" id="copyGraduatePasswordBtn">نسخ كلمة المرور</button><button class="btn light" type="button" id="closeGraduateAccessModal">إغلاق بعد تسليم البيانات</button></div><p class="muted" id="graduateAccessCopyNote">لا تغلق النافذة قبل تسليم بيانات الدخول للخريج.</p></div></div>
 <div class="team-modal" id="teamBranchModal" role="dialog" aria-modal="true" aria-labelledby="teamBranchModalTitle">
  <div class="team-modal-card">
@@ -457,6 +481,65 @@ $('exportInstitutionReportBtn').addEventListener('click',exportInstitutionReport
 function showGraduateAccess(phone,password){$('graduateAccessPhone').value=phone||'';$('graduateAccessPassword').value=password||'';$('graduateAccessCopyNote').textContent='لا تغلق النافذة قبل تسليم بيانات الدخول للخريج.';$('graduateAccessModal').classList.add('open');}
 $('copyGraduatePasswordBtn').addEventListener('click',async()=>{const field=$('graduateAccessPassword');try{await navigator.clipboard.writeText(field.value);$('graduateAccessCopyNote').textContent='تم نسخ كلمة المرور. سلّمها للخريج عبر قناة خاصة.';}catch{field.focus();field.select();$('graduateAccessCopyNote').textContent='حدد كلمة المرور وانسخها يدويًا.';}});
 $('closeGraduateAccessModal').addEventListener('click',()=>{$('graduateAccessPassword').value='';$('graduateAccessPhone').value='';$('graduateAccessModal').classList.remove('open');});
+const readinessDefinitions=[
+ {key:'branches',table:'institution_branches',filter:q=>q.eq('is_active',true)},
+ {key:'members',table:'institution_users',filter:q=>q.eq('status','active')},
+ {key:'trainees',table:'institution_trainees',filter:q=>q.eq('status','active')},
+ {key:'courses',table:'institution_courses',filter:q=>q.eq('is_active',true)},
+ {key:'runs',table:'institution_course_runs'},
+ {key:'trainers',table:'institution_trainers',filter:q=>q.eq('is_active',true)},
+ {key:'sessions',table:'institution_course_sessions'},
+ {key:'enrollments',table:'institution_enrollments'},
+ {key:'attendance',table:'institution_attendance'},
+ {key:'certificates',table:'certificates'}
+];
+const readinessSteps=[
+ {key:'branches',min:1,label:'تسجيل الفرع الرئيسي وفروع المركز',tab:'branches'},
+ {key:'members',min:2,label:'إضافة موظف وتحديد صلاحياته',tab:'team'},
+ {key:'trainees',min:1,label:'تسجيل المتدربين',tab:'trainees'},
+ {key:'courses',min:1,label:'إضافة دورة إلى كتالوج المركز',tab:'courses'},
+ {key:'trainers',min:1,label:'تسجيل مدرب للمركز',tab:'courses'},
+ {key:'runs',min:1,label:'إنشاء مجموعة تدريبية',tab:'courses'},
+ {key:'enrollments',min:1,label:'تسجيل المتدربين في المجموعة',tab:'courses'},
+ {key:'sessions',min:1,label:'جدولة جلسات التدريب',tab:'courses'},
+ {key:'attendance',min:1,label:'تسجيل حضور المتدربين',tab:'reports'},
+ {key:'certificates',min:1,label:'إصدار شهادات للمجموعة',tab:'certificates'}
+];
+async function loadOperationalReadiness(){
+ if(!org)return;
+ const button=$('refreshOperationalReadinessBtn');
+ if(button){button.disabled=true;button.textContent='جارٍ التحديث...';}
+ try{
+  const results=await Promise.all(readinessDefinitions.map(async item=>{
+   let query=sb.from(item.table).select('id',{count:'exact',head:true}).eq('institution_id',org.id);
+   if(item.filter)query=item.filter(query);
+   const {count,error}=await query;
+   return {key:item.key,count,error};
+  }));
+  const counts={};
+  results.forEach(result=>{
+   counts[result.key]=result.error?null:(result.count||0);
+   const cell=$('operationalReadinessStats').querySelector('[data-readiness-count="'+result.key+'"]');
+   if(cell)cell.textContent=result.error?'—':Number(result.count||0).toLocaleString('ar-EG');
+  });
+  const completed=readinessSteps.filter(step=>counts[step.key]!==null&&counts[step.key]>=(step.min||1)).length;
+  const percent=Math.round(completed/readinessSteps.length*100);
+  $('operationalReadinessProgress').style.width=percent+'%';
+  $('operationalReadinessProgressLabel').textContent=completed+' من '+readinessSteps.length+' خطوات مكتملة · '+percent+'٪';
+  $('operationalReadinessSteps').innerHTML=readinessSteps.map((step,index)=>{
+   const value=counts[step.key],done=value!==null&&value>=(step.min||1),unknown=value===null;
+   return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid var(--line);border-radius:11px;background:'+(done?'#f0fdf4':'#f8fafc')+'"><div style="display:flex;align-items:center;gap:9px;min-width:0"><span aria-hidden="true" style="width:25px;height:25px;display:grid;place-items:center;border-radius:50%;background:'+(done?'#dcfce7':'#e2e8f0')+';color:'+(done?'#166534':'#475569')+';font-weight:900;flex:none">'+(done?'✓':index+1)+'</span><span style="font-size:12px;font-weight:700">'+esc(step.label)+(unknown?' · تعذر التحقق':'')+'</span></div><button class="btn light" type="button" data-readiness-tab="'+step.tab+'" style="padding:6px 9px;white-space:nowrap">فتح</button></div>';
+  }).join('');
+  $('operationalReadinessSteps').querySelectorAll('[data-readiness-tab]').forEach(button=>button.addEventListener('click',()=>{
+   const tab=document.querySelector('.tab[data-tab="'+button.dataset.readinessTab+'"]');
+   if(tab&&!tab.hidden)tab.click();
+   else say('هذا القسم غير متاح وفق صلاحيات حسابك الحالية.','error');
+  }));
+  if(results.some(result=>result.error))say('تم تحديث المؤشر، لكن تعذر قراءة بعض العدادات وفق الصلاحيات الحالية.','error');
+ }catch(error){say('تعذر تحديث مؤشر التشغيل: '+(error?.message||'خطأ غير معروف'),'error');}
+ finally{if(button){button.disabled=false;button.textContent='تحديث المؤشر';}}
+}
+$('refreshOperationalReadinessBtn').addEventListener('click',loadOperationalReadiness);
 async function init(){
  const {data:{user:u},error}=await sb.auth.getUser();user=u;
  if(error||!user){say('سجّل الدخول أولاً من لوحة المؤسسة ثم افتح إدارة الفروع.','error');return;}
@@ -468,6 +551,7 @@ async function init(){
  await applyWorkspaceRolePermissions();
  await Promise.all([loadTeam(),loadTrainees(),loadCoursesAndRuns()]);
  setupAttendanceManager();
+ await loadOperationalReadiness();
 }
 async function allowed(permission,branchId=null){const {data,error}=await sb.rpc('institution_has_permission',{p_institution_id:org.id,p_permission:permission,p_branch_id:branchId});return !error&&data===true;}
 async function allowedAnyBranch(permission){if(await allowed(permission,null))return true;for(const b of branches){if(await allowed(permission,b.id))return true;}return false;}
