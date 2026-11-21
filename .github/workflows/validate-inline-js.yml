@@ -32,3 +32,5 @@ jobs:
         run: deno check supabase/functions/graduate-institution-account-create/index.ts
       - name: Type-check direct graduate application function
         run: deno check supabase/functions/graduate-application-submit/index.ts
+      - name: Type-check platform AI assistant function
+        run: deno check supabase/functions/shahadaty-ai-assistant/index.ts
