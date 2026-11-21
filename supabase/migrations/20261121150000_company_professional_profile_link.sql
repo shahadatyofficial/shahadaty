@@ -1,8 +1,6 @@
 -- Extend the existing employer search with a consent-gated public professional profile link.
 -- Keep existing company approval, search-credit, premium-skill and publication checks.
-DROP FUNCTION IF EXISTS public.search_alumni_for_company(text,text,text,text,integer,text,text);
-
-CREATE FUNCTION public.search_alumni_for_company(
+CREATE OR REPLACE FUNCTION public.search_alumni_for_company_v2(
   p_query text DEFAULT NULL,
   p_qualification text DEFAULT NULL,
   p_specialization text DEFAULT NULL,
@@ -94,8 +92,8 @@ BEGIN
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION public.search_alumni_for_company(text,text,text,text,integer,text,text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.search_alumni_for_company(text,text,text,text,integer,text,text) TO authenticated;
+REVOKE ALL ON FUNCTION public.search_alumni_for_company_v2(text,text,text,text,integer,text,text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.search_alumni_for_company_v2(text,text,text,text,integer,text,text) TO authenticated;
 
-COMMENT ON FUNCTION public.search_alumni_for_company(text,text,text,text,integer,text,text) IS
+COMMENT ON FUNCTION public.search_alumni_for_company_v2(text,text,text,text,integer,text,text) IS
 'Employer search returns only published graduates and verified qualifications. A public professional profile link is enabled only when the graduate has separately consented to public-link sharing.';
