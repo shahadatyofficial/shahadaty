@@ -813,6 +813,8 @@ async function loadCoursesAndRuns(){
   const courseManageByBranch=new Map();
   await Promise.all([...new Set(courses.map(c=>c.branch_id||''))].map(async key=>courseManageByBranch.set(key,await allowed('courses.manage',key||null))));
  $('runCourse').innerHTML='<option value="">اختر الدورة</option>'+courses.filter(x=>x.is_active).map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('');
+ $('enrollCourse').innerHTML='<option value="">اختر الدورة</option>'+courses.filter(x=>x.is_active).map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('');
+ $('bulkEnrollCourse').innerHTML='<option value="">اختر الدورة</option>'+courses.filter(x=>x.is_active).map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('');
   $('catalogCoursesRows').innerHTML=courses.map(c=>{const canManage=courseManageByBranch.get(c.branch_id||'')===true;return '<tr><td>'+esc(c.name)+'</td><td>'+esc(c.specialization||'—')+'</td><td>'+esc(c.duration||'—')+'</td><td>'+esc(branchById.get(c.branch_id)?.name||'عام')+'</td><td>'+ (c.is_active?'نشطة':'موقوفة')+'</td><td>'+(canManage?'<button class="btn light" type="button" data-toggle-course="'+esc(c.id)+'">'+(c.is_active?'إيقاف الدورة':'إعادة تفعيل')+'</button>':'<span class="muted">عرض فقط</span>')+'</td></tr>';}).join('')||'<tr><td colspan="6" class="empty">لا توجد دورات مسجلة بعد</td></tr>';
  $('catalogCoursesRows').querySelectorAll('[data-toggle-course]').forEach(btn=>btn.addEventListener('click',()=>toggleInstitutionCourse(btn.dataset.toggleCourse)));
  const {data:runs,error}=await sb.from('institution_course_runs').select('id,run_name,instructor_name,trainer_id,start_date,end_date,status,branch_id,course_id,capacity,institution_courses(name),institution_trainers(id,full_name)').eq('institution_id',org.id).order('created_at',{ascending:false}).limit(200);
@@ -850,13 +852,13 @@ $('enrollTraineeBtn').addEventListener('click',async()=>{
  if(error){const message=String(error.message||'');if(message.includes('COURSE_RUN_CAPACITY_REACHED'))return say('اكتملت سعة المجموعة التدريبية. لا يمكن تسجيل متدربين إضافيين.','error');if(message.includes('COURSE_RUN_NOT_OPEN'))return say('المجموعة لم تُفتح للتسجيل بعد أو تم إغلاقها.','error');if(message.includes('COURSE_RUN_CLOSED'))return say('المجموعة مكتملة أو ملغاة ولا تقبل تسجيلات جديدة.','error');if(error.code==='23505')return say('المتدرب مسجل بالفعل في هذه المجموعة.','error');return say(message,'error');}say('تم تسجيل المتدرب في المجموعة.','success');await loadEnrollments();
 });
 async function loadEnrollments(){
- const {data,error}=await sb.from('institution_enrollments').select('id,status,enrolled_at,completed_at,trainee_id,course_run_id,institution_trainees!inner(id,full_name,full_name_en,phone,email,national_id,governorate,branch_id),institution_course_runs!inner(id,run_name,branch_id,course_id,status,institution_courses!inner(name,specialization,duration))').eq('institution_id',org.id).order('enrolled_at',{ascending:false}).limit(500);
+ const {data,error}=await sb.from('institution_enrollments').select('id,status,enrolled_at,completed_at,trainee_id,course_id,course_run_id,institution_trainees!inner(id,full_name,full_name_en,phone,email,national_id,governorate,branch_id),institution_courses(name,specialization,duration,branch_id),institution_course_runs(id,run_name,branch_id,course_id,status)').eq('institution_id',org.id).order('enrolled_at',{ascending:false}).limit(500);
  if(error){emptyRow('enrollmentsRows',6,error.message);return;}
  const rows=data||[];
  const {data:issued,error:issuedError}=await sb.from('certificates').select('id,cert_number,enrollment_id,status').eq('institution_id',org.id).not('enrollment_id','is',null).limit(2000);
  if(issuedError){emptyRow('enrollmentsRows',6,'تعذر التحقق من الشهادات الصادرة: '+issuedError.message);return;}
  const issuedMap=new Map((issued||[]).map(x=>[x.enrollment_id,x]));
- const branchKeys=[...new Set(rows.map(e=>e.institution_course_runs?.branch_id||''))];
+ const branchKeys=[...new Set(rows.map(e=>e.institution_course_runs?.branch_id||e.institution_trainees?.branch_id||''))];
  const permissionMap=new Map();
  await Promise.all(branchKeys.map(async key=>{
   const branchId=key||null;
@@ -867,14 +869,14 @@ async function loadEnrollments(){
  const now=new Date(),today=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
  const statusLabels={enrolled:'مسجل',attending:'منتظم',completed:'مكتمل',withdrawn:'منسحب',failed:'لم يجتز'};
  $('enrollmentsRows').innerHTML=rows.map(e=>{
-  const trainee=e.institution_trainees||{},run=e.institution_course_runs||{},course=run.institution_courses||{};
-  const cert=issuedMap.get(e.id),perms=permissionMap.get(run.branch_id||'')||{};
+  const trainee=e.institution_trainees||{},run=e.institution_course_runs||{},course=e.institution_courses||run.institution_courses||{},branchId=run.branch_id||trainee.branch_id||course.branch_id||'';
+  const cert=issuedMap.get(e.id),perms=permissionMap.get(branchId)||{};
   let action='<span class="muted">—</span>';
   if(cert)action='<a class="btn light" href="certificate.html?id='+encodeURIComponent(cert.cert_number)+'&template=uploaded-2-html" target="_blank" rel="noopener">عرض الشهادة</a>';
   else if(e.status==='completed'&&perms.issue)action='<button class="btn gold" data-issue-certificate="'+e.id+'">إصدار الشهادة</button>';
   else if(!['completed','withdrawn','failed'].includes(e.status)&&perms.manage)action='<button class="btn light" data-complete-enrollment="'+e.id+'">اعتماد الإتمام</button>';
-   const attendanceAction=perms.manage?'<button class="btn light" data-record-attendance="'+e.id+'">تسجيل الحضور</button>':'<span class="muted">—</span>';
-  return '<tr><td>'+esc(trainee.full_name||'—')+'</td><td>'+esc(course.name||'—')+' / '+esc(run.run_name||'مجموعة')+'</td><td>'+esc(statusLabels[e.status]||e.status)+'</td><td>'+new Date(e.enrolled_at).toLocaleDateString('ar-EG')+'</td><td><button class="btn light" data-record-attendance="'+e.id+'">تسجيل الحضور</button></td><td>'+action+'</td></tr>';
+   const attendanceAction=run.id&&perms.manage?'<button class="btn light" data-record-attendance="'+e.id+'">تسجيل الحضور</button>':'<span class="muted">—</span>';
+  return '<tr><td>'+esc(trainee.full_name||'—')+'</td><td>'+esc(course.name||'—')+(run.run_name?' / '+esc(run.run_name):' / تسجيل عام')+'</td><td>'+esc(statusLabels[e.status]||e.status)+'</td><td>'+new Date(e.enrolled_at).toLocaleDateString('ar-EG')+'</td><td>'+attendanceAction+'</td><td>'+action+'</td></tr>';
  }).join('')||'<tr><td colspan="6" class="empty">لا توجد تسجيلات حتى الآن</td></tr>';
  $('enrollmentsRows').querySelectorAll('[data-record-attendance]').forEach(btn=>btn.addEventListener('click',()=>recordAttendance(btn.dataset.recordAttendance,today)));
  $('enrollmentsRows').querySelectorAll('[data-complete-enrollment]').forEach(btn=>btn.addEventListener('click',()=>completeEnrollment(btn.dataset.completeEnrollment)));
@@ -892,12 +894,12 @@ async function completeEnrollment(id){
  await loadEnrollments();
 }
 async function issueEnrollmentCertificate(id){
- const e=enrollmentActionData.get(id),run=e?.institution_course_runs||{},trainee=e?.institution_trainees||{},course=run.institution_courses||{};
+ const e=enrollmentActionData.get(id),run=e?.institution_course_runs||{},trainee=e?.institution_trainees||{},course=e?.institution_courses||run.institution_courses||{},branchId=run.branch_id||trainee.branch_id||course.branch_id||null;
  if(!e)return say('تعذر تحميل بيانات التسجيل. حدّث الصفحة وحاول مرة أخرى.','error');
  if(e.status!=='completed')return say('لا يمكن إصدار شهادة قبل اعتماد إتمام التدريب.','error');
- if(!await allowed('certificates.issue',run.branch_id||null))return say('ليس لديك صلاحية إصدار الشهادات لهذا الفرع.','error');
+ if(!await allowed('certificates.issue',branchId))return say('ليس لديك صلاحية إصدار الشهادات لهذا الفرع.','error');
  const payload={
-  institution_id:org.id,branch_id:run.branch_id||null,course_id:run.course_id,trainee_id:e.trainee_id,enrollment_id:e.id,
+  institution_id:org.id,branch_id,course_id:e.course_id||run.course_id,trainee_id:e.trainee_id,enrollment_id:e.id,
   student_name:trainee.full_name,student_name_en:trainee.full_name_en||null,
   student_national_id:trainee.national_id||null,student_phone:trainee.phone||null,
   student_email:trainee.email||null,governorate:trainee.governorate||null,
@@ -971,6 +973,7 @@ async function loadInstitutionTrainers(){
  $('trainersRows').innerHTML=institutionTrainers.map(t=>'<tr><td>'+esc(t.full_name)+'</td><td>'+esc(t.phone||'—')+'</td><td>'+esc(t.email||'—')+'</td><td>'+esc(branchById.get(t.branch_id)?.name||'عام')+'</td><td>'+(t.is_active?'نشط':'موقوف')+'</td><td><button class="btn light" type="button" data-trainer-toggle="'+t.id+'">'+(t.is_active?'إيقاف':'تفعيل')+'</button></td></tr>').join('')||'<tr><td colspan="6" class="empty">لا يوجد مدربون مسجلون بعد</td></tr>';
  $('trainersRows').querySelectorAll('[data-trainer-toggle]').forEach(btn=>btn.addEventListener('click',()=>toggleInstitutionTrainer(btn.dataset.trainerToggle)));
  $('sessionRun').innerHTML='<option value="">اختر المجموعة</option>'+courseRuns.filter(r=>!['completed','cancelled'].includes(r.status)).map(r=>'<option value="'+r.id+'">'+esc((r.institution_courses?.name||'دورة')+' — '+(r.run_name||'مجموعة'))+'</option>').join('');
+ syncEnrollmentGroupOptions();syncBulkEnrollmentGroupOptions();
 }
 $('saveTrainerBtn').addEventListener('click',async()=>{
  const full_name=$('trainerName').value.trim(),branch_id=$('trainerBranch').value||null;
