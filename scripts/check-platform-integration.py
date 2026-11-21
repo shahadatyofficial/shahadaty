@@ -60,7 +60,7 @@ checks = {
         "enqueue_due_platform_reminders", "graduate-session", "shahadaty_notification_email_delivery",
     ],
     "supabase/migrations/20261121170000_institution_ai_insights.sql": [
-        "get_institution_ai_insights_context", "reports.view", "past_sessions_without_attendance",
+        "get_institution_ai_insights_context", "reports.view", "sessions_overdue_without_attendance",
     ],
     "company.html": [
         "platform_notifications", "loadCompanyPlatformNotifications", "companyEmailNotifications", "search_alumni_for_company_v3", "public_profile_available", "digital_passport_available", "digital-passport.html",
