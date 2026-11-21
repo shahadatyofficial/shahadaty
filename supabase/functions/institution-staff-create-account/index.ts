@@ -61,11 +61,11 @@ Deno.serve(async (req: Request) => {
     const contactEmail = String(body?.contact_email || "").trim().toLowerCase() || null;
     const jobTitle = String(body?.job_title || "").trim() || null;
     const startDate = body?.employment_start_date ? String(body.employment_start_date) : null;
-    const branchIds: string[] = Array.isArray(body?.branch_ids)
-      ? [...new Set(body.branch_ids.map((x: unknown) => String(x).trim()).filter(Boolean))]
+    const branchIds = Array.isArray(body?.branch_ids)
+      ? Array.from(new Set((body.branch_ids as unknown[]).map((x: unknown) => String(x).trim()).filter(Boolean))) as string[]
       : [];
-    const permissions: string[] = Array.isArray(body?.permissions)
-      ? [...new Set(body.permissions.map((x: unknown) => String(x).trim()).filter(Boolean))]
+    const permissions = Array.isArray(body?.permissions)
+      ? Array.from(new Set((body.permissions as unknown[]).map((x: unknown) => String(x).trim()).filter(Boolean))) as string[]
       : [];
     if (!/^[0-9a-f-]{36}$/i.test(institutionId) ||
         !/^[a-z][a-z0-9._-]{2,29}$/.test(username) ||
