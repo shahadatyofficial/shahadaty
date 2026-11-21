@@ -708,11 +708,17 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 
     <!-- CERTS LIST PAGE -->
     <div class="page" id="page-certs">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-head"><span class="card-title">فروع المؤسسة — شهادات كل فرع</span><span style="font-size:11px;color:var(--muted)">تُزامن تلقائيًا مع الفروع المسجلة في برنامج إدارة المؤسسة</span></div>
+        <div id="certificateBranchCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;padding:16px">
+          <p style="font-size:12px;color:var(--muted)">جارٍ تحميل الفروع...</p>
+        </div>
+      </div>
       <div class="card">
         <div class="card-head">
           <span class="card-title">الشهادات الصادرة</span>
           <div style="display:flex;gap:10px">
-            <input type="text" id="certSearch" placeholder="بحث..." style="font-family:Cairo,sans-serif;padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:#f0f9ff;width:200px" oninput="filterCerts()">
+            <input type="text" id="certSearch" placeholder="بحث..." style="font-family:Cairo,sans-serif;padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:#f0f9ff;width:200px" oninput="filterCerts()"><select id="certBranchFilter" onchange="filterCerts()" style="font-family:Cairo,sans-serif;padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:#f0f9ff;max-width:190px"><option value="">كل الفروع المسموح بها</option></select>
             <button onclick="exportCerts()" style="display:inline-flex;align-items:center;gap:6px;background:#f0f9ff;color:var(--blue);font-family:Cairo,sans-serif;font-size:12px;font-weight:700;padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer">
               <span class="material-symbols-outlined" style="font-size:16px">download</span>تصدير
             </button>
@@ -721,9 +727,9 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
         <div style="overflow-x:auto">
           <table class="tbl">
             <thead><tr>
-              <th>اسم الطالب</th><th>رقم الشهادة</th><th>الدورة</th><th>التاريخ</th><th>التقدير</th><th>الحالة</th><th>إجراء</th>
+              <th>اسم الطالب</th><th>رقم الشهادة</th><th>الدورة</th><th>الفرع</th><th>التاريخ</th><th>التقدير</th><th>الحالة</th><th>إجراء</th>
             </tr></thead>
-            <tbody id="certsTable"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted)">جاري التحميل...</td></tr></tbody>
+            <tbody id="certsTable"><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">جاري التحميل...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1603,11 +1609,27 @@ function escapeHtml(value){
 async function loadCerts(){
   const{data,error}=await sb.from('certificates').select('*').eq('institution_id',inst?.id).order('created_at',{ascending:false});
   if(error){toast('تعذر تحميل الشهادات: '+error.message,'err');return;}
-  allCerts=data||[];renderCerts(allCerts);
+  allCerts=data||[];
+  const branchFilter=document.getElementById('certBranchFilter');
+  if(branchFilter){const selected=branchFilter.value;branchFilter.innerHTML='<option value="">كل الفروع المسموح بها</option>'+institutionBranches.map(b=>'<option value="'+escapeHtml(b.id)+'">'+escapeHtml(b.name)+'</option>').join('');if(institutionBranches.some(b=>b.id===selected))branchFilter.value=selected;}
+  renderCertificateBranchCards();renderCerts(allCerts);
+}
+function renderCertificateBranchCards(){
+ const host=document.getElementById('certificateBranchCards');if(!host)return;
+ const cards=institutionBranches.map(branch=>{
+  const count=allCerts.filter(cert=>cert.branch_id===branch.id).length;
+  return '<button type="button" onclick="openCertificateBranch(\''+branch.id+'\')" style="text-align:right;border:1px solid var(--border);border-radius:13px;background:linear-gradient(145deg,#fff,#f2f8fc);padding:15px;cursor:pointer;color:var(--navy)"><span style="display:flex;align-items:center;gap:8px;font-weight:800"><span class="material-symbols-outlined" style="color:var(--blue)">location_on</span>'+escapeHtml(branch.name)+'</span><b style="display:block;font-size:24px;margin-top:10px;color:var(--blue)">'+count.toLocaleString('ar-EG')+'</b><small style="color:var(--muted)">شهادة صادرة</small></button>';
+ }).join('');
+ host.innerHTML=cards||'<p style="font-size:12px;color:var(--muted)">لا توجد فروع نشطة متاحة لحسابك. أضف الفروع من برنامج إدارة المؤسسة.</p>';
+}
+function openCertificateBranch(branchId){
+ const filter=document.getElementById('certBranchFilter');if(filter)filter.value=branchId;
+ filterCerts();
 }
 function renderCerts(certs){
-  document.getElementById('certsTable').innerHTML=!certs.length?'<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted)">لا توجد شهادات</td></tr>':certs.map(c=>`<tr>
+  document.getElementById('certsTable').innerHTML=!certs.length?'<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">لا توجد شهادات</td></tr>':certs.map(c=>`<tr>
     <td>${escapeHtml(c.student_name)}</td><td style="font-family:monospace;font-size:11px">${escapeHtml(c.cert_number)}</td><td>${escapeHtml(c.course)}</td>
+    <td>${escapeHtml(institutionBranches.find(b=>b.id===c.branch_id)?.name||'الإدارة العامة')}</td>
     <td>${c.issue_date?new Date(c.acquisition_date||c.issue_date).toLocaleDateString('ar-EG'):'—'}</td>
     <td><span class="badge badge-ok">${escapeHtml(c.grade||'ناجح')}</span></td>
     <td><span class="badge ${c.status==='active'?'badge-ok':c.status==='suspended'?'badge-warn':'badge-err'}">${c.status==='active'?'نشط':c.status==='suspended'?'موقوف مؤقتاً':'ملغاة'}</span></td>
@@ -1615,7 +1637,7 @@ function renderCerts(certs){
     ${c.status==='active'?'<button type="button" class="btn-cancel" onclick="setCertStatus(\''+c.id+'\',\'suspended\')">إيقاف</button><button type="button" class="btn-cancel" onclick="setCertStatus(\''+c.id+'\',\'revoked\')">إلغاء</button>':c.status==='suspended'?'<button type="button" class="btn-cancel" onclick="setCertStatus(\''+c.id+'\',\'active\')">إعادة تفعيل</button>':''}</td>
   </tr>`).join('');
 }
-function filterCerts(){const q=document.getElementById('certSearch').value.toLocaleLowerCase('ar');renderCerts(allCerts.filter(c=>[c.student_name,c.cert_number,c.course,c.student_phone].some(v=>String(v||'').toLocaleLowerCase('ar').includes(q))));}
+function filterCerts(){const q=document.getElementById('certSearch').value.toLocaleLowerCase('ar'),branch=document.getElementById('certBranchFilter')?.value||'';renderCerts(allCerts.filter(c=>(!branch||c.branch_id===branch)&&[c.student_name,c.cert_number,c.course,c.student_phone].some(v=>String(v||'').toLocaleLowerCase('ar').includes(q))));}
 async function setCertStatus(id,status){
   const labels={active:'إعادة تفعيل الشهادة',suspended:'إيقاف الشهادة مؤقتاً',revoked:'إلغاء الشهادة نهائياً'};
   if(!labels[status]||!confirm('هل تريد '+labels[status]+'؟'))return;
