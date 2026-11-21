@@ -29,7 +29,7 @@ const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;
 function showState(message){$('state').hidden=false;$('state').textContent=message;$('profileContent').hidden=true;}
 async function loadPublicProfile(){
  const id=new URLSearchParams(location.search).get('id');
- if(!id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)){showState('رابط الملف المهني غير صحيح.');return;}
+ if(!id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)){showState('رابط الملف المهني غير صحيح.');return;}
  const{data,error}=await sb.rpc('get_public_professional_profile',{p_profile_id:id});
  if(error){showState('تعذر تحميل الملف المهني حاليًا. حاول مرة أخرى لاحقًا.');return;}
  if(!data?.profile){showState('هذا الملف غير متاح للنشر حاليًا، أو تم سحب موافقة صاحبه.');return;}

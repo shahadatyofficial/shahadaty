@@ -30,7 +30,7 @@ function dateLabel(v){return v?new Date(v+'T00:00:00').toLocaleDateString('ar-EG
 function statusLabel(c){if(c.status!=='active')return{label:'غير سارية',bad:true};if(c.expiry_date&&new Date(c.expiry_date+'T00:00:00')<new Date(new Date().toDateString()))return{label:'منتهية الصلاحية',bad:true};return{label:'سارية',bad:false};}
 async function loadPassport(){
  const id=new URLSearchParams(location.search).get('id');
- if(!id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)){$('state').textContent='رابط جواز الشهادات غير صحيح.';return;}
+ if(!id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)){$('state').textContent='رابط جواز الشهادات غير صحيح.';return;}
  const{data,error}=await sb.rpc('get_public_digital_passport',{p_profile_id:id});
  if(error||!data?.profile){$('state').textContent='هذا الجواز غير متاح للنشر حاليًا، أو تم سحب موافقة صاحبه.';return;}
  const p=data.profile,certs=data.certificates||[];
