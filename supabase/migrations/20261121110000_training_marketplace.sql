@@ -205,10 +205,14 @@ BEGIN
     RAISE EXCEPTION 'COURSE_NOT_AVAILABLE';
   END IF;
 
-  SELECT COUNT(*) INTO v_accepted
-  FROM public.training_marketplace_applications a
-  WHERE a.course_run_id = p_course_run_id AND a.status = 'accepted';
-  IF v_capacity IS NOT NULL AND v_accepted >= v_capacity THEN
+  SELECT GREATEST(
+    (SELECT COUNT(*) FROM public.institution_enrollments e
+      WHERE e.course_run_id = p_course_run_id
+        AND e.status NOT IN ('cancelled','withdrawn')),
+    (SELECT COUNT(*) FROM public.training_marketplace_applications a
+      WHERE a.course_run_id = p_course_run_id AND a.status = 'accepted')
+  ) INTO v_enrolled;
+  IF v_capacity IS NOT NULL AND v_enrolled >= v_capacity THEN
     RAISE EXCEPTION 'COURSE_CAPACITY_REACHED';
   END IF;
 
@@ -332,9 +336,9 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'APPLICATION_NOT_FOUND';
   END IF;
-  IF NOT public.institution_has_permission(
+  IF public.institution_has_permission(
     v_application.institution_id, 'courses.manage', v_application.branch_id
-  ) THEN
+  ) IS NOT TRUE THEN
     RAISE EXCEPTION 'NOT_ALLOWED';
   END IF;
   IF v_application.status <> 'pending' THEN
