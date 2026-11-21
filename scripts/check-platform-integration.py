@@ -33,10 +33,13 @@ checks = {
         "graduate-gold-private", "graduate_withdraw_job_application",
         "graduate_my_certificates", "get_public_professional_profile",
         "refreshPublicProfileShare", "public_profile_consent", "platform_notifications", "loadPlatformNotifications",
-        "graduate_list_my_training_applications", "digital_passport_public_consent", "refreshDigitalPassportShare",
+        "graduate_list_my_training_applications", "digital_passport_public_consent", "digitalPassportConsent", "refreshDigitalPassportShare", "digital-passport.html",
     ],
     "training-marketplace.html": [
         "get_public_training_marketplace", "submit_training_marketplace_application", "contactConsent",
+    ],
+    "digital-passport.html": [
+        "get_public_digital_passport", "QRCode", "verify.html?cert=",
     ],
     "professional-profile.html": [
         "get_public_professional_profile", "qualifications", "skills",
@@ -48,7 +51,7 @@ checks = {
         "get_admin_ai_insights_context", "admin_insights",
     ],
     "company.html": [
-        "platform_notifications", "loadCompanyPlatformNotifications", "companyEmailNotifications", "search_alumni_for_company_v3", "public_profile_available", "digital_passport_available",
+        "platform_notifications", "loadCompanyPlatformNotifications", "companyEmailNotifications", "search_alumni_for_company_v3", "public_profile_available", "digital_passport_available", "digital-passport.html",
         "search_alumni_for_company", "alumni_access_requests",
         "company_get_approved_alumni_contact", "alumni_documents",
         "company_list_job_applications",
