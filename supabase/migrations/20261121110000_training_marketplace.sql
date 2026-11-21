@@ -88,8 +88,6 @@ RETURNS TABLE (
   institution_id uuid,
   institution_name text,
   institution_logo_url text,
-  public_phone text,
-  public_whatsapp text,
   governorate text,
   center text,
   branch_name text,
@@ -109,7 +107,7 @@ RETURNS TABLE (
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path TO 'public', 'pg_temp'
+SET search_path TO ''
 AS $function$
   SELECT
     r.id,
@@ -117,8 +115,6 @@ AS $function$
     i.id,
     i.name,
     pp.logo_url,
-    pp.public_phone,
-    pp.whatsapp,
     COALESCE(b.governorate, i.governorate),
     i.center,
     b.name,
@@ -165,7 +161,7 @@ CREATE OR REPLACE FUNCTION public.submit_training_marketplace_application(
 RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'public', 'pg_temp'
+SET search_path TO ''
 AS $function$
 DECLARE
   v_user_id uuid := auth.uid();
@@ -259,7 +255,7 @@ RETURNS TABLE (
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path TO 'public', 'pg_temp'
+SET search_path TO ''
 AS $function$
   SELECT a.id, a.status, a.applicant_message, a.created_at, a.reviewed_at,
          c.name, r.run_name, i.name, COALESCE(b.governorate,i.governorate), r.start_date
@@ -291,7 +287,7 @@ RETURNS TABLE (
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path TO 'public', 'pg_temp'
+SET search_path TO ''
 AS $function$
   SELECT a.id, a.course_run_id, a.status, a.applicant_message, a.created_at, a.reviewed_at,
          g.full_name, CASE WHEN a.contact_sharing_consent THEN g.phone END,
@@ -314,7 +310,7 @@ CREATE OR REPLACE FUNCTION public.institution_review_training_marketplace_applic
 RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'public', 'pg_temp'
+SET search_path TO ''
 AS $function$
 DECLARE
   v_application public.training_marketplace_applications%ROWTYPE;
