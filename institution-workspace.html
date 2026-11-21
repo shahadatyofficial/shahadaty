@@ -555,6 +555,20 @@ async function init(){
  if(user.app_metadata?.account_type==='institution_staff'&&user.app_metadata.must_change_password===true){say('يجب تغيير كلمة المرور أولاً من نافذة الدخول التي فتحها مالك المؤسسة.','error');return;}
  const {data:m,error:me}=await sb.from('institution_users').select('id,institution_id,role,status').eq('auth_user_id',user.id).eq('status','active').order('created_at',{ascending:true}).limit(1).maybeSingle();
  if(me||!m){say('لم يتم العثور على عضوية مؤسسة نشطة لهذا الحساب.','error');return;}membership=m;
+ const workspacePermissions=['dashboard.view','branches.view','branches.manage','team.view','team.manage','trainees.view','trainees.manage','courses.view','courses.manage','certificates.view','certificates.issue','reports.view'];
+ let allowedWorkspace=false;
+ if(m.role==='owner'||m.role==='manager'){
+  for(const permission of workspacePermissions){const {data:ok,error:permissionError}=await sb.rpc('institution_has_permission',{p_institution_id:m.institution_id,p_permission:permission,p_branch_id:null});if(!permissionError&&ok===true){allowedWorkspace=true;break;}}
+ }else{
+  const {data:scopes,error:scopeError}=await sb.from('institution_user_branches').select('branch_id').eq('institution_user_id',m.id);
+  if(scopeError){say('تعذر التحقق من الفروع المخصصة لحسابك.','error');return;}
+  const branchIds=(scopes||[]).map(scope=>scope.branch_id).filter(Boolean);
+  for(const permission of workspacePermissions){
+   for(const branchId of branchIds){const {data:ok,error:permissionError}=await sb.rpc('institution_has_permission',{p_institution_id:m.institution_id,p_permission:permission,p_branch_id:branchId});if(!permissionError&&ok===true){allowedWorkspace=true;break;}}
+   if(allowedWorkspace)break;
+  }
+ }
+ if(!allowedWorkspace){say('لا توجد صلاحية نشطة للدخول إلى برنامج إدارة المؤسسة. راجع مالك المؤسسة.','error');return;}
  const {data:i,error:ie}=await sb.from('institutions').select('id,name,status').eq('id',m.institution_id).maybeSingle();
  if(ie||!i||i.status!=='approved'){say('المؤسسة غير معتمدة أو تعذر تحميل بياناتها.','error');return;}org=i;$('orgTitle').textContent=org.name;
  await loadBranches();
