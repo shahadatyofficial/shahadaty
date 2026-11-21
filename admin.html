@@ -1512,11 +1512,21 @@ async function setAlumniVisibility(id,currentStatus){
  toast(nextStatus==='public'?'تم إظهار ملف الخريج في البحث العام':'تم إخفاء ملف الخريج من البحث العام','ok');
  await loadAlumniProfiles();
 }
+function parseJobExpiryDate(value){
+ if(!value)return {valid:true,iso:null};
+ const parts=value.split('-').map(Number);
+ if(parts.length!==3||parts.some(n=>!Number.isInteger(n)))return {valid:false,iso:null};
+ const [year,month,day]=parts;
+ const date=new Date(year,month-1,day,23,59,59,999);
+ if(date.getFullYear()!==year||date.getMonth()!==month-1||date.getDate()!==day||date.getTime()<=Date.now())return {valid:false,iso:null};
+ return {valid:true,iso:date.toISOString()};
+}
 async function saveJobAnnouncement(){
  const company_display_name=document.getElementById('job_company').value.trim(),title=document.getElementById('job_title').value.trim(),description=document.getElementById('job_description').value.trim();
  if(!company_display_name||!title||!description){toast('أدخل الشركة والمسمى والتفاصيل','err');return;}
+ const expiry=parseJobExpiryDate(document.getElementById('job_expiry').value);if(!expiry.valid){toast('حدد آخر موعد صحيحًا في المستقبل؛ ويظل الإعلان ساريًا حتى نهاية ذلك اليوم.','err');return;}
  const skills=document.getElementById('job_skills').value.split(/[،,]/).map(x=>x.trim()).filter(Boolean);
- const{error}=await sb.from('job_announcements').insert({company_display_name,title,description,teaser:document.getElementById('job_teaser').value.trim()||null,governorate:document.getElementById('job_governorate').value.trim()||null,center:document.getElementById('job_center')?.value||null,qualification_required:document.getElementById('job_qualification').value.trim()||null,specialization_required:document.getElementById('job_specialization').value.trim()||null,employment_type:document.getElementById('job_employment_type').value||null,work_mode:document.getElementById('job_work_mode').value||null,work_schedule:document.getElementById('job_work_schedule').value||null,work_hours:document.getElementById('job_work_hours').value.trim()||null,experience_years:document.getElementById('job_experience').value?Number(document.getElementById('job_experience').value):null,positions_count:Math.max(1,Number(document.getElementById('job_positions').value)||1),skills_required:skills,salary_text:document.getElementById('job_salary').value.trim()||null,application_method:document.getElementById('job_application_method').value.trim()||'طلب التواصل عبر منصة شهادتي',expires_at:document.getElementById('job_expiry').value||null,status:'pending'});
+ const{error}=await sb.from('job_announcements').insert({company_display_name,title,description,teaser:document.getElementById('job_teaser').value.trim()||null,governorate:document.getElementById('job_governorate').value.trim()||null,center:document.getElementById('job_center')?.value||null,qualification_required:document.getElementById('job_qualification').value.trim()||null,specialization_required:document.getElementById('job_specialization').value.trim()||null,employment_type:document.getElementById('job_employment_type').value||null,work_mode:document.getElementById('job_work_mode').value||null,work_schedule:document.getElementById('job_work_schedule').value||null,work_hours:document.getElementById('job_work_hours').value.trim()||null,experience_years:document.getElementById('job_experience').value?Number(document.getElementById('job_experience').value):null,positions_count:Math.max(1,Number(document.getElementById('job_positions').value)||1),skills_required:skills,salary_text:document.getElementById('job_salary').value.trim()||null,application_method:document.getElementById('job_application_method').value.trim()||'طلب التواصل عبر منصة شهادتي',expires_at:expiry.iso,status:'pending'});
  if(error){toast(error.message,'err');return;}toast('تم حفظ الإعلان وإرساله للمراجعة','ok');loadJobAnnouncements();
 }
 async function loadJobAnnouncements(){
