@@ -48,7 +48,7 @@ Deno.serve(async (req: Request) => {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) return json({ error: "AUTH_REQUIRED" }, 401);
 
-  let body: { task?: string; context?: Record<string, unknown> };
+  let body: { task?: string; context?: Record<string, unknown>; institution_id?: string; branch_id?: string | null };
   try {
     const raw = await req.text();
     if (raw.length > 12000) return json({ error: "REQUEST_TOO_LARGE" }, 413);
