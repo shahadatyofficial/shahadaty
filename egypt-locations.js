@@ -16,6 +16,7 @@ Governorates: 27. Only centers and cities are listed; villages, hamlets, qisms a
    select.innerHTML='<option value="">اختر المحافظة</option>'+GOVERNORATES.map(g=>'<option value="'+g+'">'+g+'</option>').join('');
    if(oldGov&&!GOVERNORATES.includes(oldGov)){const o=document.createElement("option");o.value=oldGov;o.textContent=oldGov;select.appendChild(o);}
    select.value=oldGov;
+   if(!pair.centerId)return;
    let center=document.getElementById(pair.centerId);
    if(!center){const label=document.createElement("label");label.className=pair.labelClass||"egypt-center-field";label.style.display="block";label.style.marginTop="8px";label.textContent="المركز / المدينة";center=document.createElement("select");center.id=pair.centerId;center.className=pair.centerClass||select.className;label.appendChild(center);const parent=select.parentElement;const host=pair.insertAfter?document.getElementById(pair.insertAfter):((parent&&(parent.tagName==="LABEL"||parent.classList.contains("form-group")||parent.children.length<=2))?parent:select);if(host&&host.parentElement)host.parentElement.insertBefore(label,host.nextSibling);else select.parentElement.appendChild(label);}
    else if(center.tagName!=="SELECT"){const replacement=document.createElement("select");replacement.id=center.id;replacement.className=center.className||pair.centerClass||select.className;replacement.required=center.required;center.replaceWith(replacement);center=replacement;}
