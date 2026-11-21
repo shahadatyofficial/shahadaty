@@ -947,7 +947,7 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 const portalSb=supabase.createClient(SU,SK);
 const workspaceSb=supabase.createClient(SU,SK,{auth:{storageKey:'shahadaty-institution-workspace-auth',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 let sb=portalSb;
-window.initEgyptLocationSelects([{governorateId:'fi_gov',centerId:'fi_center'},{governorateId:'mi_gov',centerId:'mi_center'}]);
+window.initEgyptLocationSelects([{governorateId:'fi_gov'},{governorateId:'mi_gov'}]);
 let inst=null, allCerts=[], bulkData=[], lineChart=null, donutChart=null, institutionBranches=[], institutionAllBranches=[], institutionTrainees=[];
 
 // ── Auth ──────────────────────────────────────────────────────
@@ -1629,7 +1629,7 @@ async function issueCertModal(){
   const res=document.getElementById('mi_result');
   if(!student||!course||!date){showRes(res,'يرجى تعبئة الحقول المطلوبة *','err');return;}
   try{
-    const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('mi_grade').value,student_phone:document.getElementById('mi_phone').value,governorate:document.getElementById('mi_gov').value,center:document.getElementById('mi_center')?.value||null,branch_id:document.getElementById('mi_branch')?.value||null,trainee_id:document.getElementById('mi_trainee')?.value||null,visible_to_companies:document.getElementById('mi_consent').checked});
+    const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,grade:document.getElementById('mi_grade').value,student_phone:document.getElementById('mi_phone').value,governorate:document.getElementById('mi_gov').value,branch_id:document.getElementById('mi_branch')?.value||null,trainee_id:document.getElementById('mi_trainee')?.value||null,visible_to_companies:document.getElementById('mi_consent').checked});
     let accountResult=null;try{accountResult=await createGraduateAccountAfterIssue(row.cert_id);}catch(accountError){accountResult={success:false,message:'تم إصدار الشهادة، لكن تعذر إنشاء حساب الخريج تلقائيًا. '+String(accountError?.message||'')};}
     showRes(res,`✓ تم الإصدار — رقم الشهادة: <b>${row.cert_number}</b><br><a href="certificate.html?id=${encodeURIComponent(row.cert_number)}" target="_blank" style="color:var(--blue)">عرض الشهادة</a>`+graduateAccountResultHtml(accountResult),'ok');
     await loadInst(); toast('✓ تم إصدار الشهادة بنجاح','ok'); if(!accountResult?.temporary_password)setTimeout(closeIssueModal,1800);
@@ -1642,7 +1642,7 @@ async function issueFullCert(){
     const email=document.getElementById('fi_email').value.trim(),national=document.getElementById('fi_national').value.trim();
   if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showRes(res,'صيغة البريد الإلكتروني غير صحيحة.','err');return;}
   if(national&&!/^\d{14}$/.test(national)){showRes(res,'الرقم القومي يجب أن يتكون من 14 رقمًا.','err');return;}
-  const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,acquisition_date:date,grade:document.getElementById('fi_grade').value,specialization:document.getElementById('fi_spec').value,duration:document.getElementById('fi_duration')?.value||'',student_phone:document.getElementById('fi_phone').value,student_email:email,student_national_id:national,governorate:document.getElementById('fi_gov').value,center:document.getElementById('fi_center')?.value||null,branch_id:document.getElementById('fi_branch')?.value||null,trainee_id:document.getElementById('fi_trainee')?.value||null,visible_to_companies:document.getElementById('fi_consent').checked});
+  const row=await issuePayload({institution_id:inst.id,student_name:student,course,issue_date:date,acquisition_date:date,grade:document.getElementById('fi_grade').value,specialization:document.getElementById('fi_spec').value,duration:document.getElementById('fi_duration')?.value||'',student_phone:document.getElementById('fi_phone').value,student_email:email,student_national_id:national,governorate:document.getElementById('fi_gov').value,branch_id:document.getElementById('fi_branch')?.value||null,trainee_id:document.getElementById('fi_trainee')?.value||null,visible_to_companies:document.getElementById('fi_consent').checked});
     let accountResult=null;try{accountResult=await createGraduateAccountAfterIssue(row.cert_id);}catch(accountError){accountResult={success:false,message:'تم إصدار الشهادة، لكن تعذر إنشاء حساب الخريج تلقائيًا. '+String(accountError?.message||'')};}
     showRes(res,`✓ تم الإصدار بنجاح — رقم الشهادة: <strong>${row.cert_number}</strong> — <a href="certificate.html?id=${encodeURIComponent(row.cert_number)}" target="_blank" style="color:var(--blue)">عرض الشهادة ↗</a>`+graduateAccountResultHtml(accountResult),'ok');
     clearIssueForm(); await loadInst();
