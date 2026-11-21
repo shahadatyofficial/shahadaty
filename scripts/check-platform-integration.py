@@ -42,7 +42,7 @@ checks = {
         "get_public_digital_passport", "QRCode", "verify.html?cert=",
     ],
     "professional-profile.html": [
-        "get_public_professional_profile", "qualifications", "skills",
+        "get_public_professional_profile", "qualifications", "skills", "experiences",
     ],
     "supabase/functions/send-platform-notification-emails/index.ts": [
         "EMAIL_PROVIDER_NOT_CONFIGURED", "platform_notifications", "x-cron-secret",
