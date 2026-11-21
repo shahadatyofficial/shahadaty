@@ -550,9 +550,9 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       <div class="card">
         <div class="card-head"><span class="card-title">تصدير التقارير</span></div>
         <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap">
-          <button class="btn-p" onclick="exportReport('institutions')"><span class="material-symbols-outlined">download</span>تصدير المؤسسات</button>
-          <button class="btn-p" onclick="exportReport('certificates')"><span class="material-symbols-outlined">download</span>تصدير الشهادات</button>
-          <button class="btn-p" onclick="exportReport('companies')"><span class="material-symbols-outlined">download</span>تصدير الشركات</button>
+          <button class="btn-p" onclick="exportReport('institutions',this)"><span class="material-symbols-outlined">download</span>تصدير المؤسسات</button>
+          <button class="btn-p" onclick="exportReport('certificates',this)"><span class="material-symbols-outlined">download</span>تصدير الشهادات</button>
+          <button class="btn-p" onclick="exportReport('companies',this)"><span class="material-symbols-outlined">download</span>تصدير الشركات</button>
         </div>
       </div>
     </div>
@@ -1693,10 +1693,10 @@ async function loadReports(){
   document.getElementById('rep_rev').textContent=s.certificates??0;
   document.getElementById('rep_verify').textContent=s.active_certificates??0;
 }
-async function exportReport(table){
+async function exportReport(table,btn=null){
   const allowedTables=new Set(['institutions','certificates','companies']);
   if(!allowedTables.has(table)){toast('نوع التقرير غير مسموح','err');return;}
-  const btn=event?.currentTarget;if(btn){btn.disabled=true;btn.dataset.originalText=btn.textContent;btn.textContent='جارٍ تجهيز التقرير...';}
+  if(btn){btn.disabled=true;btn.dataset.originalText=btn.textContent;btn.textContent='جارٍ تجهيز التقرير...';}
   try{
     const rows=[];const pageSize=1000;let offset=0;
     while(true){
