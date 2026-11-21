@@ -928,12 +928,12 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
  <div class="workspace-reauth-box">
   <div style="font-size:30px;margin-bottom:8px">🔐</div>
   <h2 id="workspaceReauthTitle">تأكيد الهوية قبل الدخول</h2>
-  <p id="workspaceReauthDescription">أعد إدخال اسم المستخدم وكلمة المرور للتأكد من هويتك قبل فتح مساحة العمل. ستظل جلستك الحالية محفوظة.</p>
+  <p id="workspaceReauthDescription">استخدم حساب المالك أو اسم المستخدم وكلمة مرور الموظف. تسجيل الدخول هنا مستقل عن جلسة بوابة المؤسسة.</p>
   <form id="workspaceReauthForm">
    <div class="form-group"><label class="form-label" for="workspaceReauthIdentifier">البريد الإلكتروني للمالك أو اسم المستخدم للموظف</label><input class="form-inp" id="workspaceReauthIdentifier" autocomplete="username" required></div>
    <div class="form-group"><label class="form-label" for="workspaceReauthPassword">كلمة المرور</label><input class="form-inp" id="workspaceReauthPassword" type="password" autocomplete="current-password" required></div>
    <div class="login-err" id="workspaceReauthError" role="alert"></div>
-   <div class="workspace-reauth-actions"><button type="button" class="workspace-reauth-cancel" id="workspaceReauthCancel">إلغاء</button><button type="submit" class="workspace-reauth-submit" id="workspaceReauthSubmit">تأكيد والدخول</button></div>
+   <div class="workspace-reauth-actions"><button type="button" class="workspace-reauth-cancel" id="workspaceReauthCancel">إلغاء</button><button type="submit" class="workspace-reauth-submit" id="workspaceReauthSubmit">دخول البرنامج</button></div>
   </form>
  </div>
 </section>
@@ -1904,11 +1904,8 @@ function openWorkspaceReauth(action){
  const password=document.getElementById('workspaceReauthPassword');
  const error=document.getElementById('workspaceReauthError');
  const title=document.getElementById('workspaceReauthTitle');
- portalSb.auth.getUser().then(({data})=>{
-  const current=data?.user;
-  identifier.value=current?.email||'';
- });
- title.textContent=action==='certificates'?'تأكيد الهوية لدخول لوحة الشهادات':'تأكيد الهوية لدخول برنامج إدارة المؤسسة';
+ identifier.value='';
+ title.textContent=action==='certificates'?'تسجيل الدخول إلى لوحة إدارة الشهادات':'تسجيل الدخول إلى برنامج إدارة المؤسسة';
  password.value='';error.style.display='none';error.textContent='';
  overlay.classList.add('open');
  setTimeout(()=>identifier.focus(),50);
@@ -1929,42 +1926,55 @@ async function confirmWorkspaceReauth(event){
  if(!identifier||!password){error.textContent='أدخل اسم المستخدم وكلمة المرور.';error.style.display='block';return;}
  submit.disabled=true;submit.textContent='جارٍ التحقق...';
  try{
-  const {data:ownerData,error:ownerError}=await portalSb.auth.getUser();
-  if(ownerError||!ownerData?.user||!inst?.id)throw new Error('انتهت جلسة مالك المؤسسة. سجّل الدخول مرة أخرى.');
-  const ownerUser=ownerData.user;
-  if(ownerUser.app_metadata?.account_type==='institution_staff')throw new Error('بوابة المؤسسة متاحة للمالك فقط.');
-  const {data:authData,error:authError}=await workspaceSb.auth.signInWithPassword({
-   email:identifier.includes('@')?identifier.toLowerCase():identifier.toLowerCase()+'@staff.shahadaty.invalid',
-   password
-  });
+  // This client uses a separate storage key; the owner portal session is untouched.
+  await workspaceSb.auth.signOut({scope:'local'});
+  const loginEmail=identifier.includes('@')?identifier.toLowerCase():identifier.toLowerCase()+'@staff.shahadaty.invalid';
+  const {data:authData,error:authError}=await workspaceSb.auth.signInWithPassword({email:loginEmail,password});
   if(authError||!authData?.user)throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة.');
-  const candidate=authData.user;
+  const candidate=authData.user,isStaff=candidate.app_metadata?.account_type==='institution_staff';
+  let institutionId=isStaff?String(candidate.app_metadata?.institution_id||''):'';
+  if(!isStaff){
+   const {data:ownerMembership,error:ownerMembershipError}=await workspaceSb.from('institution_users')
+    .select('id,institution_id,role,status').eq('auth_user_id',candidate.id).eq('role','owner').eq('status','active').maybeSingle();
+   if(ownerMembershipError||!ownerMembership)throw new Error('هذا الحساب ليس مالك مؤسسة نشطًا.');
+   institutionId=ownerMembership.institution_id;
+  }
+  if(!institutionId)throw new Error('تعذر تحديد المؤسسة المرتبطة بهذا الحساب.');
   const {data:membership,error:membershipError}=await workspaceSb.from('institution_users')
    .select('id,institution_id,role,status').eq('auth_user_id',candidate.id)
-   .eq('institution_id',inst.id).eq('status','active').maybeSingle();
-  if(membershipError||!membership)throw new Error('هذا الحساب ليس عضوًا نشطًا في مؤسستك.');
-  const isOwner=membership.role==='owner'&&candidate.id===ownerUser.id;
-  const isStaff=candidate.app_metadata?.account_type==='institution_staff'&&candidate.app_metadata?.institution_id===inst.id&&membership.role!=='owner';
-  if(!isOwner&&!isStaff)throw new Error('هذا الحساب غير مخوّل لاستخدام مساحة عمل مؤسستك.');
+   .eq('institution_id',institutionId).eq('status','active').maybeSingle();
+  if(membershipError||!membership)throw new Error('هذا الحساب ليس عضوًا نشطًا في المؤسسة.');
+  const isOwner=membership.role==='owner'&&!isStaff;
+  if(isStaff&&membership.role==='owner')throw new Error('نوع حساب الموظف غير متوافق مع عضوية المالك.');
+  const {data:institution,error:institutionError}=await workspaceSb.from('institutions')
+   .select('*,packages(name,name_ar,quota_limit)').eq('id',institutionId).maybeSingle();
+  if(institutionError||!institution||institution.status!=='approved')throw new Error('المؤسسة غير متاحة حاليًا أو لم يتم اعتمادها.');
+  const {data:subscription,error:subscriptionError}=await workspaceSb.from('subscriptions')
+   .select('id,status,payment_status,amount,currency,billing_cycle,starts_at,ends_at,quota_limit,quota_used,packages(name)')
+   .eq('institution_id',institutionId).order('created_at',{ascending:false}).limit(1).maybeSingle();
+  if(subscriptionError)throw new Error('تعذر التحقق من اشتراك المؤسسة: '+subscriptionError.message);
+  inst={...institution,membershipRole:membership.role,membershipId:membership.id,currentSubscription:subscription||null};
+  if(subscription?.quota_limit!=null&&Number(subscription.quota_limit)>0)inst.quota_total=Number(subscription.quota_limit);
+  sb=workspaceSb;
   if(isStaff){
    const {data:scopes,error:scopeError}=await workspaceSb.from('institution_user_branches').select('branch_id').eq('institution_user_id',membership.id);
    if(scopeError)throw new Error('تعذر التحقق من الفروع المخصصة لحساب الموظف.');
    const branchIds=(scopes||[]).map(scope=>scope.branch_id).filter(Boolean);
-   if(!branchIds.length)throw new Error('لا توجد فروع مخصصة لهذا الحساب. راجع مالك المؤسسة.');
    const keys=action==='certificates'
     ?['certificates.view','certificates.issue','certificates.revoke']
     :['dashboard.view','branches.view','branches.manage','team.view','team.manage','trainees.view','trainees.manage','courses.view','courses.manage','certificates.view','certificates.issue','reports.view'];
    let permitted=false;
    for(const key of keys){
+    const {data:globalGrant,error:globalError}=await workspaceSb.rpc('institution_has_permission',{p_institution_id:institutionId,p_permission:key,p_branch_id:null});
+    if(!globalError&&globalGrant===true){permitted=true;break;}
     for(const branchId of branchIds){
-     const {data:allowed,error:permissionError}=await workspaceSb.rpc('institution_has_permission',{p_institution_id:inst.id,p_permission:key,p_branch_id:branchId});
-     if(!permissionError&&allowed===true){permitted=true;break;}
+     const {data:branchGrant,error:branchError}=await workspaceSb.rpc('institution_has_permission',{p_institution_id:institutionId,p_permission:key,p_branch_id:branchId});
+     if(!branchError&&branchGrant===true){permitted=true;break;}
     }
     if(permitted)break;
    }
    if(!permitted)throw new Error('لا توجد لديك صلاحية للدخول إلى هذا البرنامج. راجع مالك المؤسسة.');
   }
-  sb=workspaceSb;
   if(isStaff&&candidate.app_metadata?.must_change_password===true){
    document.getElementById('workspaceReauthOverlay').classList.remove('open');
    document.getElementById('workspaceReauthForm').reset();
@@ -1975,18 +1985,21 @@ async function confirmWorkspaceReauth(event){
   closeWorkspaceReauth();
   if(action==='certificates'){
    document.getElementById('institutionWorkspaceChooser').classList.remove('open');
+   document.getElementById('loginScreen').style.display='none';
+   await loadInstitutionBranches();
    await applyInstitutionCertificatePermissions();
    showPage('dashboard',document.querySelector('.sb-item[onclick*="dashboard"]'));
+   await loadDashboard();await loadCourses();
    window.scrollTo(0,0);
   }else if(action==='operations'){
    location.href='institution-workspace.html';
   }
  }catch(err){
-  error.textContent=err?.message||'تعذر تأكيد الهوية. حاول مرة أخرى.';
+  error.textContent=err?.message||'تعذر تسجيل الدخول. حاول مرة أخرى.';
   error.style.display='block';
   await workspaceSb.auth.signOut({scope:'local'});
  }finally{
-  submit.disabled=false;submit.textContent='تأكيد والدخول';
+  submit.disabled=false;submit.textContent='دخول البرنامج';
  }
 }
 document.getElementById('workspaceReauthForm').addEventListener('submit',confirmWorkspaceReauth);
