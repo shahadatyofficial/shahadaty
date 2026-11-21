@@ -249,7 +249,7 @@ async function loadCompanyJobs(){
  $('myJobs').innerHTML=jobError?esc(jobError.message):jobRows.map(j=>{
   const expired=!!j.expires_at&&new Date(j.expires_at).getTime()<=Date.now();
   const statusLabel=expired&&j.status==='approved'?'منتهي الصلاحية':j.status;
-  return '<div class="result"><div><b>'+esc(j.title)+'</b><div class="muted">'+esc(j.qualification_required||'المؤهل غير محدد')+' · '+esc(j.governorate||'كل المحافظات')+'</div>'+(j.expires_at?'<div class="muted">تاريخ الانتهاء: '+new Date(j.expires_at).toLocaleDateString('ar-EG')+'</div>':'')+'</div><div><span class="status">'+esc(statusLabel)+'</span> '+(!expired&&j.status==='approved'?'<button class="btn alt" type="button" onclick="matchCandidatesForJob(\\''+j.id+'\\')">مطابقة مرشحين</button>':'')+'</div></div>';
+  return '<div class="result"><div><b>'+esc(j.title)+'</b><div class="muted">'+esc(j.qualification_required||'المؤهل غير محدد')+' · '+esc(j.governorate||'كل المحافظات')+'</div>'+(j.expires_at?'<div class="muted">تاريخ الانتهاء: '+new Date(j.expires_at).toLocaleDateString('ar-EG')+'</div>':'')+'</div><div><span class="status">'+esc(statusLabel)+'</span> '+(!expired&&j.status==='approved'?'<button class="btn alt" type="button" onclick="matchCandidatesForJob(\''+j.id+'\')">مطابقة مرشحين</button>':'')+'</div></div>';
  }).join('')||'لا توجد إعلانات بعد.';
  const jobIds=jobRows.map(j=>j.id);
  if(jobError||!jobIds.length){
