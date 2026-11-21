@@ -148,11 +148,11 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 <div class="field"><label>المدرب المسجل</label><select id="runTrainer"><option value="">بدون ربط مدرب</option></select></div><div class="field"><label>اسم مدرب قديم (اختياري)</label><input id="runInstructor" placeholder="للمجموعات القديمة فقط"></div>
 <div class="field"><label>تاريخ البداية</label><input id="runStart" type="date"></div>
 <div class="field"><label>تاريخ النهاية</label><input id="runEnd" type="date"></div>
-<div class="field"><label>السعة</label><input id="runCapacity" type="number" min="1"></div>
+<div class="field"><label>السعة القصوى للمجموعة</label><input id="runCapacity" type="number" min="1" placeholder="مثال: 25"></div>
 <div class="field"><label>الحالة</label><select id="runStatus"><option value="planned">مخططة</option><option value="open">متاحة للتسجيل</option><option value="in_progress">جارية</option><option value="completed">مكتملة</option><option value="cancelled">ملغاة</option></select></div>
-</div><div class="actions"><button class="btn" id="addRunBtn">إنشاء المجموعة</button></div></div>
+</div><p class="muted">السعة هي أقصى عدد متدربين داخل هذه المجموعة فقط. التسجيل العام في الدورة لا يستهلك سعة مجموعة.</p><div class="actions"><button class="btn" id="addRunBtn">إنشاء المجموعة</button></div></div>
 <div class="card"><h2>إدارة المجموعات التدريبية</h2><div class="table-wrap"><table><thead><tr><th>المجموعة</th><th>الدورة</th><th>الفرع</th><th>المدرب</th><th>الفترة</th><th>السعة</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="runsRows"></tbody></table></div><p class="muted">يمكن تحديث حالة المجموعة وفق دورة التشغيل، دون حذف التسجيلات أو الحضور المرتبط بها.</p></div>
-<div class="card"><h2>جدول جلسات التدريب</h2><p class="muted">كل جلسة مرتبطة بمجموعة ومدرب وتاريخ ووقت محدد. الحضور الحالي يظل مسجلًا على مستوى تاريخ الجلسة، دون تغيير السجلات السابقة.</p><div class="grid">
+<div class="card"><h2>جدول جلسات التدريب</h2><p class="muted">كل جلسة ترتبط بمجموعة ومدرب وتاريخ ووقت. المنصة تنشئ رقم الجلسة تلقائيًا بالتتابع داخل المجموعة؛ وعند تسجيل الحضور تختار رقم الجلسة بدل كتابة رقم أو تاريخ يدويًا.</p><div class="grid">
 <div class="field"><label>المجموعة *</label><select id="sessionRun"></select></div>
 <div class="field"><label>عنوان الجلسة</label><input id="sessionTitle" placeholder="المحاضرة الأولى / تطبيق عملي"></div>
 <div class="field"><label>المدرب</label><select id="sessionTrainer"></select></div>
