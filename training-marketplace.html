@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="استكشف الدورات التدريبية المنشورة من المؤسسات المعتمدة على منصة شهادتي العلمية.">
+<title>سوق الدورات التدريبية | شهادتي العلمية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f7fb;color:#17334f;font-family:Cairo,Arial,sans-serif}.wrap{max-width:1180px;margin:28px auto;padding:16px}.hero{background:linear-gradient(125deg,#091b31,#124a75);color:#fff;border-radius:22px;padding:30px;box-shadow:0 16px 38px #0b29451c}.brand{color:#e7c77e;font-weight:900;font-size:13px}.hero h1{font-size:clamp(26px,4vw,40px);margin:10px 0}.hero p{color:#d5e4f0;max-width:700px;line-height:1.9}.filters{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;background:#fff;border:1px solid #e1eaf2;border-radius:16px;padding:14px;margin:18px 0}.field{width:100%;padding:12px;border:1px solid #d7e1ea;border-radius:10px;font:inherit;background:#fff;color:#17334f}.btn{border:0;border-radius:10px;background:#075985;color:#fff;padding:11px 18px;font:800 13px Cairo;cursor:pointer}.btn:disabled{opacity:.6;cursor:wait}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.course{background:#fff;border:1px solid #e1eaf2;border-radius:18px;padding:18px;box-shadow:0 7px 24px #17334f0a;display:flex;flex-direction:column;gap:10px;min-width:0}.inst{display:flex;align-items:center;gap:10px;color:#587087;font-size:12px;font-weight:800}.logo{width:42px;height:42px;border-radius:12px;object-fit:cover;background:#edf4f8}.course h2{font-size:19px;margin:2px 0;color:#102f4d}.muted{color:#6c7f91;font-size:12px;line-height:1.8}.tags{display:flex;gap:6px;flex-wrap:wrap}.tag{background:#edf6fc;color:#075985;border-radius:20px;padding:5px 9px;font-size:11px;font-weight:800}.details{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:3px 0}.detail{background:#f7fafc;border-radius:10px;padding:9px;font-size:12px}.price{font-weight:900;color:#9b742c;font-size:20px}.course .btn{margin-top:auto}.empty{background:#fff;border:1px dashed #cbd8e3;border-radius:16px;padding:35px;text-align:center;color:#6c7f91;grid-column:1/-1}.modal{position:fixed;inset:0;background:#071a35a8;display:none;align-items:center;justify-content:center;padding:16px;z-index:20}.modal.open{display:flex}.dialog{width:min(540px,100%);background:#fff;border-radius:18px;padding:22px;box-shadow:0 20px 70px #0003}.dialog h2{margin-top:0}.dialog label{display:block;font-size:13px;font-weight:700;margin:12px 0}.dialog textarea{min-height:90px;resize:vertical}.consent{display:flex!important;align-items:flex-start;gap:9px;line-height:1.8}.consent input{margin-top:6px}.msg{font-size:12px;margin-top:10px;min-height:20px}.footer{text-align:center;color:#8291a1;font-size:11px;padding:24px}@media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.filters{grid-template-columns:1fr 1fr}.filters input{grid-column:1/-1}}@media(max-width:560px){.wrap{margin:8px auto;padding:12px}.hero{padding:22px;border-radius:16px}.grid{grid-template-columns:1fr}.filters{grid-template-columns:1fr}.filters input{grid-column:auto}.details{grid-template-columns:1fr 1fr}}
+</style></head>
+<body><main class="wrap">
+<header class="hero"><div class="brand">شهادتي العلمية · فرص التعلم والتطوير</div><h1>سوق الدورات التدريبية</h1><p>اكتشف البرامج التدريبية المنشورة من المؤسسات المعتمدة، قارن المواعيد والتخصصات، وقدّم طلب الالتحاق مباشرة من حسابك.</p></header>
+<form id="filters" class="filters"><input class="field" id="query" placeholder="ابحث باسم الدورة أو التخصص أو المؤسسة"><select class="field" id="governorate"><option value="">كل المحافظات</option></select><select class="field" id="delivery"><option value="">كل طرق التدريب</option><option value="onsite">حضوري</option><option value="online">عن بُعد</option><option value="hybrid">هجين</option></select><button class="btn" type="submit">بحث</button></form>
+<section id="courses" class="grid" aria-live="polite"><div class="empty">جاري تحميل الدورات المتاحة...</div></section>
+<footer class="footer">شهادتي العلمية · نصنع المعرفة... نبني الحاضر... ونوثق المستقبل.</footer>
+</main>
+<div class="modal" id="applyModal" role="dialog" aria-modal="true" aria-labelledby="applyTitle"><div class="dialog"><h2 id="applyTitle">طلب الالتحاق بالدورة</h2><p id="applyCourseName" class="muted"></p><label>رسالة للمؤسسة (اختياري)<textarea id="applyMessage" class="field" maxlength="2000" placeholder="اكتب أي تفاصيل تساعد المؤسسة في متابعة طلبك"></textarea></label><label class="consent"><input id="contactConsent" type="checkbox"> أوافق على مشاركة اسمي ورقم هاتفي وبريدي الإلكتروني مع المؤسسة التي أتقدم إليها فقط لمتابعة طلب الالتحاق. لن يتم نشر هذه البيانات للعامة.</label><button id="submitApplication" class="btn" type="button">إرسال طلب الالتحاق</button><button id="closeModal" class="btn" type="button" style="background:#e8eef4;color:#23445f;margin-right:6px">إلغاء</button><div id="applyMsg" class="msg" role="status" aria-live="polite"></div></div></div>
+<script>
+const SU="https://snteiiavvaaumgaegazn.supabase.co";
+const SK="sb_publishable_H5Y6GXqz_wLVIHF9hYMQfw_KhaAN_ND";
+const sb=supabase.createClient(SU,SK);
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const governorates=['القاهرة','الجيزة','الإسكندرية','الدقهلية','البحر الأحمر','البحيرة','الفيوم','الغربية','الإسماعيلية','المنوفية','المنيا','القليوبية','الوادي الجديد','السويس','أسوان','أسيوط','بني سويف','بورسعيد','دمياط','جنوب سيناء','كفر الشيخ','مطروح','الأقصر','قنا','شمال سيناء','سوهاج','الشرقية'];
+let listings=[],selectedRunId=null;
+$('governorate').innerHTML='<option value="">كل المحافظات</option>'+governorates.map(x=>'<option>'+esc(x)+'</option>').join('');
+function dateLabel(value){return value?new Date(value+'T00:00:00').toLocaleDateString('ar-EG'):'يحدد لاحقًا';}
+function deliveryLabel(value){return({onsite:'حضوري',online:'عن بُعد',hybrid:'هجين'})[value]||'غير محدد';}
+function safeLogo(value){return /^https:\/\//i.test(String(value||''))?esc(value):'';}
+function renderCourses(){
+ const el=$('courses');
+ if(!listings.length){el.innerHTML='<div class="empty">لا توجد دورات منشورة تطابق بحثك حاليًا. جرّب تغيير التصفية أو العودة لاحقًا.</div>';return;}
+ el.innerHTML=listings.map(x=>'<article class="course"><div class="inst">'+(safeLogo(x.institution_logo_url)?'<img class="logo" src="'+safeLogo(x.institution_logo_url)+'" alt="">':'<div class="logo" style="display:grid;place-items:center">🎓</div>')+'<span>'+esc(x.institution_name)+'</span></div><h2>'+esc(x.course_name)+'</h2><div class="muted">'+esc(x.specialization||'تدريب مهني')+' · '+esc(x.duration||'المدة حسب البرنامج')+'</div><p class="muted">'+esc(x.public_description||'تفاصيل البرنامج متاحة من خلال المؤسسة.')+'</p><div class="tags"><span class="tag">'+deliveryLabel(x.delivery_mode)+'</span><span class="tag">'+esc(x.governorate||'مصر')+'</span>'+(x.branch_name?'<span class="tag">'+esc(x.branch_name)+'</span>':'')+'</div><div class="details"><div class="detail"><span class="muted">موعد البداية</span><br><b>'+dateLabel(x.start_date)+'</b></div><div class="detail"><span class="muted">موعد النهاية</span><br><b>'+dateLabel(x.end_date)+'</b></div></div><div class="price">'+(x.price_amount==null?'تواصل لمعرفة الرسوم':Number(x.price_amount).toLocaleString('ar-EG')+' '+esc(x.currency_code||'EGP'))+'</div><div class="muted">'+(x.capacity?'سعة المجموعة: '+Number(x.capacity).toLocaleString('ar-EG')+' متدرب':'السعة حسب تأكيد المؤسسة')+(x.registration_deadline?' · آخر موعد: '+dateLabel(x.registration_deadline):'')+'</div><button class="btn" type="button" data-apply="'+esc(x.course_run_id)+'">طلب الالتحاق</button></article>').join('');
+ el.querySelectorAll('[data-apply]').forEach(btn=>btn.addEventListener('click',()=>openApplication(btn.dataset.apply)));
+}
+async function loadCourses(){
+ $('courses').innerHTML='<div class="empty">جاري البحث عن الدورات...</div>';
+ const{data,error}=await sb.rpc('get_public_training_marketplace',{p_query:$('query').value.trim()||null,p_governorate:$('governorate').value||null,p_delivery_mode:$('delivery').value||null,p_limit:90});
+ if(error){$('courses').innerHTML='<div class="empty">تعذر تحميل سوق الدورات حاليًا. حاول مرة أخرى لاحقًا.</div>';return;}
+ listings=data||[];renderCourses();
+}
+function openApplication(id){
+ selectedRunId=id;const course=listings.find(x=>x.course_run_id===id);if(!course)return;
+ $('applyCourseName').textContent=course.course_name+' — '+course.institution_name;
+ $('applyMessage').value='';$('contactConsent').checked=false;$('applyMsg').textContent='';
+ $('applyModal').classList.add('open');
+}
+$('closeModal').onclick=()=>{$('applyModal').classList.remove('open');selectedRunId=null;};
+$('applyModal').addEventListener('click',e=>{if(e.target===$('applyModal'))$('closeModal').click();});
+$('submitApplication').onclick=async()=>{
+ const btn=$('submitApplication');if(!selectedRunId)return;
+ if(!$('contactConsent').checked){$('applyMsg').textContent='يجب الموافقة على مشاركة بيانات التواصل مع المؤسسة لمتابعة الطلب.';return;}
+ btn.disabled=true;btn.textContent='جارٍ إرسال الطلب...';
+ try{
+  const{data:{user}}=await sb.auth.getUser();
+  if(!user){$('applyMsg').textContent='سجّل الدخول من بوابة الخريج أولًا ثم ارجع لإرسال طلب الالتحاق.';return;}
+  const{error}=await sb.rpc('submit_training_marketplace_application',{p_course_run_id:selectedRunId,p_applicant_message:$('applyMessage').value.trim()||null,p_contact_sharing_consent:true});
+  if(error){const code=String(error.message||'');const messages=[['APPLICATION_ALREADY_EXISTS','سبق أن أرسلت طلبًا لهذه المجموعة.'],['COURSE_NOT_AVAILABLE','لم يعد التسجيل متاحًا في هذه المجموعة.'],['COURSE_CAPACITY_REACHED','اكتمل العدد المتاح للمجموعة.'],['GRADUATE_PROFILE_REQUIRED','يجب أن يكون لديك ملف خريج معتمد لإرسال الطلب.']];const match=messages.find(([k])=>code.includes(k));throw new Error(match?.[1]||'تعذر إرسال الطلب: '+code);}
+  $('applyMsg').textContent='تم إرسال طلب الالتحاق بنجاح. يمكنك متابعة حالته من بوابة الخريج.';
+  btn.textContent='تم الإرسال';setTimeout(()=>$('closeModal').click(),1400);
+ }catch(error){$('applyMsg').textContent=error.message||'حدث خطأ أثناء إرسال الطلب.';}
+ finally{btn.disabled=false;if(btn.textContent!=='تم الإرسال')btn.textContent='إرسال طلب الالتحاق';}
+};
+$('filters').addEventListener('submit',e=>{e.preventDefault();loadCourses();});
+loadCourses();
+</script>
+</body></html>
