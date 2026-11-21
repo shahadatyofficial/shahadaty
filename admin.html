@@ -344,6 +344,10 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     </div>
     <!-- OVERVIEW -->
     <div class="page active" id="page-overview">
+      <div class="card" style="margin:18px 0;border:1px solid #d9e6f2;background:linear-gradient(120deg,#f8fbff,#fff)">
+        <div class="card-head"><span class="card-title"><span class="material-symbols-outlined" style="vertical-align:middle;color:#1676b8">auto_awesome</span> المساعد الذكي للإدارة</span><button class="btn-p" type="button" id="runAdminAiInsights"><span class="material-symbols-outlined">analytics</span> تحليل وضع المنصة</button></div>
+        <div class="card-body"><p style="font-size:12px;color:var(--muted);line-height:1.9">يحلل المؤشرات الإجمالية للمؤسسات والاشتراكات والتدريب والشهادات والخريجين والشركات والدعم، دون إرسال أسماء أو أرقام هواتف أو بيانات سجلات فردية إلى خدمة الذكاء الاصطناعي.</p><div id="adminAiInsightsStatus" role="status" aria-live="polite" style="font-size:12px;color:var(--muted)">اضغط «تحليل وضع المنصة» للحصول على ملخص تنفيذي وأولويات العمل.</div><div id="adminAiInsightsResult" style="white-space:pre-wrap;line-height:2;font-size:13px;color:var(--navy);margin-top:12px"></div></div>
+      </div>
       <div class="stats-row">
         <div class="stat-card">
           <div class="sc-top"><div class="sc-icon" style="background:#eff6ff"><span class="material-symbols-outlined" style="color:#0369a1">business</span></div><div class="sc-trend"><span class="material-symbols-outlined">trending_up</span>+12%</div></div>
@@ -1738,6 +1742,19 @@ async function openDoc(path){const tab=window.open('about:blank','_blank');if(!t
 function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=type==='ok'?'#0369a1':'#dc2626';t.style.display='block';setTimeout(()=>t.style.display='none',3500);}
 
 // ── INIT ──────────────────────────────────────────────────────
+async function runAdminAiInsights(){
+ const btn=document.getElementById('runAdminAiInsights'),status=document.getElementById('adminAiInsightsStatus'),result=document.getElementById('adminAiInsightsResult');
+ if(!btn||!status||!result)return;
+ btn.disabled=true;btn.textContent='جارٍ تحليل المؤشرات...';status.textContent='جارٍ التحقق من صلاحية الإدارة وتجميع المؤشرات الإجمالية...';result.textContent='';
+ try{
+  const{data,error}=await sb.functions.invoke('shahadaty-ai-assistant',{body:{task:'admin_insights'}});
+  if(error)throw error;
+  if(!data?.text)throw new Error(data?.error||'لم يصل تقرير من المساعد الذكي.');
+  result.textContent=data.text;status.textContent='تم إنشاء التقرير من مؤشرات مجمعة فقط. راجع التوصيات قبل اتخاذ أي إجراء.';
+ }catch(error){status.textContent='تعذر إنشاء التقرير: '+String(error?.message||error);result.textContent='تأكد من اتصال الإنترنت وإعداد خدمة الذكاء الاصطناعي، ثم حاول مرة أخرى.';}
+ finally{btn.disabled=false;btn.innerHTML='<span class="material-symbols-outlined">analytics</span> تحليل وضع المنصة';}
+}
+document.getElementById('runAdminAiInsights')?.addEventListener('click',runAdminAiInsights);
 window.addEventListener('load',async()=>{
   const{data:{session}}=await sb.auth.getSession();
   if(!session)return;
