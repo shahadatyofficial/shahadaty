@@ -944,7 +944,9 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 <script>
 const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
-const sb=supabase.createClient(SU,SK);
+const portalSb=supabase.createClient(SU,SK);
+const workspaceSb=supabase.createClient(SU,SK,{auth:{storageKey:'shahadaty-institution-workspace-auth',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+let sb=portalSb;
 window.initEgyptLocationSelects([{governorateId:'fi_gov',centerId:'fi_center'},{governorateId:'mi_gov',centerId:'mi_center'}]);
 let inst=null, allCerts=[], bulkData=[], lineChart=null, donutChart=null, institutionBranches=[], institutionAllBranches=[], institutionTrainees=[];
 
@@ -977,11 +979,20 @@ async function doLogin(){
   }else{
     err.textContent='أدخل البريد الإلكتروني المعتمد للمؤسسة أو اسم المستخدم للموظف بشكل صحيح';err.style.display='block';btn.disabled=false;btn.innerHTML='<span class="material-symbols-outlined">login</span> دخول';return;
   }
-  const{error}=await sb.auth.signInWithPassword(credentials);
+  const{data:authData,error}=await portalSb.auth.signInWithPassword(credentials);
   btn.disabled=false;
   btn.innerHTML='<span class="material-symbols-outlined">login</span> دخول';
-  if(error){err.textContent='بيانات الدخول غير صحيحة أو لم يتم تأكيد وسيلة الدخول بعد';err.style.display='block';return;}
-  if(await showStaffPasswordChangeIfRequired())return;
+  if(error||!authData?.user){err.textContent='بيانات الدخول غير صحيحة أو لم يتم تأكيد وسيلة الدخول بعد';err.style.display='block';return;}
+  if(authData.user.app_metadata?.account_type==='institution_staff'){
+    await portalSb.auth.signOut({scope:'local'});
+    err.textContent='حساب الموظف لا يدخل بوابة المؤسسة. يجب على المالك الدخول أولاً، ثم يفتح الموظف البرنامج المسموح له من كارت مساحة العمل.';err.style.display='block';return;
+  }
+  const {data:ownedInstitution,error:ownerLookupError}=await portalSb.from('institutions').select('id').eq('auth_user_id',authData.user.id).maybeSingle();
+  if(ownerLookupError||!ownedInstitution){
+    await portalSb.auth.signOut({scope:'local'});
+    err.textContent='بوابة المؤسسة مخصصة لمالك المؤسسة المسجل فقط.';err.style.display='block';return;
+  }
+  sb=portalSb;
   await loadInst();
 }
 async function showStaffPasswordChangeIfRequired(){
@@ -999,24 +1010,31 @@ async function completeStaffPasswordChange(){
  if(password!==confirmPassword){msg.textContent='تأكيد كلمة المرور غير مطابق.';msg.style.display='block';return;}
  const btn=document.querySelector('#staffPasswordChangeScreen .btn-login');btn.disabled=true;btn.textContent='جارٍ حفظ كلمة المرور...';
  try{
-  const {error:passwordError}=await sb.auth.updateUser({password});if(passwordError)throw passwordError;
-  const {data:completed,error:completionError}=await sb.rpc('complete_institution_staff_password_change');
+  const {error:passwordError}=await workspaceSb.auth.updateUser({password});if(passwordError)throw passwordError;
+  const {data:completed,error:completionError}=await workspaceSb.rpc('complete_institution_staff_password_change');
   if(completionError||completed!==true)throw completionError||new Error('تعذر تأكيد تغيير كلمة المرور. حاول مرة أخرى.');
   document.getElementById('staffPasswordChangeScreen').hidden=true;document.getElementById('staffPasswordChangeScreen').style.display='none';
-  await loadInst();
+  const action=pendingInstitutionWorkspaceAction;
+  if(action==='operations'){location.href='institution-workspace.html';return;}
+  sb=workspaceSb;
+  await applyInstitutionCertificatePermissions();
+  showPage('dashboard',document.querySelector('.sb-item[onclick*="dashboard"]'));
+  window.scrollTo(0,0);
  }catch(error){msg.textContent='تعذر حفظ كلمة المرور: '+(error.message||'خطأ غير معروف');msg.style.display='block';}
  finally{btn.disabled=false;btn.textContent='حفظ كلمة المرور والمتابعة';}
 }
 async function loadInst(){
-  const{data:{user}}=await sb.auth.getUser();
+  const{data:{user}}=await portalSb.auth.getUser();
   if(!user)return;
-  let institutionId=null;
-  const{data:membership,error:membershipError}=await sb.from('institution_users').select('id,institution_id,role,status').eq('auth_user_id',user.id).eq('status','active').order('created_at',{ascending:true}).limit(1).maybeSingle();
-  if(membershipError){toast('تعذر التحقق من عضوية المؤسسة: '+membershipError.message,'err');return;}
-  if(membership)institutionId=membership.institution_id;
-  let query=sb.from('institutions').select('*,packages(name,name_ar,quota_limit)');
-  if(institutionId)query=query.eq('id',institutionId);else query=query.eq('auth_user_id',user.id);
-  const{data,error}=await query.maybeSingle();
+  if(user.app_metadata?.account_type==='institution_staff'){
+    await portalSb.auth.signOut({scope:'local'});
+    document.getElementById('loginErr').textContent='حساب الموظف غير مسموح له بدخول بوابة المؤسسة. استخدم بياناته من كارت البرنامج بعد دخول المالك.';
+    document.getElementById('loginErr').style.display='block';return;
+  }
+  const{data:membership,error:membershipError}=await portalSb.from('institution_users').select('id,institution_id,role,status').eq('auth_user_id',user.id).eq('role','owner').eq('status','active').order('created_at',{ascending:true}).limit(1).maybeSingle();
+  if(membershipError){toast('تعذر التحقق من ملكية المؤسسة: '+membershipError.message,'err');return;}
+  if(!membership){document.getElementById('loginErr').textContent='بوابة المؤسسة متاحة لمالك المؤسسة المسجل فقط.';document.getElementById('loginErr').style.display='block';await portalSb.auth.signOut({scope:'local'});return;}
+  const{data,error}=await portalSb.from('institutions').select('*,packages(name,name_ar,quota_limit)').eq('id',membership.institution_id).eq('auth_user_id',user.id).maybeSingle();
   if(error||!data){document.getElementById('loginErr').textContent='لا يوجد حساب مؤسسة نشط مرتبط بهذا المستخدم. تواصل مع مسؤول المؤسسة.';document.getElementById('loginErr').style.display='block';await sb.auth.signOut();return;}
   if(data.status==='rejected'){
     const box=document.querySelector('#loginScreen .login-box');
@@ -1885,12 +1903,9 @@ function openWorkspaceReauth(action){
  const password=document.getElementById('workspaceReauthPassword');
  const error=document.getElementById('workspaceReauthError');
  const title=document.getElementById('workspaceReauthTitle');
- const {data:{user}}=sb.auth.getUser ? {data:{user:null}} : {data:{user:null}};
- sb.auth.getUser().then(({data})=>{
+ portalSb.auth.getUser().then(({data})=>{
   const current=data?.user;
-  identifier.value=current?.app_metadata?.account_type==='institution_staff'
-   ?String(current.email||'').split('@')[0]
-   :(current?.email||'');
+  identifier.value=current?.email||'';
  });
  title.textContent=action==='certificates'?'تأكيد الهوية لدخول لوحة الشهادات':'تأكيد الهوية لدخول برنامج إدارة المؤسسة';
  password.value='';error.style.display='none';error.textContent='';
@@ -1908,22 +1923,52 @@ async function confirmWorkspaceReauth(event){
  const password=document.getElementById('workspaceReauthPassword').value;
  const error=document.getElementById('workspaceReauthError');
  const submit=document.getElementById('workspaceReauthSubmit');
+ const action=pendingInstitutionWorkspaceAction;
  error.style.display='none';
  if(!identifier||!password){error.textContent='أدخل اسم المستخدم وكلمة المرور.';error.style.display='block';return;}
  submit.disabled=true;submit.textContent='جارٍ التحقق...';
- let temporaryClient=null;
  try{
-  const {data:{user:activeUser},error:activeError}=await sb.auth.getUser();
-  if(activeError||!activeUser)throw new Error('انتهت جلستك الحالية. سجل الدخول مرة أخرى.');
-  let email;
-  if(identifier.includes('@'))email=identifier.toLowerCase();
-  else if(/^[a-z][a-z0-9._-]{2,29}$/i.test(identifier))email=identifier.toLowerCase()+'@staff.shahadaty.invalid';
-  else throw new Error('أدخل البريد الإلكتروني للمالك أو اسم المستخدم الصحيح للموظف.');
-  temporaryClient=supabase.createClient(SU,SK,{auth:{autoRefreshToken:false,persistSession:false,detectSessionInUrl:false,storageKey:'shahadaty-card-reauth-temp'}});
-  const {data,error:authError}=await temporaryClient.auth.signInWithPassword({email,password});
-  if(authError||!data?.user)throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة.');
-  if(data.user.id!==activeUser.id)throw new Error('بيانات الدخول لا تخص الحساب المفتوح حاليًا. استخدم بيانات حسابك نفسه.');
-  const action=pendingInstitutionWorkspaceAction;
+  const {data:ownerData,error:ownerError}=await portalSb.auth.getUser();
+  if(ownerError||!ownerData?.user||!inst?.id)throw new Error('انتهت جلسة مالك المؤسسة. سجّل الدخول مرة أخرى.');
+  const ownerUser=ownerData.user;
+  if(ownerUser.app_metadata?.account_type==='institution_staff')throw new Error('بوابة المؤسسة متاحة للمالك فقط.');
+  const {data:authData,error:authError}=await workspaceSb.auth.signInWithPassword({
+   email:identifier.includes('@')?identifier.toLowerCase():identifier.toLowerCase()+'@staff.shahadaty.invalid',
+   password
+  });
+  if(authError||!authData?.user)throw new Error('اسم المستخدم أو كلمة المرور غير صحيحة.');
+  const candidate=authData.user;
+  const {data:membership,error:membershipError}=await workspaceSb.from('institution_users')
+   .select('id,institution_id,role,status').eq('auth_user_id',candidate.id)
+   .eq('institution_id',inst.id).eq('status','active').maybeSingle();
+  if(membershipError||!membership)throw new Error('هذا الحساب ليس عضوًا نشطًا في مؤسستك.');
+  const isOwner=membership.role==='owner'&&candidate.id===ownerUser.id;
+  const isStaff=candidate.app_metadata?.account_type==='institution_staff'&&candidate.app_metadata?.institution_id===inst.id&&membership.role!=='owner';
+  if(!isOwner&&!isStaff)throw new Error('هذا الحساب غير مخوّل لاستخدام مساحة عمل مؤسستك.');
+  if(isStaff){
+   const {data:branches,error:branchError}=await workspaceSb.from('institution_branches').select('id').eq('institution_id',inst.id).eq('is_active',true);
+   if(branchError)throw new Error('تعذر التحقق من نطاق فروع الموظف.');
+   const branchIds=[null,...(branches||[]).map(b=>b.id)];
+   const keys=action==='certificates'
+    ?['certificates.view','certificates.issue','certificates.revoke']
+    :['dashboard.view','branches.view','branches.manage','team.view','team.manage','trainees.view','trainees.manage','courses.view','courses.manage','certificates.view','certificates.issue','reports.view'];
+   let permitted=false;
+   for(const key of keys){
+    for(const branchId of branchIds){
+     const {data:allowed,error:permissionError}=await workspaceSb.rpc('institution_has_permission',{p_institution_id:inst.id,p_permission:key,p_branch_id:branchId});
+     if(!permissionError&&allowed===true){permitted=true;break;}
+    }
+    if(permitted)break;
+   }
+   if(!permitted)throw new Error('لا توجد لديك صلاحية للدخول إلى هذا البرنامج. راجع مالك المؤسسة.');
+  }
+  sb=workspaceSb;
+  if(isStaff&&candidate.app_metadata?.must_change_password===true){
+   closeWorkspaceReauth();
+   document.getElementById('loginScreen').style.display='none';
+   const screen=document.getElementById('staffPasswordChangeScreen');screen.hidden=false;screen.style.display='grid';
+   return;
+  }
   closeWorkspaceReauth();
   if(action==='certificates'){
    document.getElementById('institutionWorkspaceChooser').classList.remove('open');
@@ -1936,8 +1981,8 @@ async function confirmWorkspaceReauth(event){
  }catch(err){
   error.textContent=err?.message||'تعذر تأكيد الهوية. حاول مرة أخرى.';
   error.style.display='block';
+  await workspaceSb.auth.signOut({scope:'local'});
  }finally{
-  if(temporaryClient){try{await temporaryClient.auth.signOut({scope:'local'});}catch(_){}}
   submit.disabled=false;submit.textContent='تأكيد والدخول';
  }
 }
@@ -1949,8 +1994,8 @@ document.getElementById('openInstitutionProgram').addEventListener('click',()=>o
 // ── Init ─────────────────────────────────────────────────────────
 window.addEventListener('load',async()=>{
   document.getElementById('dateRange').textContent=new Date().toLocaleDateString('ar-EG',{year:'numeric',month:'long'});
-  const{data:{session}}=await sb.auth.getSession();
-  if(session){if(!(await showStaffPasswordChangeIfRequired()))await loadInst();}
+  const{data:{session}}=await portalSb.auth.getSession();
+  if(session){sb=portalSb;await loadInst();}
 });
 </script>
 </body>
