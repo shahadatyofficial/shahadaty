@@ -434,3 +434,143 @@ end;
 $$;
 
 revoke all on function public.assign_institution_course_session_number() from public, anon, authenticated;
+
+
+-- Allow certificate issuance for course-level enrollments without a training group.
+CREATE OR REPLACE FUNCTION public.issue_certificate(p_payload jsonb)
+ RETURNS TABLE(cert_id uuid, cert_number text)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_uid uuid := (select auth.uid());
+  v_inst uuid := nullif(p_payload->>'institution_id','')::uuid;
+  v_branch uuid := nullif(p_payload->>'branch_id','')::uuid;
+  v_course uuid := nullif(p_payload->>'course_id','')::uuid;
+  v_trainee uuid := nullif(p_payload->>'trainee_id','')::uuid;
+  v_enrollment_id uuid := nullif(p_payload->>'enrollment_id','')::uuid;
+  v_enrollment public.institution_enrollments%rowtype;
+  v_existing public.certificates%rowtype;
+  v_inst_row public.institutions%rowtype;
+  v_sub public.subscriptions%rowtype;
+  v_id uuid;
+  v_number text;
+  v_acquisition_date date := coalesce(nullif(p_payload->>'acquisition_date','')::date,nullif(p_payload->>'issue_date','')::date);
+begin
+  if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
+  if v_inst is null then raise exception 'INSTITUTION_REQUIRED'; end if;
+  if not public.institution_has_permission(v_inst,'certificates.issue',v_branch) then
+    raise exception 'NOT_ALLOWED';
+  end if;
+
+  select i.* into v_inst_row from public.institutions i
+  where i.id=v_inst for update;
+  if not found then raise exception 'INSTITUTION_NOT_FOUND'; end if;
+  if v_inst_row.status<>'approved' then raise exception 'INSTITUTION_NOT_APPROVED'; end if;
+
+  if v_branch is not null and not exists (
+    select 1 from public.institution_branches b
+    where b.id=v_branch and b.institution_id=v_inst and b.is_active
+  ) then raise exception 'INVALID_BRANCH'; end if;
+
+  if v_course is not null and not exists (
+    select 1 from public.institution_courses c
+    where c.id=v_course and c.institution_id=v_inst and c.is_active
+      and (c.branch_id is null or c.branch_id is not distinct from v_branch)
+  ) then raise exception 'INVALID_COURSE'; end if;
+
+  if v_trainee is not null and not exists (
+    select 1 from public.institution_trainees t
+    where t.id=v_trainee and t.institution_id=v_inst and t.status='active'
+      and t.branch_id is not distinct from v_branch
+  ) then raise exception 'INVALID_TRAINEE'; end if;
+
+  if v_enrollment_id is not null then
+    select e.* into v_enrollment
+    from public.institution_enrollments e
+    where e.id=v_enrollment_id and e.institution_id=v_inst
+    for update;
+
+    if not found or v_enrollment.status<>'completed' then
+      raise exception 'TRAINING_NOT_COMPLETED' using errcode='23514';
+    end if;
+
+    if v_enrollment.trainee_id is distinct from v_trainee then
+      raise exception 'ENROLLMENT_MISMATCH' using errcode='23514';
+    end if;
+
+    if v_enrollment.course_run_id is not null then
+      if not exists (
+        select 1
+        from public.institution_course_runs r
+        where r.id=v_enrollment.course_run_id
+          and r.institution_id=v_inst
+          and r.branch_id is not distinct from v_branch
+          and r.course_id is not distinct from v_course
+      ) then
+        raise exception 'ENROLLMENT_MISMATCH' using errcode='23514';
+      end if;
+    elsif v_enrollment.course_id is distinct from v_course then
+      raise exception 'ENROLLMENT_MISMATCH' using errcode='23514';
+    end if;
+
+    select c.* into v_existing
+    from public.certificates c
+    where c.enrollment_id=v_enrollment_id
+    limit 1;
+
+    if found then
+      return query select v_existing.id,v_existing.cert_number;
+      return;
+    end if;
+  end if;
+
+  select s.* into v_sub from public.subscriptions s
+  left join public.packages p on p.id=s.package_id
+  where s.institution_id=v_inst and s.status='active'
+    and (s.starts_at is null or s.starts_at<=now())
+    and (s.ends_at is null or s.ends_at>now())
+    and (s.payment_status='paid' or (coalesce(s.amount,0)=0 and p.name='trial'))
+  order by s.created_at desc limit 1 for update of s;
+  if not found then raise exception 'SUBSCRIPTION_INACTIVE_OR_UNPAID'; end if;
+  if v_sub.quota_used>=v_sub.quota_limit or v_inst_row.quota_used>=v_inst_row.quota_total then
+    raise exception 'QUOTA_EXCEEDED';
+  end if;
+  if coalesce(trim(p_payload->>'student_name'),'')='' or coalesce(trim(p_payload->>'course'),'')='' or v_acquisition_date is null then
+    raise exception 'REQUIRED_FIELDS';
+  end if;
+  if nullif(trim(p_payload->>'student_email'),'') is not null
+     and position('@' in trim(p_payload->>'student_email'))=0 then
+    raise exception 'INVALID_STUDENT_EMAIL';
+  end if;
+
+  v_number:=public.generate_certificate_number();
+  insert into public.certificates(
+    institution_id,branch_id,trainee_id,course_id,enrollment_id,cert_number,student_name,student_name_en,
+    student_national_id,student_phone,student_email,course,specialization,issue_date,
+    acquisition_date,expiry_date,grade,grade_value,duration,governorate,center,pdf_url,
+    qr_code,visible_to_companies,consent_given_at,status,added_by
+  ) values (
+    v_inst,v_branch,v_trainee,v_course,v_enrollment_id,v_number,trim(p_payload->>'student_name'),
+    nullif(trim(p_payload->>'student_name_en'),''),nullif(trim(p_payload->>'student_national_id'),''),
+    nullif(trim(p_payload->>'student_phone'),''),nullif(lower(trim(p_payload->>'student_email')),''),
+    trim(p_payload->>'course'),nullif(trim(p_payload->>'specialization'),''),current_date,
+    v_acquisition_date,nullif(p_payload->>'expiry_date','')::date,
+    nullif(trim(p_payload->>'grade'),''),nullif(p_payload->>'grade_value','')::numeric,
+    nullif(trim(p_payload->>'duration'),''),nullif(trim(p_payload->>'governorate'),''), 
+    nullif(trim(p_payload->>'center'),''),nullif(trim(p_payload->>'pdf_url'),''),
+    nullif(trim(p_payload->>'qr_code'),''),coalesce((p_payload->>'visible_to_companies')::boolean,false),
+    case when coalesce((p_payload->>'visible_to_companies')::boolean,false) then now() else null end,
+    'active','institution'
+  ) returning id into v_id;
+
+  update public.institutions set quota_used=quota_used+1,updated_at=now() where id=v_inst;
+  update public.subscriptions set quota_used=quota_used+1,updated_at=now() where id=v_sub.id;
+  insert into public.activity_log(actor_id,actor_type,action,target_type,target_id,details)
+  values(v_uid,'institution','certificate_issued','certificate',v_id,
+    jsonb_build_object('cert_number',v_number,'institution_id',v_inst,'branch_id',v_branch,'enrollment_id',v_enrollment_id)::text);
+  return query select v_id,v_number;
+end;
+$function$
+
