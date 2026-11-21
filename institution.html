@@ -1015,6 +1015,7 @@ async function completeStaffPasswordChange(){
   if(completionError||completed!==true)throw completionError||new Error('تعذر تأكيد تغيير كلمة المرور. حاول مرة أخرى.');
   document.getElementById('staffPasswordChangeScreen').hidden=true;document.getElementById('staffPasswordChangeScreen').style.display='none';
   const action=pendingInstitutionWorkspaceAction;
+  pendingInstitutionWorkspaceAction=null;
   if(action==='operations'){location.href='institution-workspace.html';return;}
   sb=workspaceSb;
   await applyInstitutionCertificatePermissions();
@@ -1964,7 +1965,8 @@ async function confirmWorkspaceReauth(event){
   }
   sb=workspaceSb;
   if(isStaff&&candidate.app_metadata?.must_change_password===true){
-   closeWorkspaceReauth();
+   document.getElementById('workspaceReauthOverlay').classList.remove('open');
+   document.getElementById('workspaceReauthForm').reset();
    document.getElementById('loginScreen').style.display='none';
    const screen=document.getElementById('staffPasswordChangeScreen');screen.hidden=false;screen.style.display='grid';
    return;
