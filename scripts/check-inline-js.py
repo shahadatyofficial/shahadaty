@@ -8,7 +8,7 @@ PAGES = [
     "index.html", "admin.html", "institution.html", "register.html",
     "packages.html", "verify.html", "certificate.html", "institution-certificate.html",
     "graduate.html", "talent.html", "company.html", "institution-workspace.html",
-    "institution-directory.html", "professional-profile.html", "training-marketplace.html",
+    "institution-directory.html", "professional-profile.html", "training-marketplace.html", "digital-passport.html",
 ]
 
 class PageMetadata(HTMLParser):
