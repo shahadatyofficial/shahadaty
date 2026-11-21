@@ -36,7 +36,7 @@ checks = {
         "get_public_training_marketplace", "submit_training_marketplace_application", "contactConsent",
     ],
     "professional-profile.html": [
-        "get_public_professional_profile", "public_profile_consent", "qualifications", "skills",
+        "get_public_professional_profile", "qualifications", "skills",
     ],
     "company.html": [
         "search_alumni_for_company", "alumni_access_requests",
