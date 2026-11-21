@@ -772,29 +772,6 @@ $('bulkEnrollSelectedBtn').addEventListener('click',async()=>{
  say('تم تسجيل '+done+' متدرب. المكرر/المتجاوز: '+skipped+'. الأخطاء: '+failed.length+(failed.length?' — '+failed.slice(0,3).join(' | '):''),failed.length?'error':'success');
  await loadEnrollments();
 });
-function updateBulkSelectionCount(){
- const count=$('traineesRows').querySelectorAll('[data-select-trainee]:checked').length;
- $('bulkEnrollSelectionCount').textContent=count?('تم تحديد '+count+' متدرب'):'لم يتم تحديد متدربين';
-}
-$('bulkEnrollSelectedBtn').addEventListener('click',async()=>{
- const ids=[...$('traineesRows').querySelectorAll('[data-select-trainee]:checked')].map(x=>x.dataset.selectTrainee);
- const courseId=$('bulkEnrollCourse').value,course=courses.find(c=>c.id===courseId),useGroup=$('bulkEnrollInGroup').checked,run=useGroup?courseRuns.find(r=>r.id===$('bulkEnrollGroup').value):null;
- if(!ids.length)return say('حدد متدربًا واحدًا على الأقل من السجل.','error');
- if(!course)return say('اختر الدورة أولاً.','error');
- if(useGroup&&(!run||run.course_id!==courseId||!['open','in_progress'].includes(run.status)))return say('اختر مجموعة مفتوحة تابعة للدورة المحددة.','error');
- let done=0,skipped=0,failed=[];
- for(const id of ids){
-  const trainee=institutionTraineeRows.find(t=>t.id===id);if(!trainee){skipped++;continue;}
-  if(run&&(run.branch_id||null)!==(trainee.branch_id||null)){failed.push(trainee.full_name+': الفرع لا يطابق المجموعة');continue;}
-  const branchId=run?.branch_id||trainee.branch_id||course.branch_id||null;
-  if(!await allowed('trainees.manage',branchId)){failed.push(trainee.full_name+': لا توجد صلاحية');continue;}
-  const {error}=await sb.from('institution_enrollments').insert({institution_id:org.id,course_id:courseId,course_run_id:run?.id||null,trainee_id:id,status:'enrolled'});
-  if(error){if(error.code==='23505'){skipped++;continue;}failed.push(trainee.full_name+': '+error.message);continue;}
-  done++;
- }
- say('تم تسجيل '+done+' متدرب. المكرر/المتجاوز: '+skipped+'. الأخطاء: '+failed.length+(failed.length?' — '+failed.slice(0,3).join(' | '):''),failed.length?'error':'success');
- await loadEnrollments();
-});
 let institutionTraineeRows=[],editingTraineeId=null;
 const traineeStatusLabels={active:'نشط',inactive:'غير نشط',archived:'مؤرشف'};
 async function loadTrainees(){
@@ -960,10 +937,10 @@ async function loadEnrollments(){
  $('enrollmentsRows').querySelectorAll('[data-issue-certificate]').forEach(btn=>btn.addEventListener('click',()=>issueEnrollmentCertificate(btn.dataset.issueCertificate)));
 }
 async function completeEnrollment(id){
- const e=enrollmentActionData.get(id),run=e?.institution_course_runs||{};
+ const e=enrollmentActionData.get(id),run=e?.institution_course_runs||{},trainee=e?.institution_trainees||{},course=e?.institution_courses||{},branchId=run.branch_id||trainee.branch_id||course.branch_id||null;
  if(!e)return say('تعذر تحميل بيانات التسجيل. حدّث الصفحة وحاول مرة أخرى.','error');
  if(e.status==='completed')return say('التسجيل مكتمل بالفعل.','info');
- if(!await allowed('trainees.manage',run.branch_id||null))return say('ليس لديك صلاحية اعتماد إتمام التدريب لهذا الفرع.','error');
+ if(!await allowed('trainees.manage',branchId))return say('ليس لديك صلاحية اعتماد إتمام التدريب لهذا الفرع.','error');
  if(!confirm('تأكيد اعتماد إتمام تدريب '+(e.institution_trainees?.full_name||'المتدرب')+'؟'))return;
  const {error}=await sb.from('institution_enrollments').update({status:'completed',completed_at:new Date().toISOString()}).eq('id',id).eq('institution_id',org.id);
  if(error){const m=String(error.message||'');if(m.includes('TRAINING_SESSIONS_INCOMPLETE'))return say('لا يمكن اعتماد الإتمام قبل تحويل كل جلسات المجموعة إلى «منفذة».','error');if(m.includes('TRAINING_ATTENDANCE_INCOMPLETE'))return say('لا يمكن اعتماد الإتمام قبل تسجيل حضور أو غياب المتدرب في كل تواريخ الجلسات.','error');return say('تعذر اعتماد الإتمام: '+m,'error');}
