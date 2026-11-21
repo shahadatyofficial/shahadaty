@@ -319,6 +319,7 @@ DECLARE
   v_accepted integer;
   v_course_id uuid;
   v_trainee_id uuid;
+  v_trainee_status text;
 BEGIN
   IF p_status NOT IN ('accepted','rejected') THEN
     RAISE EXCEPTION 'INVALID_APPLICATION_STATUS';
@@ -345,10 +346,7 @@ BEGIN
     FROM public.institution_course_runs r
     JOIN public.institution_courses c ON c.id = r.course_id AND c.institution_id = r.institution_id
     JOIN public.institutions i ON i.id = r.institution_id AND i.status = 'approved'
-    JOIN public.institution_public_profiles pp
-      ON pp.institution_id = i.id AND pp.status = 'approved' AND pp.show_courses IS TRUE
     WHERE r.id = v_application.course_run_id
-      AND r.is_publicly_listed IS TRUE
       AND r.status IN ('open','in_progress')
       AND c.is_active IS TRUE
     FOR UPDATE OF r;
@@ -363,10 +361,9 @@ BEGIN
       RAISE EXCEPTION 'GRADUATE_PROFILE_NOT_FOUND';
     END IF;
 
-    SELECT t.id INTO v_trainee_id
+    SELECT t.id, t.status INTO v_trainee_id, v_trainee_status
     FROM public.institution_trainees t
     WHERE t.institution_id = v_application.institution_id
-      AND t.status = 'active'
       AND (
         (v_graduate.phone IS NOT NULL AND t.phone = v_graduate.phone)
         OR (v_graduate.email IS NOT NULL AND lower(t.email) = lower(v_graduate.email))
@@ -387,6 +384,11 @@ BEGIN
         'تم التسجيل من سوق الدورات. رقم الطلب: ' || v_application.id::text
       )
       RETURNING id INTO v_trainee_id;
+    ELSIF v_trainee_status IS DISTINCT FROM 'active' THEN
+      UPDATE public.institution_trainees
+      SET status = 'active',
+          branch_id = COALESCE(v_application.branch_id, branch_id)
+      WHERE id = v_trainee_id;
     END IF;
 
     IF NOT EXISTS (
