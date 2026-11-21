@@ -89,6 +89,7 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
   <div class="team-modal-actions"><button class="btn" type="button" id="saveTeamBranches">حفظ التخصيص</button><button class="btn light" type="button" id="cancelTeamBranches">إلغاء</button></div>
  </div>
 </div>
+<div class="card" id="platformNotificationsPanel" style="margin:14px 0"><h2>إشعارات المنصة</h2><div id="platformNotificationsList" class="muted">جارٍ تحميل الإشعارات...</div><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px"><label style="display:flex;align-items:center;gap:8px;margin:0"><input id="platformEmailNotifications" type="checkbox" style="width:auto"> أرسل لي الإشعارات المهمة على البريد الإلكتروني</label><button class="btn light" id="savePlatformNotificationPreferences" type="button">حفظ التفضيلات</button></div><p class="muted" id="platformNotificationPreferenceStatus">الإشعارات داخل المنصة مفعلة افتراضيًا. البريد الإلكتروني يحتاج تفعيل إعدادات الإرسال.</p></div>
 <div class="tabs">
 <button class="tab active" data-tab="branches">الفروع</button><button class="tab" data-tab="publicProfile">ملفي في دليل المراكز</button>
 <button class="tab" data-tab="team">الموظفون والصلاحيات</button>
@@ -573,12 +574,30 @@ async function loadOperationalReadiness(){
  finally{if(button){button.disabled=false;button.textContent='تحديث المؤشر';}}
 }
 $('refreshOperationalReadinessBtn').addEventListener('click',loadOperationalReadiness);
+function safePlatformNotificationUrl(value){const v=String(value||'');return /^(admin\\.html|institution\\.html|graduate-v2\\.html|company\\.html|training-marketplace\\.html)([?#].*)?$/.test(v)?v:'#';}
+async function loadPlatformNotifications(){
+ const el=$('platformNotificationsList');if(!el||!user)return;
+ const {data,error}=await sb.from('platform_notifications').select('id,notification_type,title,body,action_url,read_at,created_at').eq('recipient_user_id',user.id).eq('in_app_visible',true).order('created_at',{ascending:false}).limit(25);
+ if(error){el.textContent='تعذر تحميل الإشعارات: '+error.message;return;}
+ const rows=data||[];
+ el.innerHTML=rows.length?rows.map(n=>'<div style="padding:11px 0;border-bottom:1px solid #edf2f7;display:flex;gap:10px;justify-content:space-between;align-items:flex-start"><div><strong>'+esc(n.title)+'</strong><div class="muted">'+esc(n.body||'')+'</div><small class="muted">'+new Date(n.created_at).toLocaleString('ar-EG')+'</small>'+(n.action_url?'<div><a href="'+esc(safePlatformNotificationUrl(n.action_url))+'" style="color:#075985;font-weight:800">فتح</a></div>':'')+'</div>'+(n.read_at?'':'<button class="btn light" type="button" data-platform-notification-read="'+esc(n.id)+'">تمت القراءة</button>')+'</div>').join(''):'لا توجد إشعارات جديدة.';
+ el.querySelectorAll('[data-platform-notification-read]').forEach(btn=>btn.addEventListener('click',async()=>{const {error}=await sb.from('platform_notifications').update({read_at:new Date().toISOString()}).eq('id',btn.dataset.platformNotificationRead);if(error)return say('تعذر تحديث الإشعار: '+error.message,'error');await loadPlatformNotifications();}));
+}
+async function loadPlatformNotificationPreferences(){
+ if(!user)return;const {data,error}=await sb.from('platform_notification_preferences').select('email_enabled').eq('user_id',user.id).maybeSingle();
+ if(error)return $('platformNotificationPreferenceStatus').textContent='تعذر تحميل تفضيلات البريد.';
+ $('platformEmailNotifications').checked=data?.email_enabled===true;
+}
+$('savePlatformNotificationPreferences').addEventListener('click',async()=>{
+ const {error}=await sb.from('platform_notification_preferences').upsert({user_id:user.id,in_app_enabled:true,email_enabled:$('platformEmailNotifications').checked,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+ $('platformNotificationPreferenceStatus').textContent=error?'تعذر حفظ التفضيلات: '+error.message:'تم حفظ تفضيلات الإشعارات. البريد مفعّل حسب اختيارك.';
+});
 async function init(){
  const {data:{user:u},error}=await sb.auth.getUser();user=u;
  if(error||!user){say('سجّل الدخول من بوابة المؤسسة، ثم افتح البرنامج ببيانات المالك أو الموظف المصرح له.','error');return;}
  if(user.app_metadata?.account_type==='institution_staff'&&user.app_metadata.must_change_password===true){say('يجب تغيير كلمة المرور أولاً من نافذة الدخول التي فتحها مالك المؤسسة.','error');return;}
  const {data:m,error:me}=await sb.from('institution_users').select('id,institution_id,role,status').eq('auth_user_id',user.id).eq('status','active').order('created_at',{ascending:true}).limit(1).maybeSingle();
- if(me||!m){say('لم يتم العثور على عضوية مؤسسة نشطة لهذا الحساب.','error');return;}membership=m;$('operationalReadinessCard').hidden=m.role!=='owner';const publicProfileTab=document.querySelector('.tab[data-tab="publicProfile"]');if(publicProfileTab)publicProfileTab.hidden=!['owner','manager'].includes(m.role);
+ if(me||!m){say('لم يتم العثور على عضوية مؤسسة نشطة لهذا الحساب.','error');return;}membership=m;await loadPlatformNotifications();await loadPlatformNotificationPreferences();$('operationalReadinessCard').hidden=m.role!=='owner';const publicProfileTab=document.querySelector('.tab[data-tab="publicProfile"]');if(publicProfileTab)publicProfileTab.hidden=!['owner','manager'].includes(m.role);
  const workspacePermissions=['dashboard.view','branches.view','branches.manage','team.view','team.manage','trainees.view','trainees.manage','courses.view','courses.manage','certificates.view','certificates.issue','reports.view'];
  let allowedWorkspace=false;
  if(m.role==='owner'||m.role==='manager'){
