@@ -41,9 +41,9 @@ Deno.serve(async(req:Request)=>{
   const contactEmail=String(body?.contact_email||"").trim().toLowerCase()||null;
   const jobTitle=String(body?.job_title||"").trim()||null;
   const startDate=body?.employment_start_date?String(body.employment_start_date):null;
-  const branchIds=Array.isArray(body?.branch_ids)?Array.from(new Set(body.branch_ids.map((v:unknown)=>String(v).trim()).filter(Boolean))):[];
+  const branchIds: string[]=Array.isArray(body?.branch_ids)?Array.from(new Set((body.branch_ids as unknown[]).map((v:unknown)=>String(v).trim()).filter(Boolean))) as string[]:[];
   const hasPermissions=Array.isArray(body?.permissions);
-  const permissions=hasPermissions?Array.from(new Set(body.permissions.map((v:unknown)=>String(v).trim()).filter(Boolean))):[];
+  const permissions: string[]=hasPermissions?Array.from(new Set((body.permissions as unknown[]).map((v:unknown)=>String(v).trim()).filter(Boolean))) as string[]:[];
   if(!/^[0-9a-f-]{36}$/i.test(institutionId)||!/^[0-9a-f-]{36}$/i.test(memberId)||
      !/^[a-z][a-z0-9._-]{2,29}$/.test(username)||fullName.length<2||fullName.length>160||
      (password&&(password.length<10||password.length>128))||!roles.includes(role)||
