@@ -256,7 +256,7 @@ async function loadGraduateTrainingApplications(){
  el.innerHTML=(data||[]).length?(data||[]).map(a=>'<div class="cert"><b>'+esc(a.course_name||'دورة تدريبية')+'</b><br>'+esc(a.institution_name||'المؤسسة')+' · '+esc(a.run_name||'مجموعة')+'<br><span>'+esc(labels[a.status]||a.status)+'</span><br><small>'+new Date(a.created_at).toLocaleDateString('ar-EG')+'</small></div>').join(''):'لم ترسل طلبات التحاق بدورات بعد. <a href="training-marketplace.html">استكشف سوق الدورات</a>';
 }
 
-function safePlatformNotificationUrl(value){const v=String(value||'');return /^(admin\\.html|institution\\.html|graduate-v2\\.html|company\\.html|training-marketplace\\.html)([?#].*)?$/.test(v)?v:'#';}
+function safePlatformNotificationUrl(value){const v=String(value||'');const allowed=['admin.html','institution.html','graduate-v2.html','company.html','training-marketplace.html'];return allowed.some(path=>v===path||v.startsWith(path+'?')||v.startsWith(path+'#'))?v:'#';}
 async function loadPlatformNotifications(userId){
  const card=document.getElementById('platformNotificationsCard'),el=document.getElementById('platformNotificationsList');if(!card||!el)return;card.classList.remove('hidden');
  const{data,error}=await sb.from('platform_notifications').select('id,title,body,action_url,read_at,created_at').eq('recipient_user_id',userId).eq('in_app_visible',true).order('created_at',{ascending:false}).limit(30);
