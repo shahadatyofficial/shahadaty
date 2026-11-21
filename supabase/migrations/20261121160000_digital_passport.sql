@@ -80,6 +80,7 @@ CREATE OR REPLACE FUNCTION public.search_alumni_for_company_v3(
 )
 RETURNS TABLE (
   alumni_id uuid,
+  graduate_profile_id uuid,
   full_name text,
   qualification_name text,
   graduation_year integer,
@@ -111,6 +112,7 @@ BEGIN
   RETURN QUERY
   SELECT
     p.id,
+    g.id,
     p.full_name,
     q.qualification_name,
     q.graduation_year,
