@@ -18,7 +18,7 @@ checks = {
         "complete_institution_staff_password_change", "workspaceSb.auth.signInWithPassword",
     ],
     "institution-workspace.html": [
-        "runPublicListing", "runInstitutionAiInsights", "institution_insights", "platform_notifications", "loadPlatformNotifications", "certificate_status_update", "training_session_reminder", "platform_notification_preferences", "institution_list_training_marketplace_applications",
+        "runPublicListing", "runInstitutionAiInsights", "institution_insights", "platform_notifications", "loadPlatformNotifications", "platform_notification_preferences", "institution_list_training_marketplace_applications",
         "institution_review_training_marketplace_application",
         "institution_branches", "institution_users", "institution-staff-create-account",
         "institution_staff_profiles", "institution_user_permission_overrides",
@@ -49,6 +49,18 @@ checks = {
     ],
     "supabase/functions/shahadaty-ai-assistant/index.ts": [
         "get_admin_ai_insights_context", "admin_insights", "get_institution_ai_insights_context", "institution_insights",
+    ],
+    "supabase/migrations/20261121110000_training_marketplace.sql": [
+        "institution_review_training_marketplace_application", "COURSE_CAPACITY_REACHED", "v_enrolled",
+    ],
+    "supabase/migrations/20261121130000_platform_notifications.sql": [
+        "notify_graduate_certificate_event", "training_session_created", "certificate_status_update",
+    ],
+    "supabase/migrations/20261121140000_notification_scheduling.sql": [
+        "enqueue_due_platform_reminders", "graduate-session", "shahadaty_notification_email_delivery",
+    ],
+    "supabase/migrations/20261121170000_institution_ai_insights.sql": [
+        "get_institution_ai_insights_context", "reports.view", "past_sessions_without_attendance",
     ],
     "company.html": [
         "platform_notifications", "loadCompanyPlatformNotifications", "companyEmailNotifications", "search_alumni_for_company_v3", "public_profile_available", "digital_passport_available", "digital-passport.html",
