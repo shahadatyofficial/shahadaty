@@ -459,7 +459,7 @@ async function loadInstitutionReport(){
   });
   const pct=(n,d)=>d?Math.round(n/d*100)+'%':'—';
   $('performanceEnrollments').textContent=scopedEnrollments.length;
-  $('performanceRuns').textContent=new Set(scopedEnrollments.map(e=>e.course_run_id)).size;
+  $('performanceRuns').textContent=new Set(scopedEnrollments.filter(e=>e.course_run_id).map(e=>e.course_run_id)).size;
   $('performanceTrainees').textContent=new Set(scopedEnrollments.map(e=>e.trainee_id)).size;
   $('branchPerformanceRows').innerHTML=[...branchStats.values()].sort((a,b)=>b.enrollments-a.enrollments).map(s=>'<tr><td>'+esc(s.name)+'</td><td>'+s.enrollments+'</td><td>'+s.trainees.size+'</td><td>'+s.present+'</td><td>'+s.absent+'</td><td>'+pct(s.present,s.present+s.absent)+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">لا توجد تسجيلات للفترة المحددة</td></tr>';
   $('coursePerformanceRows').innerHTML=[...courseStats.values()].sort((a,b)=>b.enrollments-a.enrollments).map(s=>'<tr><td>'+esc(s.course)+'</td><td>'+esc(s.run)+'</td><td>'+esc(s.branch)+'</td><td>'+s.enrollments+'</td><td>'+s.completed+'</td><td>'+pct(s.present,s.present+s.absent)+'</td></tr>').join('')||'<tr><td colspan="6" class="empty">لا توجد تسجيلات للفترة المحددة</td></tr>';
