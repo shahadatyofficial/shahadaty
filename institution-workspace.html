@@ -1063,7 +1063,7 @@ async function loadInstitutionTrainers(){
  $('trainersRows').innerHTML=institutionTrainers.map(t=>'<tr><td>'+esc(t.full_name)+'</td><td>'+esc(t.phone||'—')+'</td><td>'+esc(t.email||'—')+'</td><td>'+esc(branchById.get(t.branch_id)?.name||'عام')+'</td><td>'+(t.is_active?'نشط':'موقوف')+'</td><td><button class="btn light" type="button" data-trainer-toggle="'+t.id+'">'+(t.is_active?'إيقاف':'تفعيل')+'</button></td></tr>').join('')||'<tr><td colspan="6" class="empty">لا يوجد مدربون مسجلون بعد</td></tr>';
  $('trainersRows').querySelectorAll('[data-trainer-toggle]').forEach(btn=>btn.addEventListener('click',()=>toggleInstitutionTrainer(btn.dataset.trainerToggle)));
  $('sessionRun').innerHTML='<option value="">اختر المجموعة</option>'+courseRuns.filter(r=>!['completed','cancelled'].includes(r.status)).map(r=>'<option value="'+r.id+'">'+esc((r.institution_courses?.name||'دورة')+' — '+(r.run_name||'مجموعة'))+'</option>').join('');
- syncEnrollmentGroupOptions();syncBulkEnrollmentGroupOptions();
+ syncBulkEnrollmentGroupOptions();
 }
 $('saveTrainerBtn').addEventListener('click',async()=>{
  const full_name=$('trainerName').value.trim(),branch_id=$('trainerBranch').value||null;
