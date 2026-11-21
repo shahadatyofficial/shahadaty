@@ -369,6 +369,7 @@ BEGIN
         OR (v_graduate.email IS NOT NULL AND lower(t.email) = lower(v_graduate.email))
       )
     ORDER BY
+      CASE WHEN t.status = 'active' THEN 0 ELSE 1 END,
       CASE WHEN v_graduate.phone IS NOT NULL AND t.phone = v_graduate.phone THEN 0 ELSE 1 END,
       t.created_at DESC
     LIMIT 1;
