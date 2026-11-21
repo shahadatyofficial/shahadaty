@@ -95,7 +95,7 @@ Deno.serve(async (req: Request) => {
       if (branchError || (validBranches || []).length !== branchIds.length) return reply(origin, 400, { error: "INVALID_BRANCH_ASSIGNMENT" });
     }
     const { data: duplicate } = await admin.from("institution_staff_profiles").select("id")
-      .ilike("username", username).limit(1).maybeSingle();
+      .eq("username", username).limit(1).maybeSingle();
     if (duplicate) return reply(origin, 409, { error: "USERNAME_ALREADY_EXISTS" });
 
     const syntheticEmail = username + "@staff.shahadaty.invalid";
@@ -134,7 +134,7 @@ Deno.serve(async (req: Request) => {
     }
 
     await admin.auth.admin.updateUserById(createdUserId, {
-      app_metadata: { account_type: "institution_staff", institution_id: institutionId },
+      app_metadata: { account_type: "institution_staff", institution_id: institutionId, must_change_password: true },
     });
     return reply(origin, 200, { success: true, username, role, membership_status: "active" });
   } catch (error: unknown) {
