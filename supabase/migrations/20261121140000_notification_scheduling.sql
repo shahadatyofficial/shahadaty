@@ -108,7 +108,7 @@ BEGIN
     FROM public.subscriptions s
     WHERE s.status = 'active' AND s.payment_status = 'paid'
       AND s.ends_at IS NOT NULL
-      AND s.ends_at::date IN (v_today + 7, v_today + 3, v_today + 1)
+      AND (s.ends_at AT TIME ZONE 'Africa/Cairo')::date IN (v_today + 7, v_today + 3, v_today + 1)
   LOOP
     FOR v_recipient IN
       SELECT i.auth_user_id AS user_id
@@ -122,10 +122,10 @@ BEGIN
     LOOP
       v_notification_id := app_private.enqueue_deduplicated_platform_notification(
         v_recipient.user_id,'subscription_expiry_reminder','موعد تجديد اشتراك المؤسسة',
-        'يتبقى ' || (v_row.ends_at::date - v_today)::text ||
+        'يتبقى ' || ((v_row.ends_at AT TIME ZONE 'Africa/Cairo')::date - v_today)::text ||
           ' يومًا على انتهاء اشتراك المؤسسة. راجع صفحة الاشتراكات لتجنب توقف الخدمات.',
         'institution.html','subscription',v_row.id,
-        'subscription:' || v_row.id::text || ':' || v_row.ends_at::date::text
+        'subscription:' || v_row.id::text || ':' || (v_row.ends_at AT TIME ZONE 'Africa/Cairo')::date::text
       );
       IF v_notification_id IS NOT NULL THEN v_count := v_count + 1; END IF;
     END LOOP;
