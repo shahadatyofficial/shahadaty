@@ -938,7 +938,7 @@ async function doLogin(){
   const btn=document.getElementById('loginBtn');
   const err=document.getElementById('loginErr');
   err.style.display='none';
-  if(!identifier||!pass){err.textContent='أدخل البريد الإلكتروني أو رقم الهاتف وكلمة المرور';err.style.display='block';return;}
+  if(!identifier||!pass){err.textContent='أدخل البريد الإلكتروني المعتمد أو اسم المستخدم وكلمة المرور';err.style.display='block';return;}
   btn.disabled=true;
   btn.innerHTML='<span class="spin"></span>';
   let credentials;
