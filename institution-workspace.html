@@ -428,15 +428,15 @@ async function loadInstitutionReport(){
  if(!from||!to||from>to)return say('حدد فترة تاريخ صحيحة للتقرير.','error');
  const btn=$('loadInstitutionReportBtn');btn.disabled=true;btn.textContent='جارٍ تحميل التقرير...';
  try{
-  let q=sb.from('institution_attendance').select('id,session_date,attendance_status,notes,enrollment_id,institution_enrollments!inner(id,trainee_id,course_run_id,status,institution_trainees!inner(full_name),institution_course_runs!inner(run_name,branch_id,institution_courses(name)))').eq('institution_id',org.id).gte('session_date',from).lte('session_date',to).order('session_date',{ascending:false}).limit(1000);
+  let q=sb.from('institution_attendance').select('id,session_id,session_date,attendance_status,notes,enrollment_id,institution_course_sessions(session_number,title),institution_enrollments!inner(id,trainee_id,course_id,course_run_id,status,institution_trainees!inner(full_name,branch_id),institution_courses(name,branch_id),institution_course_runs(run_name,branch_id))').eq('institution_id',org.id).gte('session_date',from).lte('session_date',to).order('session_date',{ascending:false}).limit(1000);
   const {data,error}=await q;if(error)throw error;
-  institutionReportRows=(data||[]).filter(r=>!branchId||r.institution_enrollments?.institution_course_runs?.branch_id===branchId);
-  const enrollmentQuery=sb.from('institution_enrollments').select('id,status,enrolled_at,trainee_id,course_run_id,institution_trainees!inner(full_name,branch_id),institution_course_runs!inner(run_name,branch_id,institution_courses!inner(name))').eq('institution_id',org.id).gte('enrolled_at',from+'T00:00:00').lte('enrolled_at',to+'T23:59:59').order('enrolled_at',{ascending:false}).limit(2000);
+  institutionReportRows=(data||[]).filter(r=>{const e=r.institution_enrollments||{},run=e.institution_course_runs||{},trainee=e.institution_trainees||{},course=e.institution_courses||{};return !branchId||(run.branch_id||trainee.branch_id||course.branch_id)===branchId;});
+  const enrollmentQuery=sb.from('institution_enrollments').select('id,status,enrolled_at,trainee_id,course_id,course_run_id,institution_trainees!inner(full_name,branch_id),institution_courses(name,branch_id),institution_course_runs(run_name,branch_id)').eq('institution_id',org.id).gte('enrolled_at',from+'T00:00:00').lte('enrolled_at',to+'T23:59:59').order('enrolled_at',{ascending:false}).limit(2000);
   const {data:enrollments,error:enrollmentError}=await enrollmentQuery;
   if(enrollmentError)throw enrollmentError;
   const scopedEnrollments=(enrollments||[]).filter(e=>{
-   const run=e.institution_course_runs||{};
-   return (!branchId||run.branch_id===branchId)&&run.branch_id===(e.institution_trainees?.branch_id||null);
+   const run=e.institution_course_runs||{},trainee=e.institution_trainees||{},course=e.institution_courses||{},effectiveBranch=run.branch_id||trainee.branch_id||course.branch_id||null;
+   return !branchId||effectiveBranch===branchId;
   });
   const attendanceByEnrollment=new Map();
   institutionReportRows.forEach(r=>{
@@ -448,13 +448,13 @@ async function loadInstitutionReport(){
   });
   const branchStats=new Map(),courseStats=new Map(),traineeStats=new Map();
   scopedEnrollments.forEach(e=>{
-   const run=e.institution_course_runs||{},trainee=e.institution_trainees||{};
-   const branchIdValue=run.branch_id||'general',branchName=branchById.get(branchIdValue)?.name||'عام';
-   const courseName=run.institution_courses?.name||'دورة غير محددة',runName=run.run_name||'مجموعة';
+   const run=e.institution_course_runs||{},trainee=e.institution_trainees||{},course=e.institution_courses||{};
+   const branchIdValue=run.branch_id||trainee.branch_id||course.branch_id||'general',branchName=branchById.get(branchIdValue)?.name||'عام';
+   const courseName=course.name||run.institution_courses?.name||'دورة غير محددة',runName=run.run_name||'بدون مجموعة';
    const att=attendanceByEnrollment.get(e.id)||{present:0,absent:0,total:0};
    const add=(map,key,base)=>{if(!map.has(key))map.set(key,{...base,enrollments:0,trainees:new Set(),present:0,absent:0,total:0,completed:0});return map.get(key);};
    const bs=add(branchStats,branchIdValue,{name:branchName});bs.enrollments++;bs.trainees.add(e.trainee_id);bs.present+=att.present;bs.absent+=att.absent;bs.total+=att.total;
-   const ck=e.course_run_id,cs=add(courseStats,ck,{course:courseName,run:runName,branch:branchName});cs.enrollments++;cs.trainees.add(e.trainee_id);cs.present+=att.present;cs.absent+=att.absent;cs.total+=att.total;if(e.status==='completed')cs.completed++;
+   const ck=(e.course_id||run.course_id||'course')+':'+(e.course_run_id||'general'),cs=add(courseStats,ck,{course:courseName,run:runName,branch:branchName});cs.enrollments++;cs.trainees.add(e.trainee_id);cs.present+=att.present;cs.absent+=att.absent;cs.total+=att.total;if(e.status==='completed')cs.completed++;
    const tk=e.trainee_id,ts=add(traineeStats,tk,{name:trainee.full_name||'—',branch:branchName});ts.enrollments++;ts.present+=att.present;ts.absent+=att.absent;ts.total+=att.total;
   });
   const pct=(n,d)=>d?Math.round(n/d*100)+'%':'—';
@@ -468,18 +468,19 @@ async function loadInstitutionReport(){
   $('reportTotal').textContent=institutionReportRows.length;$('reportPresent').textContent=count('present');$('reportAbsent').textContent=count('absent');$('reportLate').textContent=count('late');$('reportExcused').textContent=count('excused');
   $('institutionReportRows').innerHTML=institutionReportRows.length?institutionReportRows.map(r=>{
    const e=r.institution_enrollments||{},run=e.institution_course_runs||{},trainee=e.institution_trainees||{};
-   return '<tr><td>'+esc(r.session_date)+'</td><td>'+esc(trainee.full_name||'—')+'</td><td>'+esc(run.institution_courses?.name||'—')+'</td><td>'+esc(run.run_name||'مجموعة')+'</td><td>'+esc(branchById.get(run.branch_id)?.name||'عام')+'</td><td>'+esc(attendanceLabels[r.attendance_status]||r.attendance_status)+'</td><td>'+esc(r.notes||'—')+'</td></tr>';
-  }).join(''):'<tr><td colspan="7" class="empty">لا توجد سجلات حضور في الفترة المحددة</td></tr>';
+   const course=e.institution_courses||run.institution_courses||{},branchId=run.branch_id||trainee.branch_id||course.branch_id;
+   return '<tr><td>'+esc(r.session_date)+'</td><td>'+esc(r.institution_course_sessions?.session_number||'—')+'</td><td>'+esc(trainee.full_name||'—')+'</td><td>'+esc(course.name||'—')+'</td><td>'+esc(run.run_name||'مجموعة')+'</td><td>'+esc(branchById.get(branchId)?.name||'عام')+'</td><td>'+esc(attendanceLabels[r.attendance_status]||r.attendance_status)+'</td><td>'+esc(r.notes||'—')+'</td></tr>';
+  }).join(''):'<tr><td colspan="8" class="empty">لا توجد سجلات حضور في الفترة المحددة</td></tr>';
   if(data?.length===1000)say('تم عرض أول 1000 سجل فقط. ضيّق الفترة الزمنية للحصول على تقرير أدق.','info');
   else say('تم تحديث التقرير بنجاح.','success');
- }catch(error){emptyRow('institutionReportRows',7,'تعذر تحميل التقرير: '+(error.message||'خطأ غير معروف'));say('تعذر تحميل التقرير: '+(error.message||'خطأ غير معروف'),'error');}
+ }catch(error){emptyRow('institutionReportRows',8,'تعذر تحميل التقرير: '+(error.message||'خطأ غير معروف'));say('تعذر تحميل التقرير: '+(error.message||'خطأ غير معروف'),'error');}
  finally{btn.disabled=false;btn.textContent='عرض التقرير';}
 }
 function exportInstitutionReport(){
  if(!institutionReportRows.length)return say('اعرض التقرير أولاً ولا توجد بيانات لتصديرها.','error');
- const rows=[['التاريخ','المتدرب','الدورة','المجموعة','الفرع','الحالة','ملاحظات'],...institutionReportRows.map(r=>{
-  const e=r.institution_enrollments||{},run=e.institution_course_runs||{};
-  return [r.session_date,e.institution_trainees?.full_name||'',run.institution_courses?.name||'',run.run_name||'',branchById.get(run.branch_id)?.name||'عام',attendanceLabels[r.attendance_status]||r.attendance_status,r.notes||''];
+ const rows=[['التاريخ','رقم الجلسة','المتدرب','الدورة','المجموعة','الفرع','الحالة','ملاحظات'],...institutionReportRows.map(r=>{
+  const e=r.institution_enrollments||{},run=e.institution_course_runs||{},course=e.institution_courses||run.institution_courses||{},trainee=e.institution_trainees||{},branchId=run.branch_id||trainee.branch_id||course.branch_id;
+  return [r.session_date,r.institution_course_sessions?.session_number||'',trainee.full_name||'',course.name||'',run.run_name||'',branchById.get(branchId)?.name||'عام',attendanceLabels[r.attendance_status]||r.attendance_status,r.notes||''];
  })];
  const csv='\\uFEFF'+rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\\r\\n');
  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})),a=document.createElement('a');
