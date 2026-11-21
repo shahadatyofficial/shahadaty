@@ -31,7 +31,7 @@ checks = {
         "graduate_my_certificates", "get_public_professional_profile", "refreshPublicProfileShare",
     ],
     "professional-profile.html": [
-        "get_public_professional_profile", "qualifications", "skills",
+        "get_public_professional_profile", "public_profile_consent", "qualifications", "skills",
     ],
     "company.html": [
         "search_alumni_for_company", "alumni_access_requests",
