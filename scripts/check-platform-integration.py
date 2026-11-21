@@ -33,7 +33,7 @@ checks = {
         "graduate_my_certificates", "get_public_professional_profile", "refreshPublicProfileShare",
     ],
     "training-marketplace.html": [
-        "get_public_training_marketplace", "submit_training_marketplace_application", "contactSharing",
+        "get_public_training_marketplace", "submit_training_marketplace_application", "contactConsent",
     ],
     "professional-profile.html": [
         "get_public_professional_profile", "public_profile_consent", "qualifications", "skills",
@@ -56,6 +56,8 @@ migration_paths = [
     "supabase/migrations/202611210001_hide_expired_jobs_from_graduates.sql",
     "supabase/migrations/202611210002_atomic_employment_request_admin_updates.sql",
     "supabase/migrations/202611210003_graduate_job_application_withdrawal.sql",
+    "supabase/migrations/20261121100000_public_professional_profile_share.sql",
+    "supabase/migrations/20261121110000_training_marketplace.sql",
 ]
 
 failed = False
