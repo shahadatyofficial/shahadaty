@@ -923,9 +923,16 @@ async function doLogin(){
   if(!identifier||!pass){err.textContent='أدخل البريد الإلكتروني أو رقم الهاتف وكلمة المرور';err.style.display='block';return;}
   btn.disabled=true;
   btn.innerHTML='<span class="spin"></span>';
-  const credentials=identifier.includes('@')
-    ? {email:identifier.toLowerCase(),password:pass}
-    : {phone:normalizeLoginPhone(identifier),password:pass};
+  let credentials;
+  if(identifier.includes('@')){
+    credentials={email:identifier.toLowerCase(),password:pass};
+  }else if(/^\+?[0-9\s()\-]{10,18}$/.test(identifier)){
+    credentials={phone:normalizeLoginPhone(identifier),password:pass};
+  }else if(/^[a-z0-9][a-z0-9._-]{2,29}$/i.test(identifier)){
+    credentials={email:identifier.toLowerCase()+'@staff.shahadaty.invalid',password:pass};
+  }else{
+    err.textContent='أدخل البريد الإلكتروني أو اسم المستخدم أو رقم الهاتف بشكل صحيح';err.style.display='block';btn.disabled=false;btn.innerHTML='<span class="material-symbols-outlined">login</span> دخول';return;
+  }
   const{error}=await sb.auth.signInWithPassword(credentials);
   btn.disabled=false;
   btn.innerHTML='<span class="material-symbols-outlined">login</span> دخول';
@@ -990,6 +997,29 @@ async function loadInst(){
   document.getElementById('loginScreen').style.display='none';
   const chooser=document.getElementById('institutionWorkspaceChooser');
   document.getElementById('workspaceChoiceInstitutionName').textContent='مرحبًا '+(data.name||'بك')+' — اختر مساحة العمل التي تريد الدخول إليها';
+  const permissionKeys=['certificates.view','certificates.issue','branches.view','trainees.view','courses.view'];
+  const permissionResults=await Promise.all(permissionKeys.map(async key=>{
+    const {data:granted,error:permissionError}=await sb.rpc('institution_has_permission',{p_institution_id:data.id,p_permission:key,p_branch_id:null});
+    if(!permissionError&&granted===true)return true;
+    const {data:branchRows}=await sb.from('institution_user_branches').select('branch_id,institution_branches!inner(id)').eq('institution_user_id',(await sb.from('institution_users').select('id').eq('auth_user_id',user.id).eq('institution_id',data.id).eq('status','active').maybeSingle()).data?.id||'00000000-0000-0000-0000-000000000000');
+    for(const row of (branchRows||[])){
+      const {data:branchGranted,error:branchError}=await sb.rpc('institution_has_permission',{p_institution_id:data.id,p_permission:key,p_branch_id:row.branch_id});
+      if(!branchError&&branchGranted===true)return true;
+    }
+    return false;
+  }));
+  const canCertificate=permissionResults[0]||permissionResults[1];
+  const canOperations=permissionResults.slice(2).some(Boolean);
+  document.getElementById('openCertificateDashboard').hidden=!canCertificate;
+  document.getElementById('openInstitutionProgram').hidden=!canOperations;
+  if(!canCertificate&&!canOperations){
+    document.getElementById('loginErr').textContent='حسابك نشط، لكن لم تُمنح لك صلاحية دخول أي مساحة عمل. تواصل مع مدير المؤسسة.';
+    document.getElementById('loginErr').style.display='block';
+    chooser.classList.remove('open');
+    document.getElementById('loginScreen').style.display='block';
+    await sb.auth.signOut();
+    return;
+  }
   chooser.classList.add('open');
 
   const n=data.name;
@@ -1729,8 +1759,33 @@ async function saveSettings(){
   if(error){toast(error.message,'err');return;} inst.contact_phone=phone; toast('تم حفظ التغييرات','ok');
 }
 
-document.getElementById('openCertificateDashboard').addEventListener('click',()=>{
+async function applyInstitutionCertificatePermissions(){
+ const checks=[
+  ['issue','certificates.issue'],['bulk','certificates.issue'],['certs','certificates.view'],['verify','certificates.view'],
+  ['courses','courses.view'],['students','trainees.view'],['documents','team.view'],['quota','reports.view']
+ ];
+ for(const [page,key] of checks){
+  const item=document.querySelector('.sb-item[onclick*="showPage(\\''+page+'\\'"]');
+  if(!item)continue;
+  const {data,error}=await sb.rpc('institution_has_permission',{p_institution_id:inst.id,p_permission:key,p_branch_id:null});
+  let granted=!error&&data===true;
+  if(!granted){
+   const {data:members}=await sb.from('institution_users').select('id').eq('institution_id',inst.id).eq('auth_user_id',(await sb.auth.getUser()).data.user.id).eq('status','active').limit(1);
+   if(members?.[0]){
+    const {data:assignments}=await sb.from('institution_user_branches').select('branch_id').eq('institution_user_id',members[0].id);
+    for(const assignment of assignments||[]){
+     const result=await sb.rpc('institution_has_permission',{p_institution_id:inst.id,p_permission:key,p_branch_id:assignment.branch_id});
+     if(!result.error&&result.data===true){granted=true;break;}
+    }
+   }
+  }
+  item.hidden=!granted;
+ }
+ const issueButton=document.querySelector('.btn-issue');if(issueButton)issueButton.hidden=!(await sb.rpc('institution_has_permission',{p_institution_id:inst.id,p_permission:'certificates.issue',p_branch_id:null})).data;
+}
+document.getElementById('openCertificateDashboard').addEventListener('click',async()=>{
  document.getElementById('institutionWorkspaceChooser').classList.remove('open');
+ await applyInstitutionCertificatePermissions();
  showPage('dashboard',document.querySelector('.sb-item[onclick*="dashboard"]'));
  window.scrollTo(0,0);
 });
