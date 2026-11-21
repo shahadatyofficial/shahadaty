@@ -4,6 +4,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 checks = {
     "admin.html": [
+        "runAdminAiInsights", "get_admin_ai_insights_context", "admin_insights",
         "admin_list_institutions", "admin_list_subscriptions",
         "admin_confirm_subscription_payment", "loadSupportInbox",
         "loadGraduateConsentAudit", "uploadAlumniDocument",
@@ -60,6 +61,7 @@ migration_paths = [
     "supabase/migrations/202611210003_graduate_job_application_withdrawal.sql",
     "supabase/migrations/20261121100000_public_professional_profile_share.sql",
     "supabase/migrations/20261121110000_training_marketplace.sql",
+    "supabase/migrations/20261121120000_admin_ai_insights.sql",
 ]
 
 failed = False
