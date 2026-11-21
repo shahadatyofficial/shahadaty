@@ -940,7 +940,7 @@ async function doLogin(){
     credentials={email:identifier.toLowerCase(),password:pass};
   }else if(/^\+?[0-9\s()\-]{10,18}$/.test(identifier)){
     credentials={phone:normalizeLoginPhone(identifier),password:pass};
-  }else if(/^[a-z0-9][a-z0-9._-]{2,29}$/i.test(identifier)){
+  }else if(/^[a-z][a-z0-9._-]{2,29}$/i.test(identifier)){
     credentials={email:identifier.toLowerCase()+'@staff.shahadaty.invalid',password:pass};
   }else{
     err.textContent='أدخل البريد الإلكتروني أو اسم المستخدم أو رقم الهاتف بشكل صحيح';err.style.display='block';btn.disabled=false;btn.innerHTML='<span class="material-symbols-outlined">login</span> دخول';return;
