@@ -4,7 +4,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 checks = {
     "admin.html": [
-        "runAdminAiInsights", "get_admin_ai_insights_context", "admin_insights",
+        "runAdminAiInsights", "admin_insights",
         "admin_list_institutions", "admin_list_subscriptions",
         "admin_confirm_subscription_payment", "loadSupportInbox",
         "loadGraduateConsentAudit", "uploadAlumniDocument",
@@ -40,6 +40,9 @@ checks = {
     ],
     "professional-profile.html": [
         "get_public_professional_profile", "qualifications", "skills",
+    ],
+    "supabase/functions/shahadaty-ai-assistant/index.ts": [
+        "get_admin_ai_insights_context", "admin_insights",
     ],
     "company.html": [
         "search_alumni_for_company", "alumni_access_requests",
