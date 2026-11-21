@@ -225,7 +225,7 @@ BEGIN
   END IF;
   v_body := 'تم تحديث اشتراك المؤسسة. الحالة: ' || NEW.status ||
     '، حالة السداد: ' || NEW.payment_status ||
-    CASE WHEN NEW.ends_at IS NOT NULL THEN '، تاريخ الانتهاء: ' || NEW.ends_at::date::text ELSE '' END || '.';
+    CASE WHEN NEW.ends_at IS NOT NULL THEN '، تاريخ الانتهاء: ' || (NEW.ends_at AT TIME ZONE 'Africa/Cairo')::date::text ELSE '' END || '.';
   FOR v_recipient IN
     SELECT i.auth_user_id AS user_id
     FROM public.institutions i
