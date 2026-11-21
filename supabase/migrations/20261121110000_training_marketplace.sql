@@ -169,7 +169,7 @@ DECLARE
   v_institution_id uuid;
   v_branch_id uuid;
   v_capacity integer;
-  v_accepted integer;
+  v_enrolled integer;
   v_application_id uuid;
 BEGIN
   IF v_user_id IS NULL THEN
@@ -341,16 +341,19 @@ BEGIN
   END IF;
 
   IF p_status = 'accepted' THEN
-    SELECT r.capacity INTO v_capacity
+    SELECT r.capacity, r.course_id INTO v_capacity, v_course_id
     FROM public.institution_course_runs r
+    JOIN public.institution_courses c ON c.id = r.course_id AND c.institution_id = r.institution_id
+    JOIN public.institutions i ON i.id = r.institution_id AND i.status = 'approved'
+    JOIN public.institution_public_profiles pp
+      ON pp.institution_id = i.id AND pp.status = 'approved' AND pp.show_courses IS TRUE
     WHERE r.id = v_application.course_run_id
-    FOR UPDATE;
-    SELECT COUNT(*) INTO v_accepted
-    FROM public.training_marketplace_applications a
-    WHERE a.course_run_id = v_application.course_run_id
-      AND a.status = 'accepted';
-    IF v_capacity IS NOT NULL AND v_accepted >= v_capacity THEN
-      RAISE EXCEPTION 'COURSE_CAPACITY_REACHED';
+      AND r.is_publicly_listed IS TRUE
+      AND r.status IN ('open','in_progress')
+      AND c.is_active IS TRUE
+    FOR UPDATE OF r;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'COURSE_NOT_AVAILABLE';
     END IF;
 
     SELECT * INTO v_graduate
@@ -359,10 +362,6 @@ BEGIN
     IF NOT FOUND THEN
       RAISE EXCEPTION 'GRADUATE_PROFILE_NOT_FOUND';
     END IF;
-
-    SELECT r.course_id INTO v_course_id
-    FROM public.institution_course_runs r
-    WHERE r.id = v_application.course_run_id;
 
     SELECT t.id INTO v_trainee_id
     FROM public.institution_trainees t
@@ -396,6 +395,14 @@ BEGIN
         AND e.course_run_id = v_application.course_run_id
         AND e.trainee_id = v_trainee_id
     ) THEN
+      SELECT COUNT(*) INTO v_enrolled
+      FROM public.institution_enrollments e
+      WHERE e.course_run_id = v_application.course_run_id
+        AND e.status NOT IN ('cancelled','withdrawn');
+      IF v_capacity IS NOT NULL AND v_enrolled >= v_capacity THEN
+        RAISE EXCEPTION 'COURSE_CAPACITY_REACHED';
+      END IF;
+
       INSERT INTO public.institution_enrollments (
         institution_id, course_run_id, course_id, trainee_id, status,
         enrolled_at, notes
