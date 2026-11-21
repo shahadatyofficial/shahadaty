@@ -1,0 +1,1 @@
+create index if not exists institution_staff_profiles_created_by_idx on public.institution_staff_profiles(created_by) where created_by is not null;
