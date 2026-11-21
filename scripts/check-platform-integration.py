@@ -28,9 +28,9 @@ checks = {
     "graduate-v2.html": [
         "graduate_publication_consents", "graduate-publication-consent-sync",
         "graduate-gold-private", "graduate_withdraw_job_application",
-        "graduate_my_certificates",
+        "graduate_my_certificates", "get_public_professional_profile", "refreshPublicProfileShare",
     ],
-    "company.html": [
+    "professional-profile.html": [\n        "get_public_professional_profile", "publication_consent", "verification_status",\n    ],\n    "company.html": [
         "search_alumni_for_company", "alumni_access_requests",
         "company_get_approved_alumni_contact", "alumni_documents",
         "company_list_job_applications",
@@ -75,7 +75,7 @@ for item in migration_paths:
 # Public browser pages must never contain privileged Supabase server keys.
 public_pages = [ROOT / page for page in [
     "index.html", "admin.html", "institution.html", "institution-workspace.html",
-    "graduate-v2.html", "company.html", "register.html",
+    "graduate-v2.html", "professional-profile.html", "company.html", "register.html",
 ]]
 for path in public_pages:
     source = path.read_text(encoding="utf-8")
