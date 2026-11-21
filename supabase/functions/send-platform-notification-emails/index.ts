@@ -65,13 +65,29 @@ Deno.serve(async (req: Request) => {
   if (!serviceRoleKey || !adminClient || !resendKey || !from) {
     return json({ error: "EMAIL_PROVIDER_NOT_CONFIGURED", required_settings: ["SUPABASE_SERVICE_ROLE_KEY", "RESEND_API_KEY", "EMAIL_FROM"] }, 503);
   }
-  const { data: queue, error: queueError } = await adminClient
+  const staleBefore = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  await adminClient.from("platform_notifications")
+    .update({ email_status: "queued", email_processing_at: null })
+    .eq("email_status", "processing")
+    .lt("email_processing_at", staleBefore);
+
+  const { data: candidates, error: queueError } = await adminClient
     .from("platform_notifications")
-    .select("id,recipient_user_id,title,body,action_url,email_attempts")
+    .select("id")
     .eq("email_status", "queued")
     .order("created_at", { ascending: true })
     .limit(50);
   if (queueError) return json({ error: "QUEUE_READ_FAILED" }, 500);
+  const candidateIds = (candidates || []).map((item) => item.id);
+  if (!candidateIds.length) return json({ processed: 0, sent: 0, failed: 0 });
+
+  const { data: queue, error: claimError } = await adminClient
+    .from("platform_notifications")
+    .update({ email_status: "processing", email_processing_at: new Date().toISOString() })
+    .in("id", candidateIds)
+    .eq("email_status", "queued")
+    .select("id,recipient_user_id,title,body,action_url,email_attempts");
+  if (claimError) return json({ error: "QUEUE_CLAIM_FAILED" }, 500);
 
   let sent = 0, failed = 0;
   for (const item of queue || []) {
@@ -84,14 +100,14 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     if (preferences?.email_enabled !== true) {
       await adminClient.from("platform_notifications").update({
-        email_status: "not_requested", email_requested: false, email_error: null,
+        email_status: "not_requested", email_requested: false, email_error: null, email_processing_at: null,
       }).eq("id", item.id);
       continue;
     }
     if (!email) {
       await adminClient.from("platform_notifications").update({
         email_status: "failed", email_attempts: (item.email_attempts || 0) + 1,
-        email_error: "RECIPIENT_EMAIL_MISSING",
+        email_error: "RECIPIENT_EMAIL_MISSING", email_processing_at: null,
       }).eq("id", item.id);
       failed++;
       continue;
@@ -108,14 +124,14 @@ Deno.serve(async (req: Request) => {
     if (response?.ok) {
       await adminClient.from("platform_notifications").update({
         email_status: "sent", email_sent_at: new Date().toISOString(),
-        email_attempts: (item.email_attempts || 0) + 1, email_error: null,
+        email_attempts: (item.email_attempts || 0) + 1, email_error: null, email_processing_at: null,
       }).eq("id", item.id);
       sent++;
     } else {
       const providerMessage = response ? (await response.text().catch(() => "")).slice(0, 400) : "EMAIL_PROVIDER_UNAVAILABLE";
       await adminClient.from("platform_notifications").update({
         email_status: "failed", email_attempts: (item.email_attempts || 0) + 1,
-        email_error: providerMessage,
+        email_error: providerMessage, email_processing_at: null,
       }).eq("id", item.id);
       failed++;
     }
