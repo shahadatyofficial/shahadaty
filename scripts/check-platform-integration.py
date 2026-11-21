@@ -11,6 +11,8 @@ checks = {
     "institution.html": [
         "institution_submit_subscription_payment_reference", "loadQuotaDetails",
         "admin", "subscriptionPaymentReference",
+        "institutionWorkspaceChooser", "openCertificateDashboard",
+        "openInstitutionProgram", "workspace-choice-card",
     ],
     "institution-workspace.html": [
         "institution_branches", "institution_users", "institution-invite-member",
