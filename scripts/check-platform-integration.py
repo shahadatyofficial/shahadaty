@@ -50,16 +50,19 @@ checks = {
     "supabase/functions/shahadaty-ai-assistant/index.ts": [
         "get_admin_ai_insights_context", "admin_insights", "get_institution_ai_insights_context", "institution_insights",
     ],
-    "supabase/migrations/20261121110000_training_marketplace.sql": [
+    "supabase/migrations/20261121180825_training_marketplace.sql": [
         "institution_review_training_marketplace_application", "COURSE_CAPACITY_REACHED", "v_enrolled",
     ],
-    "supabase/migrations/20261121130000_platform_notifications.sql": [
+    "supabase/migrations/20261121180853_platform_notifications.sql": [
         "notify_graduate_certificate_event", "training_session_created", "certificate_status_update",
     ],
-    "supabase/migrations/20261121140000_notification_scheduling.sql": [
+    "supabase/migrations/20261121180900_notification_scheduling.sql": [
         "enqueue_due_platform_reminders", "graduate-session", "shahadaty_notification_email_delivery",
     ],
-    "supabase/migrations/20261121170000_institution_ai_insights.sql": [
+    "supabase/migrations/20261121181007_fix_notification_reminder_concat.sql": [
+        "enqueue_due_platform_reminders", "لم تتم مراجعته منذ أكثر من 48 ساعة",
+    ],
+    "supabase/migrations/20261121180919_institution_ai_insights.sql": [
         "get_institution_ai_insights_context", "reports.view", "sessions_overdue_without_attendance",
     ],
     "company.html": [
@@ -81,14 +84,14 @@ migration_paths = [
     "supabase/migrations/202611210001_hide_expired_jobs_from_graduates.sql",
     "supabase/migrations/202611210002_atomic_employment_request_admin_updates.sql",
     "supabase/migrations/202611210003_graduate_job_application_withdrawal.sql",
-    "supabase/migrations/20261121100000_public_professional_profile_share.sql",
-    "supabase/migrations/20261121110000_training_marketplace.sql",
-    "supabase/migrations/20261121120000_admin_ai_insights.sql",
-    "supabase/migrations/20261121130000_platform_notifications.sql",
-    "supabase/migrations/20261121140000_notification_scheduling.sql",
-    "supabase/migrations/20261121150000_company_professional_profile_link.sql",
-    "supabase/migrations/20261121160000_digital_passport.sql",
-    "supabase/migrations/20261121170000_institution_ai_insights.sql",
+    "supabase/migrations/20261121180815_public_professional_profile_share.sql",
+    "supabase/migrations/20261121180825_training_marketplace.sql",
+    "supabase/migrations/20261121180847_admin_ai_insights.sql",
+    "supabase/migrations/20261121180853_platform_notifications.sql",
+    "supabase/migrations/20261121180900_notification_scheduling.sql",
+    "supabase/migrations/20261121180906_company_professional_profile_link.sql",
+    "supabase/migrations/20261121180914_digital_passport.sql",
+    "supabase/migrations/20261121180919_institution_ai_insights.sql",
     "supabase/config.toml",
 ]
 
