@@ -134,7 +134,14 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 <div class="field"><label>المدة</label><input id="catalogCourseDuration" placeholder="مثال: 40 ساعة"></div>
 <div class="field"><label>الفرع</label><select id="catalogCourseBranch"></select></div>
 </div><div class="actions"><button class="btn" id="saveCatalogCourseBtn">حفظ الدورة</button></div></div>
-<div class="card"><h2>كتالوج الدورات</h2><div class="table-wrap"><table><thead><tr><th>الدورة</th><th>التخصص</th><th>المدة</th><th>الفرع</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="catalogCoursesRows"></tbody></table></div></div><div class="card"><h2>إنشاء مجموعة تدريبية</h2><div class="grid">
+<div class="card"><h2>كتالوج الدورات</h2><div class="table-wrap"><table><thead><tr><th>الدورة</th><th>التخصص</th><th>المدة</th><th>الفرع</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="catalogCoursesRows"></tbody></table></div></div><div class="card"><h2>إدارة المدربين</h2><p class="muted">سجل مدربي المؤسسة واربط كل مدرب بالمجموعة المناسبة. بيانات المدربين لا تظهر خارج نطاق المؤسسة والفروع المصرح بها.</p><div class="grid">
+<div class="field"><label>اسم المدرب *</label><input id="trainerName" placeholder="الاسم بالكامل"></div>
+<div class="field"><label>رقم الهاتف</label><input id="trainerPhone" dir="ltr" placeholder="01xxxxxxxxx"></div>
+<div class="field"><label>البريد الإلكتروني</label><input id="trainerEmail" type="email" dir="ltr" placeholder="trainer@example.com"></div>
+<div class="field"><label>الفرع</label><select id="trainerBranch"></select></div>
+</div><div class="actions"><button class="btn" id="saveTrainerBtn">إضافة المدرب</button></div>
+<div class="table-wrap"><table><thead><tr><th>المدرب</th><th>الهاتف</th><th>البريد</th><th>الفرع</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="trainersRows"><tr><td colspan="6" class="empty">جارٍ تحميل المدربين...</td></tr></tbody></table></div></div>
+<div class="card"><h2>إنشاء مجموعة تدريبية</h2><div class="grid">
 <div class="field"><label>الدورة *</label><select id="runCourse"></select></div>
 <div class="field"><label>اسم المجموعة</label><input id="runName" placeholder="دفعة نوفمبر"></div>
 <div class="field"><label>الفرع</label><select id="runBranch"></select></div>
@@ -145,13 +152,6 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 <div class="field"><label>الحالة</label><select id="runStatus"><option value="planned">مخططة</option><option value="open">متاحة للتسجيل</option><option value="in_progress">جارية</option><option value="completed">مكتملة</option><option value="cancelled">ملغاة</option></select></div>
 </div><div class="actions"><button class="btn" id="addRunBtn">إنشاء المجموعة</button></div></div>
 <div class="card"><h2>إدارة المجموعات التدريبية</h2><div class="table-wrap"><table><thead><tr><th>المجموعة</th><th>الدورة</th><th>الفرع</th><th>المدرب</th><th>الفترة</th><th>السعة</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="runsRows"></tbody></table></div><p class="muted">يمكن تحديث حالة المجموعة وفق دورة التشغيل، دون حذف التسجيلات أو الحضور المرتبط بها.</p></div>
-<div class="card"><h2>إدارة المدربين</h2><p class="muted">سجل مدربي المؤسسة واربط كل مدرب بالمجموعة المناسبة. بيانات المدربين لا تظهر خارج نطاق المؤسسة والفروع المصرح بها.</p><div class="grid">
-<div class="field"><label>اسم المدرب *</label><input id="trainerName" placeholder="الاسم بالكامل"></div>
-<div class="field"><label>رقم الهاتف</label><input id="trainerPhone" dir="ltr" placeholder="01xxxxxxxxx"></div>
-<div class="field"><label>البريد الإلكتروني</label><input id="trainerEmail" type="email" dir="ltr" placeholder="trainer@example.com"></div>
-<div class="field"><label>الفرع</label><select id="trainerBranch"></select></div>
-</div><div class="actions"><button class="btn" id="saveTrainerBtn">إضافة المدرب</button></div>
-<div class="table-wrap"><table><thead><tr><th>المدرب</th><th>الهاتف</th><th>البريد</th><th>الفرع</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="trainersRows"><tr><td colspan="6" class="empty">جارٍ تحميل المدربين...</td></tr></tbody></table></div></div>
 <div class="card"><h2>جدول جلسات التدريب</h2><p class="muted">كل جلسة مرتبطة بمجموعة ومدرب وتاريخ ووقت محدد. الحضور الحالي يظل مسجلًا على مستوى تاريخ الجلسة، دون تغيير السجلات السابقة.</p><div class="grid">
 <div class="field"><label>المجموعة *</label><select id="sessionRun"></select></div>
 <div class="field"><label>عنوان الجلسة</label><input id="sessionTitle" placeholder="المحاضرة الأولى / تطبيق عملي"></div>
