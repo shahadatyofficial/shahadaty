@@ -17,6 +17,8 @@ checks = {
         "complete_institution_staff_password_change", "workspaceSb.auth.signInWithPassword",
     ],
     "institution-workspace.html": [
+        "runPublicListing", "institution_list_training_marketplace_applications", "institution_review_training_marketplace_application",
+    ],
         "institution_branches", "institution_users", "institution-staff-create-account",
         "institution_staff_profiles", "institution_user_permission_overrides",
         "createStaffAccountBtn", "staffPermissionsModal", "editStaffAccountModal",
@@ -29,6 +31,9 @@ checks = {
         "graduate_publication_consents", "graduate-publication-consent-sync",
         "graduate-gold-private", "graduate_withdraw_job_application",
         "graduate_my_certificates", "get_public_professional_profile", "refreshPublicProfileShare",
+    ],
+    "training-marketplace.html": [
+        "get_public_training_marketplace", "submit_training_marketplace_application", "contactSharing",
     ],
     "professional-profile.html": [
         "get_public_professional_profile", "public_profile_consent", "qualifications", "skills",
@@ -78,7 +83,7 @@ for item in migration_paths:
 # Public browser pages must never contain privileged Supabase server keys.
 public_pages = [ROOT / page for page in [
     "index.html", "admin.html", "institution.html", "institution-workspace.html",
-    "graduate-v2.html", "professional-profile.html", "company.html", "register.html",
+    "graduate-v2.html", "professional-profile.html", "training-marketplace.html", "company.html", "register.html",
 ]]
 for path in public_pages:
     source = path.read_text(encoding="utf-8")
