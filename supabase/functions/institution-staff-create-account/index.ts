@@ -19,7 +19,7 @@ const permissionKeys = [
   "trainees.view","trainees.manage","courses.view","courses.manage",
   "certificates.view","certificates.issue","certificates.revoke","reports.view",
 ];
-const roles = ["training_manager","registrar","certificate_issuer","branch_manager","viewer"];
+const roles = ["manager","training_manager","registrar","certificate_issuer","branch_manager","viewer"];
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get("origin") || "";
@@ -89,6 +89,14 @@ Deno.serve(async (req: Request) => {
       p_institution_id: institutionId, p_permission: "team.manage", p_branch_id: null,
     });
     if (permissionError || permitted !== true) return reply(origin, 403, { error: "TEAM_MANAGEMENT_FORBIDDEN" });
+
+    const { data: callerMembership, error: callerMembershipError } = await admin
+      .from("institution_users").select("role,status").eq("institution_id", institutionId)
+      .eq("auth_user_id", authData.user.id).eq("status", "active").maybeSingle();
+    if (callerMembershipError || !callerMembership) return reply(origin, 403, { error: "TEAM_MANAGEMENT_FORBIDDEN" });
+    if (role === "manager" && callerMembership.role !== "owner") {
+      return reply(origin, 403, { error: "ONLY_OWNER_CAN_CREATE_INSTITUTION_MANAGER" });
+    }
 
     const { data: institution, error: institutionError } = await admin
       .from("institutions").select("id,status").eq("id", institutionId).maybeSingle();
