@@ -338,8 +338,8 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     </div>
     <div class="login-title">تسجيل دخول المؤسسة</div>
     <div class="form-group">
-      <label class="form-label">البريد الإلكتروني أو رقم الهاتف</label>
-      <input type="text" id="loginEmail" class="form-inp" autocomplete="username" placeholder="email@institution.com أو 01XXXXXXXXX" dir="ltr">
+      <label class="form-label">البريد الإلكتروني للمؤسسة أو اسم المستخدم أو رقم الهاتف</label>
+      <input type="text" id="loginEmail" class="form-inp" autocomplete="username" placeholder="email@institution.com أو username أو 01XXXXXXXXX" dir="ltr">
     </div>
     <div class="form-group">
       <label class="form-label">كلمة المرور</label>
@@ -352,6 +352,18 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="login-back"><a href="landing.html">← العودة للرئيسية</a> &nbsp;|&nbsp; <a href="register.html">مؤسسة جديدة؟ سجل الاعتماد</a></div>
   </div>
 </div>
+
+<section id="staffPasswordChangeScreen" hidden style="min-height:100vh;display:none;place-items:center;padding:24px;background:#f3f7fb">
+ <div style="width:min(460px,100%);background:#fff;border:1px solid #dbe5ef;border-radius:20px;padding:28px;box-shadow:0 18px 55px #0c2d4e14">
+  <div style="font-size:30px;margin-bottom:10px">🔐</div><h2 style="margin:0 0 8px;color:#0c2d4e">تغيير كلمة المرور لأول دخول</h2>
+  <p style="color:#64748b;font-size:13px;line-height:1.8">لأمان حسابك، أنشئ كلمة مرور جديدة قبل الدخول إلى برامج المؤسسة. استخدم 10 أحرف على الأقل.</p>
+  <label class="form-label" for="staffNewPassword">كلمة المرور الجديدة</label><input id="staffNewPassword" class="form-inp" type="password" autocomplete="new-password" minlength="10">
+  <label class="form-label" for="staffConfirmPassword" style="margin-top:12px">تأكيد كلمة المرور</label><input id="staffConfirmPassword" class="form-inp" type="password" autocomplete="new-password" minlength="10">
+  <p id="staffPasswordChangeMessage" role="alert" style="display:none;color:#b91c1c;font-size:12px;margin:12px 0"></p>
+  <button class="btn-login" type="button" onclick="completeStaffPasswordChange()">حفظ كلمة المرور والمتابعة</button>
+  <button type="button" onclick="doLogout()" style="margin-top:10px;background:transparent;border:0;color:#64748b;cursor:pointer">تسجيل الخروج</button>
+ </div>
+</section>
 
 <!-- INSTITUTION WORKSPACE SELECTOR -->
 <section class="workspace-choice-screen" id="institutionWorkspaceChooser" aria-labelledby="workspaceChoiceTitle">
@@ -937,7 +949,31 @@ async function doLogin(){
   btn.disabled=false;
   btn.innerHTML='<span class="material-symbols-outlined">login</span> دخول';
   if(error){err.textContent='بيانات الدخول غير صحيحة أو لم يتم تأكيد وسيلة الدخول بعد';err.style.display='block';return;}
+  if(await showStaffPasswordChangeIfRequired())return;
   await loadInst();
+}
+async function showStaffPasswordChangeIfRequired(){
+ const {data:{user:currentUser}}=await sb.auth.getUser();
+ if(currentUser?.app_metadata?.account_type==='institution_staff'&&currentUser.app_metadata.must_change_password===true){
+  document.getElementById('loginScreen').style.display='none';
+  const screen=document.getElementById('staffPasswordChangeScreen');screen.hidden=false;screen.style.display='grid';return true;
+ }
+ return false;
+}
+async function completeStaffPasswordChange(){
+ const password=document.getElementById('staffNewPassword').value,confirmPassword=document.getElementById('staffConfirmPassword').value,msg=document.getElementById('staffPasswordChangeMessage');
+ msg.style.display='none';
+ if(password.length<10){msg.textContent='كلمة المرور يجب ألا تقل عن 10 أحرف.';msg.style.display='block';return;}
+ if(password!==confirmPassword){msg.textContent='تأكيد كلمة المرور غير مطابق.';msg.style.display='block';return;}
+ const btn=document.querySelector('#staffPasswordChangeScreen .btn-login');btn.disabled=true;btn.textContent='جارٍ حفظ كلمة المرور...';
+ try{
+  const {error:passwordError}=await sb.auth.updateUser({password});if(passwordError)throw passwordError;
+  const {data:completed,error:completionError}=await sb.rpc('complete_institution_staff_password_change');
+  if(completionError||completed!==true)throw completionError||new Error('تعذر تأكيد تغيير كلمة المرور. حاول مرة أخرى.');
+  document.getElementById('staffPasswordChangeScreen').hidden=true;document.getElementById('staffPasswordChangeScreen').style.display='none';
+  await loadInst();
+ }catch(error){msg.textContent='تعذر حفظ كلمة المرور: '+(error.message||'خطأ غير معروف');msg.style.display='block';}
+ finally{btn.disabled=false;btn.textContent='حفظ كلمة المرور والمتابعة';}
 }
 async function loadInst(){
   const{data:{user}}=await sb.auth.getUser();
@@ -1801,7 +1837,7 @@ document.getElementById('openInstitutionProgram').addEventListener('click',()=>{
 window.addEventListener('load',async()=>{
   document.getElementById('dateRange').textContent=new Date().toLocaleDateString('ar-EG',{year:'numeric',month:'long'});
   const{data:{session}}=await sb.auth.getSession();
-  if(session)await loadInst();
+  if(session){if(!(await showStaffPasswordChangeIfRequired()))await loadInst();}
 });
 </script>
 </body>
