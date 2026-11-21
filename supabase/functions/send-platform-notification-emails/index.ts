@@ -78,6 +78,17 @@ Deno.serve(async (req: Request) => {
   for (const item of queue || []) {
     const { data: recipient } = await adminClient.auth.admin.getUserById(item.recipient_user_id);
     const email = recipient.user?.email;
+    const { data: preferences } = await adminClient
+      .from("platform_notification_preferences")
+      .select("email_enabled")
+      .eq("user_id", item.recipient_user_id)
+      .maybeSingle();
+    if (preferences?.email_enabled !== true) {
+      await adminClient.from("platform_notifications").update({
+        email_status: "not_requested", email_requested: false, email_error: null,
+      }).eq("id", item.id);
+      continue;
+    }
     if (!email) {
       await adminClient.from("platform_notifications").update({
         email_status: "failed", email_attempts: (item.email_attempts || 0) + 1,
