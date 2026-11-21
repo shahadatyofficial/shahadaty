@@ -1617,16 +1617,19 @@ async function loadCerts(){
 }
 function renderCertificateBranchCards(){
  const host=document.getElementById('certificateBranchCards');if(!host)return;
- const cards=institutionBranches.map(branch=>{
+ const cards=institutionAllBranches.map(branch=>{
   const count=allCerts.filter(cert=>cert.branch_id===branch.id).length;
-  return '<button type="button" onclick="openCertificateBranch(\''+branch.id+'\')" style="text-align:right;border:1px solid var(--border);border-radius:13px;background:linear-gradient(145deg,#fff,#f2f8fc);padding:15px;cursor:pointer;color:var(--navy)"><span style="display:flex;align-items:center;gap:8px;font-weight:800"><span class="material-symbols-outlined" style="color:var(--blue)">location_on</span'+escapeHtml(branch.name)+(branch.is_active?'':' — فرع موقوف')+'</span><b style="display:block;font-size:24px;margin-top:10px;color:var(--blue)">'+count.toLocaleString('ar-EG')+'</b><small style="color:var(--muted)">شهادة صادرة</small></button>';
+  return '<button type="button" onclick="openCertificateBranch(\''+branch.id+'\')" style="text-align:right;border:1px solid var(--border);border-radius:13px;background:linear-gradient(145deg,#fff,#f2f8fc);padding:15px;cursor:pointer;color:var(--navy)"><span style="display:flex;align-items:center;gap:8px;font-weight:800"><span class="material-symbols-outlined" style="color:var(--blue)">location_on</span>'+escapeHtml(branch.name)+(branch.is_active?'':' — فرع موقوف')+'</span><b style="display:block;font-size:24px;margin-top:10px;color:var(--blue)">'+count.toLocaleString('ar-EG')+'</b><small style="color:var(--muted)">شهادة صادرة</small></button>';
  }).join('');
  const generalCount=allCerts.filter(cert=>!cert.branch_id).length;
  const generalCard='<button type="button" onclick="openCertificateBranch(\'__general__\')" style="text-align:right;border:1px dashed var(--border);border-radius:13px;background:#fff;padding:15px;cursor:pointer;color:var(--navy)"><span style="font-weight:800">الإدارة العامة / دون فرع</span><b style="display:block;font-size:24px;margin-top:10px;color:var(--blue)">'+generalCount.toLocaleString('ar-EG')+'</b><small style="color:var(--muted)">شهادة صادرة</small></button>';
  host.innerHTML=(cards||'')+generalCard;
 }
 function openCertificateBranch(branchId){
- const filter=document.getElementById('certBranchFilter');if(filter){if(branchId==='__general__'){filter.innerHTML='<option value="">كل الفروع المسموح بها</option><option value="__general__">الإدارة العامة / دون فرع</option>'+institutionAllBranches.map(b=>'<option value="'+escapeHtml(b.id)+'">'+escapeHtml(b.name)+'</option>').join('');filter.value='__general__';}else{filter.innerHTML='<option value="">كل الفروع المسموح بها</option>'+institutionAllBranches.map(b=>'<option value="'+escapeHtml(b.id)+'">'+escapeHtml(b.name)+'</option>').join('');filter.value=branchId;}}
+ const filter=document.getElementById('certBranchFilter');if(filter){
+  filter.innerHTML='<option value="">كل الفروع المسموح بها</option><option value="__general__">الإدارة العامة / دون فرع</option>'+institutionAllBranches.map(b=>'<option value="'+escapeHtml(b.id)+'">'+escapeHtml(b.name)+(b.is_active?'':' — موقوف')+'</option>').join('');
+  filter.value=branchId;
+ }
  filterCerts();
 }
 function renderCerts(certs){
