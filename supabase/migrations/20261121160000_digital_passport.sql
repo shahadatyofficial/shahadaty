@@ -119,7 +119,19 @@ BEGIN
     p.governorate,
     p.center,
     COALESCE(g.public_profile_consent IS TRUE, false),
-    COALESCE(g.digital_passport_public_consent IS TRUE, false)
+    COALESCE(
+      g.digital_passport_public_consent IS TRUE
+      AND EXISTS (
+        SELECT 1
+        FROM public.certificates c2
+        JOIN public.institutions i2 ON i2.id = c2.institution_id AND i2.status = 'approved'
+        WHERE NULLIF(regexp_replace(COALESCE(g.phone,''),'[^0-9]','','g'),'') IS NOT NULL
+          AND regexp_replace(COALESCE(g.phone,''),'[^0-9]','','g')
+            = regexp_replace(COALESCE(c2.student_phone,''),'[^0-9]','','g')
+          AND c2.visible_to_companies IS TRUE
+          AND c2.consent_given_at IS NOT NULL
+      ), false
+    )
   FROM public.alumni_profiles p
   JOIN public.alumni_qualifications q
     ON q.alumni_id = p.id AND q.verification_status = 'verified'
