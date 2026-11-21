@@ -18,7 +18,7 @@ checks = {
         "complete_institution_staff_password_change", "workspaceSb.auth.signInWithPassword",
     ],
     "institution-workspace.html": [
-        "runPublicListing", "platform_notifications", "loadPlatformNotifications", "platform_notification_preferences", "institution_list_training_marketplace_applications",
+        "runPublicListing", "runInstitutionAiInsights", "institution_insights", "platform_notifications", "loadPlatformNotifications", "platform_notification_preferences", "institution_list_training_marketplace_applications",
         "institution_review_training_marketplace_application",
         "institution_branches", "institution_users", "institution-staff-create-account",
         "institution_staff_profiles", "institution_user_permission_overrides",
@@ -48,7 +48,7 @@ checks = {
         "EMAIL_PROVIDER_NOT_CONFIGURED", "platform_notifications", "x-cron-secret",
     ],
     "supabase/functions/shahadaty-ai-assistant/index.ts": [
-        "get_admin_ai_insights_context", "admin_insights",
+        "get_admin_ai_insights_context", "admin_insights", "get_institution_ai_insights_context", "institution_insights",
     ],
     "company.html": [
         "platform_notifications", "loadCompanyPlatformNotifications", "companyEmailNotifications", "search_alumni_for_company_v3", "public_profile_available", "digital_passport_available", "digital-passport.html",
@@ -76,6 +76,7 @@ migration_paths = [
     "supabase/migrations/20261121140000_notification_scheduling.sql",
     "supabase/migrations/20261121150000_company_professional_profile_link.sql",
     "supabase/migrations/20261121160000_digital_passport.sql",
+    "supabase/migrations/20261121170000_institution_ai_insights.sql",
     "supabase/config.toml",
 ]
 
