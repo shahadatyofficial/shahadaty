@@ -45,6 +45,22 @@ AS $function$
       FROM public.alumni_skills s
       WHERE s.alumni_id = p.id
         AND s.skill_category = 'general'
+    ), '[]'::jsonb),
+    'experiences', COALESCE((
+      SELECT jsonb_agg(
+        jsonb_build_object(
+          'employer_name', e.employer_name,
+          'job_title', e.job_title,
+          'description', e.description,
+          'start_date', e.start_date,
+          'end_date', e.end_date,
+          'is_current', e.is_current
+        )
+        ORDER BY e.is_current DESC, e.start_date DESC NULLS LAST
+      )
+      FROM public.alumni_experiences e
+      WHERE e.alumni_id = p.id
+        AND e.verification_status = 'verified'
     ), '[]'::jsonb)
   )
   FROM public.alumni_profiles p
