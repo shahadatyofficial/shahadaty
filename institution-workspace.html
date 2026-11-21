@@ -891,11 +891,10 @@ async function loadEnrollments(){
   if(cert)action='<a class="btn light" href="certificate.html?id='+encodeURIComponent(cert.cert_number)+'&template=uploaded-2-html" target="_blank" rel="noopener">عرض الشهادة</a>';
   else if(e.status==='completed'&&perms.issue)action='<button class="btn gold" data-issue-certificate="'+e.id+'">إصدار الشهادة</button>';
   else if(!['completed','withdrawn','failed'].includes(e.status)&&perms.manage)action='<button class="btn light" data-complete-enrollment="'+e.id+'">اعتماد الإتمام</button>';
-   const attendanceAction=run.id&&perms.manage?'<button class="btn light" data-record-attendance="'+e.id+'">تسجيل الحضور</button>':'<span class="muted">—</span>';
+   const attendanceAction=run.id&&perms.manage?'<span class="muted">يُسجل من جدول الجلسات</span>':'<span class="muted">—</span>';
   return '<tr><td>'+esc(trainee.full_name||'—')+'</td><td>'+esc(course.name||'—')+(run.run_name?' / '+esc(run.run_name):' / تسجيل عام')+'</td><td>'+esc(statusLabels[e.status]||e.status)+'</td><td>'+new Date(e.enrolled_at).toLocaleDateString('ar-EG')+'</td><td>'+attendanceAction+'</td><td>'+action+'</td></tr>';
  }).join('')||'<tr><td colspan="6" class="empty">لا توجد تسجيلات حتى الآن</td></tr>';
- $('enrollmentsRows').querySelectorAll('[data-record-attendance]').forEach(btn=>btn.addEventListener('click',()=>recordAttendance(btn.dataset.recordAttendance,today)));
- $('enrollmentsRows').querySelectorAll('[data-complete-enrollment]').forEach(btn=>btn.addEventListener('click',()=>completeEnrollment(btn.dataset.completeEnrollment)));
+  $('enrollmentsRows').querySelectorAll('[data-complete-enrollment]').forEach(btn=>btn.addEventListener('click',()=>completeEnrollment(btn.dataset.completeEnrollment)));
  $('enrollmentsRows').querySelectorAll('[data-issue-certificate]').forEach(btn=>btn.addEventListener('click',()=>issueEnrollmentCertificate(btn.dataset.issueCertificate)));
 }
 async function completeEnrollment(id){
