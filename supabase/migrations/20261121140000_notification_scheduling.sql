@@ -175,7 +175,7 @@ BEGIN
       v_notification_id := app_private.enqueue_deduplicated_platform_notification(
         v_recipient.user_id,'training_application_pending_reminder','طلب التحاق يحتاج إلى مراجعة',
         'يوجد طلب التحاق بدورة ' || COALESCE(v_row.course_name,'تدريبية') ||
-          || ' لم تتم مراجعته منذ أكثر من 48 ساعة.',
+          ' لم تتم مراجعته منذ أكثر من 48 ساعة.',
         'institution.html','training_marketplace_application',v_row.id,
         'marketplace-pending:' || v_row.id::text || ':' || v_today::text
       );
