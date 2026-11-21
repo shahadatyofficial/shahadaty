@@ -385,7 +385,7 @@ async function loadAttendanceRoster(){
   if(error)throw error;
   const roster=(data||[]).filter(e=>(e.institution_trainees?.branch_id||null)===(run.branch_id||null));
   const ids=roster.map(e=>e.id);let existing=[];
-  if(ids.length){const result=await sb.from('institution_attendance').select('id,enrollment_id,session_id,attendance_status,notes').eq('institution_id',org.id).eq('session_date',date).in('enrollment_id',ids);if(result.error)throw result.error;existing=result.data||[];}
+  if(ids.length){const result=await sb.from('institution_attendance').select('id,enrollment_id,session_id,attendance_status,notes').eq('institution_id',org.id).eq('session_id',sessionId).in('enrollment_id',ids);if(result.error)throw result.error;existing=result.data||[];}
   const existingMap=new Map(existing.map(a=>[a.enrollment_id,a]));
   attendanceRosterRows=roster.map(e=>({...e,attendance:existingMap.get(e.id)||null,selectedStatus:existingMap.get(e.id)?.attendance_status||'',notes:existingMap.get(e.id)?.notes||''}));
   $('attendanceRosterRows').innerHTML=attendanceRosterRows.map(e=>{const t=e.institution_trainees||{};return '<tr data-attendance-enrollment="'+esc(e.id)+'"><td>'+esc(t.full_name||'—')+'</td><td>'+esc(branchById.get(run.branch_id)?.name||'عام')+'</td><td>'+esc(e.attendance?attendanceLabels[e.attendance.attendance_status]||e.attendance.attendance_status:'لم يسجل')+'</td><td><select data-attendance-status="'+esc(e.id)+'"><option value="">لم يحدد</option><option value="present" '+(e.selectedStatus==='present'?'selected':'')+'>حاضر</option><option value="absent" '+(e.selectedStatus==='absent'?'selected':'')+'>غائب</option><option value="late" '+(e.selectedStatus==='late'?'selected':'')+'>متأخر</option><option value="excused" '+(e.selectedStatus==='excused'?'selected':'')+'>معذور</option></select></td><td><input data-attendance-notes="'+esc(e.id)+'" value="'+esc(e.notes)+'" placeholder="ملاحظة اختيارية"></td></tr>';}).join('')||'<tr><td colspan="5" class="empty">لا يوجد متدربون مسجلون بهذه المجموعة.</td></tr>';
@@ -403,7 +403,7 @@ async function saveAttendanceRoster(){
  const btn=$('saveAttendanceRosterBtn');btn.disabled=true;btn.textContent='جارٍ الحفظ...';
  try{
   const payload=changes.map(x=>({institution_id:org.id,enrollment_id:x.enrollment.id,session_id:sessionId,session_date:date,attendance_status:x.status,notes:x.notes||null,recorded_by:user.id}));
-  const {error}=await sb.from('institution_attendance').upsert(payload,{onConflict:'enrollment_id,session_date'});if(error)throw error;
+  const {error}=await sb.from('institution_attendance').upsert(payload,{onConflict:'enrollment_id,session_id'});if(error)throw error;
   say('تم حفظ '+changes.length+' سجل حضور للجلسة رقم '+session.session_number+'.','success');
   await loadAttendanceRoster();if($('reportFrom').value&&$('reportTo').value)await loadInstitutionReport();
  }catch(error){say('تعذر حفظ الحضور: '+(error.message||'خطأ غير معروف'),'error');}
