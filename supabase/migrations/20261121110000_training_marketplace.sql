@@ -314,8 +314,11 @@ SET search_path TO ''
 AS $function$
 DECLARE
   v_application public.training_marketplace_applications%ROWTYPE;
+  v_graduate public.graduate_profiles%ROWTYPE;
   v_capacity integer;
   v_accepted integer;
+  v_course_id uuid;
+  v_trainee_id uuid;
 BEGIN
   IF p_status NOT IN ('accepted','rejected') THEN
     RAISE EXCEPTION 'INVALID_APPLICATION_STATUS';
@@ -348,6 +351,59 @@ BEGIN
       AND a.status = 'accepted';
     IF v_capacity IS NOT NULL AND v_accepted >= v_capacity THEN
       RAISE EXCEPTION 'COURSE_CAPACITY_REACHED';
+    END IF;
+
+    SELECT * INTO v_graduate
+    FROM public.graduate_profiles
+    WHERE id = v_application.graduate_profile_id;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'GRADUATE_PROFILE_NOT_FOUND';
+    END IF;
+
+    SELECT r.course_id INTO v_course_id
+    FROM public.institution_course_runs r
+    WHERE r.id = v_application.course_run_id;
+
+    SELECT t.id INTO v_trainee_id
+    FROM public.institution_trainees t
+    WHERE t.institution_id = v_application.institution_id
+      AND t.status = 'active'
+      AND (
+        (v_graduate.phone IS NOT NULL AND t.phone = v_graduate.phone)
+        OR (v_graduate.email IS NOT NULL AND lower(t.email) = lower(v_graduate.email))
+      )
+    ORDER BY
+      CASE WHEN v_graduate.phone IS NOT NULL AND t.phone = v_graduate.phone THEN 0 ELSE 1 END,
+      t.created_at DESC
+    LIMIT 1;
+
+    IF v_trainee_id IS NULL THEN
+      INSERT INTO public.institution_trainees (
+        institution_id, branch_id, full_name, phone, email, governorate,
+        status, created_by, notes
+      ) VALUES (
+        v_application.institution_id, v_application.branch_id,
+        v_graduate.full_name, v_graduate.phone, v_graduate.email,
+        v_graduate.governorate, 'active', auth.uid(),
+        'تم التسجيل من سوق الدورات. رقم الطلب: ' || v_application.id::text
+      )
+      RETURNING id INTO v_trainee_id;
+    END IF;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM public.institution_enrollments e
+      WHERE e.institution_id = v_application.institution_id
+        AND e.course_run_id = v_application.course_run_id
+        AND e.trainee_id = v_trainee_id
+    ) THEN
+      INSERT INTO public.institution_enrollments (
+        institution_id, course_run_id, course_id, trainee_id, status,
+        enrolled_at, notes
+      ) VALUES (
+        v_application.institution_id, v_application.course_run_id,
+        v_course_id, v_trainee_id, 'enrolled', now(),
+        'تم القيد بعد قبول طلب سوق الدورات: ' || v_application.id::text
+      );
     END IF;
   END IF;
 
