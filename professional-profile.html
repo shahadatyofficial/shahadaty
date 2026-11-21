@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="الملف المهني العام المنشور بموافقة صاحبه عبر منصة شهادتي العلمية.">
+<title>الملف المهني | شهادتي العلمية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f7fb;color:#17334f;font-family:Cairo,Arial,sans-serif}.wrap{max-width:900px;margin:36px auto;padding:16px}.hero{background:linear-gradient(125deg,#091b31,#124a75);color:#fff;border-radius:22px;padding:30px;box-shadow:0 16px 38px #0b29451c}.brand{color:#e7c77e;font-weight:900;font-size:13px;letter-spacing:.4px}.hero h1{font-size:clamp(25px,4vw,38px);margin:10px 0}.meta{color:#d5e4f0;font-size:13px}.panel{background:#fff;border:1px solid #e0e9f1;border-radius:18px;padding:22px;margin-top:16px;box-shadow:0 6px 22px #17334f0a}.panel h2{margin:0 0 14px;font-size:18px}.item{padding:14px 0;border-bottom:1px solid #edf1f5}.item:last-child{border:0}.muted{color:#6c7f91;font-size:13px}.pill{display:inline-block;background:#edf6fc;color:#075985;border-radius:20px;padding:5px 10px;font-size:12px;margin:4px}.verified{color:#087b56;font-size:12px;font-weight:800}.notice{text-align:center;padding:42px 20px}.footer{text-align:center;color:#8291a1;font-size:11px;padding:22px}@media(max-width:600px){.wrap{margin:8px auto;padding:12px}.hero,.panel{padding:20px}.hero{border-radius:16px}}
+</style></head>
+<body><main class="wrap">
+<header class="hero"><div class="brand">شهادتي العلمية · الملف المهني</div><h1 id="fullName">جاري تحميل الملف...</h1><div class="meta" id="location"></div><p class="meta" style="margin-top:18px">ملف مهني منشور بموافقة صاحبه، ويعرض المؤهلات التي تم التحقق منها فقط.</p></header>
+<div id="state" class="panel notice" role="status" aria-live="polite">جاري التحقق من إتاحة الملف المهني...</div>
+<section id="profileContent" hidden>
+<div class="panel"><h2>نبذة مهنية</h2><p id="summary" style="line-height:2;margin:0"></p></div>
+<div class="panel"><h2>المؤهلات التي تم التحقق منها</h2><div id="qualifications"></div></div>
+<div class="panel"><h2>المهارات</h2><div id="skills"></div></div>
+</section>
+<footer class="footer">شهادتي العلمية · نصنع المعرفة... نبني الحاضر... ونوثق المستقبل.</footer>
+</main>
+<script>
+const SU="https://snteiiavvaaumgaegazn.supabase.co",SK="sb_publishable_H5Y6GXqz_wLVIHF9hYMQfw_KhaAN_ND";
+const sb=supabase.createClient(SU,SK,{auth:{persistSession:false,autoRefreshToken:false}});
+const $=id=>document.getElementById(id);
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function showState(message){$('state').hidden=false;$('state').textContent=message;$('profileContent').hidden=true;}
+async function loadPublicProfile(){
+ const id=new URLSearchParams(location.search).get('id');
+ if(!id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)){showState('رابط الملف المهني غير صحيح.');return;}
+ const{data,error}=await sb.rpc('get_public_professional_profile',{p_profile_id:id});
+ if(error){showState('تعذر تحميل الملف المهني حاليًا. حاول مرة أخرى لاحقًا.');return;}
+ if(!data?.profile){showState('هذا الملف غير متاح للنشر حاليًا، أو تم سحب موافقة صاحبه.');return;}
+ const p=data.profile;
+ $('fullName').textContent=p.full_name||'ملف مهني';
+ $('location').textContent=[p.governorate,p.center].filter(Boolean).join(' · ');
+ $('summary').textContent=p.professional_summary||'لم تتم إضافة نبذة مهنية.';
+ const qualifications=data.qualifications||[];
+ $('qualifications').innerHTML=qualifications.length?qualifications.map(q=>'<article class="item"><strong>'+esc(q.qualification)+'</strong><div class="muted">'+[q.institution,q.faculty,q.specialization,q.graduation_year].filter(Boolean).map(esc).join(' · ')+'</div><div class="verified">✓ تم التحقق من المؤهل</div></article>').join(''):'<p class="muted">لا توجد مؤهلات تم التحقق منها منشورة حتى الآن.</p>';
+ const skills=data.skills||[];
+ $('skills').innerHTML=skills.length?skills.map(s=>'<span class="pill">'+esc(s.name)+'</span>').join(''):'<p class="muted">لم تتم إضافة مهارات عامة منشورة.</p>';
+ $('state').hidden=true;$('profileContent').hidden=false;
+}
+loadPublicProfile();
+</script>
+</body></html>
