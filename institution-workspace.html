@@ -29,7 +29,7 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 <header><div><h1>إدارة الفروع والفريق</h1><p id="orgTitle">مساحة تشغيل المؤسسة متعددة الفروع</p></div><a href="institution.html">العودة إلى اختيار مساحة العمل ←</a></header>
 <main>
 <div id="message" class="notice" style="display:none"></div>
-<section class="card" id="operationalReadinessCard" aria-labelledby="operationalReadinessTitle">
+<section class="card" id="operationalReadinessCard" hidden aria-labelledby="operationalReadinessTitle">
  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
   <div><h2 id="operationalReadinessTitle" style="margin:0">مؤشر جاهزية تشغيل المركز</h2><p class="muted" style="margin:5px 0 0">ملخص مباشر لبيانات التشغيل، دون إنشاء أو تعديل أي سجلات.</p></div>
   <button class="btn light" type="button" id="refreshOperationalReadinessBtn">تحديث المؤشر</button>
@@ -573,7 +573,7 @@ async function init(){
  if(error||!user){say('سجّل الدخول من بوابة المؤسسة، ثم افتح البرنامج ببيانات المالك أو الموظف المصرح له.','error');return;}
  if(user.app_metadata?.account_type==='institution_staff'&&user.app_metadata.must_change_password===true){say('يجب تغيير كلمة المرور أولاً من نافذة الدخول التي فتحها مالك المؤسسة.','error');return;}
  const {data:m,error:me}=await sb.from('institution_users').select('id,institution_id,role,status').eq('auth_user_id',user.id).eq('status','active').order('created_at',{ascending:true}).limit(1).maybeSingle();
- if(me||!m){say('لم يتم العثور على عضوية مؤسسة نشطة لهذا الحساب.','error');return;}membership=m;
+ if(me||!m){say('لم يتم العثور على عضوية مؤسسة نشطة لهذا الحساب.','error');return;}membership=m;$('operationalReadinessCard').hidden=m.role!=='owner';
  const workspacePermissions=['dashboard.view','branches.view','branches.manage','team.view','team.manage','trainees.view','trainees.manage','courses.view','courses.manage','certificates.view','certificates.issue','reports.view'];
  let allowedWorkspace=false;
  if(m.role==='owner'||m.role==='manager'){
@@ -594,7 +594,7 @@ async function init(){
  await applyWorkspaceRolePermissions();
  await Promise.all([loadTeam(),loadTrainees(),loadCoursesAndRuns()]);
  setupAttendanceManager();
- await loadOperationalReadiness();
+ if(m.role==='owner')await loadOperationalReadiness();
 }
 async function allowed(permission,branchId=null){const {data,error}=await sb.rpc('institution_has_permission',{p_institution_id:org.id,p_permission:permission,p_branch_id:branchId});return !error&&data===true;}
 async function allowedAnyBranch(permission){if(await allowed(permission,null))return true;for(const b of branches){if(await allowed(permission,b.id))return true;}return false;}
