@@ -1749,13 +1749,13 @@ async function openDoc(path){const tab=window.open('about:blank','_blank');if(!t
 function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=type==='ok'?'#0369a1':'#dc2626';t.style.display='block';setTimeout(()=>t.style.display='none',3500);}
 
 // ── INIT ──────────────────────────────────────────────────────
-function safeAdminNotificationUrl(value){const v=String(value||'');return /^(admin\\.html|institution\\.html|graduate-v2\\.html|company\\.html|training-marketplace\\.html)([?#].*)?$/.test(v)?v:'#';}
+function safeAdminNotificationUrl(value){const v=String(value||'');const allowed=['admin.html','institution.html','graduate-v2.html','company.html','training-marketplace.html'];return allowed.some(path=>v===path||v.startsWith(path+'?')||v.startsWith(path+'#'))?v:'#';}
 async function loadAdminPlatformNotifications(){
  const el=document.getElementById('adminPlatformNotificationsList');if(!el)return;
  const{data:{user}}=await sb.auth.getUser();if(!user)return;
  const{data,error}=await sb.from('platform_notifications').select('id,title,body,action_url,read_at,created_at').eq('recipient_user_id',user.id).eq('in_app_visible',true).order('created_at',{ascending:false}).limit(30);
  if(error){el.textContent='تعذر تحميل الإشعارات: '+error.message;return;}
- const rows=data||[];el.innerHTML=rows.length?rows.map(n=>'<div style="padding:10px 0;border-bottom:1px solid #edf2f7"><b>'+esc(n.title)+'</b><p style="margin:4px 0;color:var(--muted)">'+esc(n.body||'')+'</p><small>'+new Date(n.created_at).toLocaleString('ar-EG')+'</small>'+(n.action_url?'<div><a href="'+esc(safeAdminNotificationUrl(n.action_url))+'">فتح</a></div>':'')+(n.read_at?'':' <button class="btn-s" data-admin-notification-read="'+esc(n.id)+'">تمت القراءة</button>')+'</div>').join(''):'لا توجد إشعارات جديدة.';
+ const rows=data||[];el.innerHTML=rows.length?rows.map(n=>'<div style="padding:10px 0;border-bottom:1px solid #edf2f7"><b>'+adminEsc(n.title)+'</b><p style="margin:4px 0;color:var(--muted)">'+adminEsc(n.body||'')+'</p><small>'+new Date(n.created_at).toLocaleString('ar-EG')+'</small>'+(n.action_url?'<div><a href="'+adminEsc(safeAdminNotificationUrl(n.action_url))+'">فتح</a></div>':'')+(n.read_at?'':' <button class="btn-s" data-admin-notification-read="'+adminEsc(n.id)+'">تمت القراءة</button>')+'</div>').join(''):'لا توجد إشعارات جديدة.';
  el.querySelectorAll('[data-admin-notification-read]').forEach(btn=>btn.addEventListener('click',async()=>{const{error}=await sb.from('platform_notifications').update({read_at:new Date().toISOString()}).eq('id',btn.dataset.adminNotificationRead);if(error){toast(error.message,'err');return;}await loadAdminPlatformNotifications();}));
 }
 async function loadAdminNotificationPreferences(userId){
