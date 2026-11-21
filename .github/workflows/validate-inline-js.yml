@@ -15,6 +15,8 @@ jobs:
           node-version: 22
       - name: Validate inline JavaScript in platform pages
         run: python3 scripts/check-inline-js.py
+      - name: Check platform workflow integration points
+        run: python3 scripts/check-platform-integration.py
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x

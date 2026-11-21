@@ -550,9 +550,9 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       <div class="card">
         <div class="card-head"><span class="card-title">تصدير التقارير</span></div>
         <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap">
-          <button class="btn-p" onclick="exportReport('institutions')"><span class="material-symbols-outlined">download</span>تصدير المؤسسات</button>
-          <button class="btn-p" onclick="exportReport('certificates')"><span class="material-symbols-outlined">download</span>تصدير الشهادات</button>
-          <button class="btn-p" onclick="exportReport('companies')"><span class="material-symbols-outlined">download</span>تصدير الشركات</button>
+          <button class="btn-p" onclick="exportReport('institutions',this)"><span class="material-symbols-outlined">download</span>تصدير المؤسسات</button>
+          <button class="btn-p" onclick="exportReport('certificates',this)"><span class="material-symbols-outlined">download</span>تصدير الشهادات</button>
+          <button class="btn-p" onclick="exportReport('companies',this)"><span class="material-symbols-outlined">download</span>تصدير الشركات</button>
         </div>
       </div>
     </div>
@@ -584,6 +584,14 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
             </div>
           </div>
           <button class="btn-p"><span class="material-symbols-outlined">save</span>حفظ الإعدادات</button>
+        </div>
+      </div>
+      <div class="card" style="max-width:700px;margin-top:18px">
+        <div class="card-head"><span class="card-title">النسخ الاحتياطي والاستعادة</span></div>
+        <div class="card-body">
+          <p style="font-size:12px;line-height:2;color:var(--muted);margin-bottom:12px">إدارة النسخ الاحتياطية الفعلية لقاعدة البيانات تتم من لوحة Supabase، حسب خطة المشروع وفترة الاحتفاظ المفعّلة.</p>
+          <a class="btn-p" href="https://supabase.com/dashboard/project/snteiiavvaaumgaegazn/database/backups" target="_blank" rel="noopener noreferrer" style="text-decoration:none"><span class="material-symbols-outlined">cloud_download</span>فتح نسخ قاعدة البيانات</a>
+          <p style="font-size:11px;line-height:1.9;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:10px;margin-top:12px">تنبيه: تصدير التقارير ليس نسخة قابلة لاستعادة قاعدة البيانات. ملفات التخزين الخاصة تحتاج نسخة منفصلة، واستعادة قاعدة البيانات قد تستبدل بيانات حالية؛ لا تنفذها دون خطة استعادة وموافقة تشغيلية مستقلة.</p>
         </div>
       </div>
     </div>
@@ -1685,13 +1693,27 @@ async function loadReports(){
   document.getElementById('rep_rev').textContent=s.certificates??0;
   document.getElementById('rep_verify').textContent=s.active_certificates??0;
 }
-async function exportReport(table){
-  const{data}=await sb.from(table).select('*').limit(1000);
-  if(!data?.length){toast('لا توجد بيانات','err');return;}
-  const ws=XLSX.utils.json_to_sheet(data);
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,table);
-  XLSX.writeFile(wb,`تقرير_${table}.xlsx`);
-  toast('تم تصدير التقرير','ok');
+async function exportReport(table,btn=null){
+  const allowedTables=new Set(['institutions','certificates','companies']);
+  if(!allowedTables.has(table)){toast('نوع التقرير غير مسموح','err');return;}
+  if(btn){btn.disabled=true;btn.dataset.originalText=btn.textContent;btn.textContent='جارٍ تجهيز التقرير...';}
+  try{
+    const rows=[];const pageSize=1000;let offset=0;
+    while(true){
+      const{data,error}=await sb.from(table).select('*',{count:'exact'}).range(offset,offset+pageSize-1);
+      if(error)throw error;
+      const batch=data||[];rows.push(...batch);
+      if(batch.length<pageSize)break;
+      offset+=pageSize;
+      if(offset>=100000)throw new Error('تجاوز التقرير الحد الآمن البالغ 100 ألف سجل. استخدم تصديرًا مخصصًا.');
+    }
+    if(!rows.length){toast('لا توجد بيانات','err');return;}
+    const ws=XLSX.utils.json_to_sheet(rows);
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,table);
+    XLSX.writeFile(wb,`تقرير_${table}.xlsx`);
+    toast(`تم تصدير ${rows.length.toLocaleString('ar-EG')} سجلًا`,'ok');
+  }catch(error){toast('تعذر إكمال التصدير: '+(error?.message||error),'err');}
+  finally{if(btn){btn.disabled=false;btn.textContent=btn.dataset.originalText||'تصدير التقرير';delete btn.dataset.originalText;}}
 }
 
 async function openDoc(path){const tab=window.open('about:blank','_blank');if(!tab){toast('اسمح بفتح النوافذ المنبثقة لعرض المستند','err');return;}const{data,error}=await sb.storage.from('institution-documents').createSignedUrl(path,300);if(error){tab.close();toast(error.message,'err');return;}tab.opener=null;tab.location.href=data.signedUrl;}
