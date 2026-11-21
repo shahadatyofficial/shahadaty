@@ -68,7 +68,7 @@ Deno.serve(async (req: Request) => {
       ? [...new Set(body.permissions.map((x: unknown) => String(x).trim()).filter(Boolean))]
       : [];
     if (!/^[0-9a-f-]{36}$/i.test(institutionId) ||
-        !/^[a-z0-9][a-z0-9._-]{2,29}$/.test(username) ||
+        !/^[a-z][a-z0-9._-]{2,29}$/.test(username) ||
         fullName.length < 2 || fullName.length > 160 ||
         password.length < 10 || password.length > 128 ||
         !roles.includes(role) || branchIds.length > 25 ||
