@@ -155,7 +155,24 @@ async function loadMyJobApplications(){
  if(linkError||!alumniId){el.textContent='لم يتم ربط ملفك المهني بسجل الخريجين بعد.';return;}
  const{data,error}=await sb.from('job_applications').select('id,status,created_at,job_announcements(title,company_display_name)').eq('alumni_id',alumniId).order('created_at',{ascending:false}).limit(50);
  if(error){el.textContent='تعذر تحميل طلباتك: '+error.message;return;}
- el.innerHTML=(data||[]).map(a=>'<div class="cert"><b>'+esc(a.job_announcements?.title||'وظيفة')+'</b><p>'+esc(a.job_announcements?.company_display_name||'جهة التوظيف')+'</p><span class="badge">'+esc(graduateApplicationStatusLabels[a.status]||'حالة غير محددة')+'</span><p style="font-size:11px;color:#718096">تاريخ التقديم: '+(a.created_at?new Date(a.created_at).toLocaleDateString('ar-EG'):'—')+'</p></div>').join('')||'لم تقدم على وظائف حتى الآن.';
+ el.innerHTML=(data||[]).map(a=>{
+  const canWithdraw=['submitted','reviewing','shortlisted'].includes(a.status);
+  const withdrawButton=canWithdraw?'<button type="button" class="btn-secondary" onclick="withdrawMyJobApplication(\\''+esc(a.id)+'\\')">سحب طلب التوظيف</button>':'';
+  return '<div class="cert"><b>'+esc(a.job_announcements?.title||'وظيفة')+'</b><p>'+esc(a.job_announcements?.company_display_name||'جهة التوظيف')+'</p><span class="badge">'+esc(graduateApplicationStatusLabels[a.status]||'حالة غير محددة')+'</span><p style="font-size:11px;color:#718096">تاريخ التقديم: '+(a.created_at?new Date(a.created_at).toLocaleDateString('ar-EG'):'—')+'</p>'+withdrawButton+'</div>';
+ }).join('')||'لم تقدم على وظائف حتى الآن.';
+}
+async function withdrawMyJobApplication(applicationId){
+ if(!applicationId||!confirm('هل تريد سحب طلب التوظيف؟ لن تتمكن من إعادة تقديم طلب جديد على الإعلان نفسه.'))return;
+ const{data,error}=await sb.rpc('graduate_withdraw_job_application',{p_application_id:applicationId});
+ if(error){
+  const message=error.message||'تعذر سحب الطلب';
+  msg('saveMsg',message.includes('APPLICATION_CANNOT_BE_WITHDRAWN')?'لا يمكن سحب الطلب بعد اتخاذ قرار نهائي بشأنه.':'تعذر سحب الطلب: '+message);
+  return;
+ }
+ if(!data){msg('saveMsg','لم يتم تأكيد سحب الطلب. حدّث القائمة للتحقق.');return;}
+ msg('saveMsg','تم سحب طلب التوظيف بنجاح.');
+ await loadMyJobApplications();
+ await loadApprovedJobs();
 }
 async function loadAlumniNotifications(){if(!graduateMembershipActive)return;
  const card=document.getElementById('notificationsCard');card.classList.remove('hidden');
