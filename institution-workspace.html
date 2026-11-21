@@ -672,6 +672,11 @@ async function saveStaffMemberPermissions(){
  if(!editingPermissionMemberId)return;
  if(!await allowed('team.manage'))return say('ليس لديك صلاحية تعديل الصلاحيات.','error');
  const selected=new Set(Array.from($('editStaffPermissionOptions').querySelectorAll('[data-edit-staff-permission]:checked')).map(x=>x.dataset.editStaffPermission));
+ if(selected.has('team.manage'))selected.add('team.view');
+ if(selected.has('branches.manage'))selected.add('branches.view');
+ if(selected.has('trainees.manage'))selected.add('trainees.view');
+ if(selected.has('courses.manage'))selected.add('courses.view');
+ if(selected.has('certificates.issue')||selected.has('certificates.revoke'))selected.add('certificates.view');
  const rows=staffPermissionCatalog.map(([permission_key])=>({institution_id:org.id,institution_user_id:editingPermissionMemberId,permission_key,is_granted:selected.has(permission_key)}));
  const btn=$('saveStaffPermissions');btn.disabled=true;btn.textContent='جارٍ الحفظ...';
  const {error}=await sb.from('institution_user_permission_overrides').upsert(rows,{onConflict:'institution_user_id,permission_key'});
