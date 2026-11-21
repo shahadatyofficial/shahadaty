@@ -338,8 +338,8 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     </div>
     <div class="login-title">تسجيل دخول المؤسسة</div>
     <div class="form-group">
-      <label class="form-label">البريد الإلكتروني للمؤسسة أو اسم المستخدم أو رقم الهاتف</label>
-      <input type="text" id="loginEmail" class="form-inp" autocomplete="username" placeholder="email@institution.com أو username أو 01XXXXXXXXX" dir="ltr">
+      <label class="form-label">البريد الإلكتروني المعتمد للمؤسسة أو اسم المستخدم للموظف</label>
+      <input type="text" id="loginEmail" class="form-inp" autocomplete="username" placeholder="email@institution.com أو username" dir="ltr">
     </div>
     <div class="form-group">
       <label class="form-label">كلمة المرور</label>
@@ -938,12 +938,10 @@ async function doLogin(){
   let credentials;
   if(identifier.includes('@')){
     credentials={email:identifier.toLowerCase(),password:pass};
-  }else if(/^\+?[0-9\s()\-]{10,18}$/.test(identifier)){
-    credentials={phone:normalizeLoginPhone(identifier),password:pass};
   }else if(/^[a-z][a-z0-9._-]{2,29}$/i.test(identifier)){
     credentials={email:identifier.toLowerCase()+'@staff.shahadaty.invalid',password:pass};
   }else{
-    err.textContent='أدخل البريد الإلكتروني أو اسم المستخدم أو رقم الهاتف بشكل صحيح';err.style.display='block';btn.disabled=false;btn.innerHTML='<span class="material-symbols-outlined">login</span> دخول';return;
+    err.textContent='أدخل البريد الإلكتروني المعتمد للمؤسسة أو اسم المستخدم للموظف بشكل صحيح';err.style.display='block';btn.disabled=false;btn.innerHTML='<span class="material-symbols-outlined">login</span> دخول';return;
   }
   const{error}=await sb.auth.signInWithPassword(credentials);
   btn.disabled=false;
