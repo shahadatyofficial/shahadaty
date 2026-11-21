@@ -47,11 +47,11 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
   <div class="stat"><span class="muted">الشهادات الصادرة</span><b data-readiness-count="certificates">—</b></div>
  </div>
  <div style="margin-top:16px">
-  <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><b style="font-size:13px">مسار تنفيذ أول دورة تدريبية</b><span class="pill" id="operationalReadinessProgressLabel">جارٍ حساب الجاهزية...</span></div>
+  <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><b style="font-size:13px">مسار تشغيل المركز (مؤشر وجود بيانات بكل مرحلة)</b><span class="pill" id="operationalReadinessProgressLabel">جارٍ حساب الجاهزية...</span></div>
   <div style="height:9px;background:#e8eef5;border-radius:20px;overflow:hidden;margin:9px 0 12px"><div id="operationalReadinessProgress" style="height:100%;width:0;background:linear-gradient(90deg,#0369a1,#b08d48);transition:width .2s"></div></div>
   <div id="operationalReadinessSteps" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px" aria-live="polite"><p class="muted">جارٍ تحميل بيانات التشغيل...</p></div>
  </div>
- <p class="muted" style="margin:12px 0 0">المؤشر للمتابعة فقط؛ لا يضيف فروعًا أو متدربين أو دورات تلقائيًا، ولا يغيّر بيانات المركز.</p>
+ <p class="muted" style="margin:12px 0 0">المؤشر يعرض وجود سجلات في كل مرحلة فقط، ولا يقيّم جودة البيانات أو ترابطها؛ لا يضيف أي بيانات ولا يغيّر سجلات المركز.</p>
 </section>
 <div class="graduate-access-modal" id="graduateAccessModal" role="dialog" aria-modal="true" aria-labelledby="graduateAccessTitle"><div class="graduate-access-card"><h2 id="graduateAccessTitle">تم إصدار الشهادة وإنشاء حساب الخريج</h2><p class="muted">الحساب بانتظار موافقة الإدارة. كلمة المرور المؤقتة تظهر هنا مرة واحدة فقط؛ سلّمها للخريج عبر قناة خاصة وسيُطلب منه تغييرها بعد أول دخول.</p><div class="field"><label>اسم الدخول (رقم الهاتف)</label><input id="graduateAccessPhone" readonly dir="ltr"></div><div class="field" style="margin-top:10px"><label>كلمة المرور المؤقتة</label><input id="graduateAccessPassword" class="password-field" readonly dir="ltr"></div><div class="actions"><button class="btn" type="button" id="copyGraduatePasswordBtn">نسخ كلمة المرور</button><button class="btn light" type="button" id="closeGraduateAccessModal">إغلاق بعد تسليم البيانات</button></div><p class="muted" id="graduateAccessCopyNote">لا تغلق النافذة قبل تسليم بيانات الدخول للخريج.</p></div></div>
 <div class="team-modal" id="teamBranchModal" role="dialog" aria-modal="true" aria-labelledby="teamBranchModalTitle">
@@ -494,13 +494,16 @@ const readinessDefinitions=[
  {key:'certificates',table:'certificates'}
 ];
 const readinessSteps=[
- {key:'courses',label:'إضافة دورة إلى كتالوج المركز',tab:'courses'},
- {key:'trainers',label:'تسجيل مدرب للمركز',tab:'courses'},
- {key:'runs',label:'إنشاء مجموعة تدريبية',tab:'courses'},
- {key:'enrollments',label:'تسجيل المتدربين في المجموعة',tab:'courses'},
- {key:'sessions',label:'جدولة جلسات التدريب',tab:'courses'},
- {key:'attendance',label:'تسجيل حضور المتدربين',tab:'reports'},
- {key:'certificates',label:'إصدار شهادات للمجموعة',tab:'certificates'}
+ {key:'branches',min:1,label:'تسجيل الفرع الرئيسي وفروع المركز',tab:'branches'},
+ {key:'members',min:2,label:'إضافة موظف وتحديد صلاحياته',tab:'team'},
+ {key:'trainees',min:1,label:'تسجيل المتدربين',tab:'trainees'},
+ {key:'courses',min:1,label:'إضافة دورة إلى كتالوج المركز',tab:'courses'},
+ {key:'trainers',min:1,label:'تسجيل مدرب للمركز',tab:'courses'},
+ {key:'runs',min:1,label:'إنشاء مجموعة تدريبية',tab:'courses'},
+ {key:'enrollments',min:1,label:'تسجيل المتدربين في المجموعة',tab:'courses'},
+ {key:'sessions',min:1,label:'جدولة جلسات التدريب',tab:'courses'},
+ {key:'attendance',min:1,label:'تسجيل حضور المتدربين',tab:'reports'},
+ {key:'certificates',min:1,label:'إصدار شهادات للمجموعة',tab:'certificates'}
 ];
 async function loadOperationalReadiness(){
  if(!org)return;
@@ -519,12 +522,12 @@ async function loadOperationalReadiness(){
    const cell=$('operationalReadinessStats').querySelector('[data-readiness-count="'+result.key+'"]');
    if(cell)cell.textContent=result.error?'—':Number(result.count||0).toLocaleString('ar-EG');
   });
-  const completed=readinessSteps.filter(step=>counts[step.key]!==null&&counts[step.key]>0).length;
+  const completed=readinessSteps.filter(step=>counts[step.key]!==null&&counts[step.key]>=(step.min||1)).length;
   const percent=Math.round(completed/readinessSteps.length*100);
   $('operationalReadinessProgress').style.width=percent+'%';
   $('operationalReadinessProgressLabel').textContent=completed+' من '+readinessSteps.length+' خطوات مكتملة · '+percent+'٪';
   $('operationalReadinessSteps').innerHTML=readinessSteps.map((step,index)=>{
-   const value=counts[step.key],done=value!==null&&value>0,unknown=value===null;
+   const value=counts[step.key],done=value!==null&&value>=(step.min||1),unknown=value===null;
    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid var(--line);border-radius:11px;background:'+(done?'#f0fdf4':'#f8fafc')+'"><div style="display:flex;align-items:center;gap:9px;min-width:0"><span aria-hidden="true" style="width:25px;height:25px;display:grid;place-items:center;border-radius:50%;background:'+(done?'#dcfce7':'#e2e8f0')+';color:'+(done?'#166534':'#475569')+';font-weight:900;flex:none">'+(done?'✓':index+1)+'</span><span style="font-size:12px;font-weight:700">'+esc(step.label)+(unknown?' · تعذر التحقق':'')+'</span></div><button class="btn light" type="button" data-readiness-tab="'+step.tab+'" style="padding:6px 9px;white-space:nowrap">فتح</button></div>';
   }).join('');
   $('operationalReadinessSteps').querySelectorAll('[data-readiness-tab]').forEach(button=>button.addEventListener('click',()=>{
