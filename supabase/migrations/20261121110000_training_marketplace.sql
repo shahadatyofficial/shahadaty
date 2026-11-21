@@ -402,10 +402,13 @@ BEGIN
         AND e.course_run_id = v_application.course_run_id
         AND e.trainee_id = v_trainee_id
     ) THEN
-      SELECT COUNT(*) INTO v_enrolled
-      FROM public.institution_enrollments e
-      WHERE e.course_run_id = v_application.course_run_id
-        AND e.status NOT IN ('cancelled','withdrawn');
+      SELECT GREATEST(
+        (SELECT COUNT(*) FROM public.institution_enrollments e
+          WHERE e.course_run_id = v_application.course_run_id
+            AND e.status NOT IN ('cancelled','withdrawn')),
+        (SELECT COUNT(*) FROM public.training_marketplace_applications a
+          WHERE a.course_run_id = v_application.course_run_id AND a.status = 'accepted')
+      ) INTO v_enrolled;
       IF v_capacity IS NOT NULL AND v_enrolled >= v_capacity THEN
         RAISE EXCEPTION 'COURSE_CAPACITY_REACHED';
       END IF;
