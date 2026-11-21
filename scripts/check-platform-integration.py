@@ -17,8 +17,8 @@ checks = {
         "complete_institution_staff_password_change", "workspaceSb.auth.signInWithPassword",
     ],
     "institution-workspace.html": [
-        "runPublicListing", "institution_list_training_marketplace_applications", "institution_review_training_marketplace_application",
-    ],
+        "runPublicListing", "institution_list_training_marketplace_applications",
+        "institution_review_training_marketplace_application",
         "institution_branches", "institution_users", "institution-staff-create-account",
         "institution_staff_profiles", "institution_user_permission_overrides",
         "createStaffAccountBtn", "staffPermissionsModal", "editStaffAccountModal",
@@ -30,7 +30,9 @@ checks = {
     "graduate-v2.html": [
         "graduate_publication_consents", "graduate-publication-consent-sync",
         "graduate-gold-private", "graduate_withdraw_job_application",
-        "graduate_my_certificates", "get_public_professional_profile", "refreshPublicProfileShare",
+        "graduate_my_certificates", "get_public_professional_profile",
+        "refreshPublicProfileShare", "public_profile_consent",
+        "graduate_list_my_training_applications",
     ],
     "training-marketplace.html": [
         "get_public_training_marketplace", "submit_training_marketplace_application", "contactConsent",
