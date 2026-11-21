@@ -67,7 +67,7 @@ CREATE POLICY platform_notifications_mark_own_read
 REVOKE ALL ON TABLE public.platform_notification_preferences FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE (in_app_enabled, email_enabled, updated_at) ON public.platform_notification_preferences TO authenticated;
 REVOKE ALL ON TABLE public.platform_notifications FROM PUBLIC, anon, authenticated;
-GRANT SELECT ON public.platform_notifications TO authenticated;
+GRANT SELECT (id, recipient_user_id, notification_type, title, body, action_url, related_entity_type, related_entity_id, in_app_visible, read_at, created_at) ON public.platform_notifications TO authenticated;
 GRANT UPDATE (read_at) ON public.platform_notifications TO authenticated;
 
 CREATE OR REPLACE FUNCTION app_private.enqueue_platform_notification(
