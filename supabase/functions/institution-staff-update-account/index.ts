@@ -76,7 +76,7 @@ Deno.serve(async(req:Request)=>{
   oldProfile=profile;oldRole=target.role;changedMemberId=memberId;
   const {data:branchRows,error:branchError}=await admin.from("institution_user_branches").select("branch_id").eq("institution_user_id",memberId);
   if(branchError)throw new Error("BRANCH_READ_FAILED");previousBranches=(branchRows||[]).map((x:any)=>x.branch_id);
-  const {data:overrideRows,error:overrideError}=await admin.from("institution_user_permission_overrides").select("permission_key,is_granted").eq("institution_user_id",memberId);
+  const {data:overrideRows,error:overrideError}=await admin.from("institution_user_permission_overrides").select("institution_id,institution_user_id,permission_key,is_granted").eq("institution_user_id",memberId);
   if(overrideError)throw new Error("PERMISSION_READ_FAILED");oldOverrides=overrideRows||[];
   const {error:profileUpdateError}=await admin.from("institution_staff_profiles").update({
     username,full_name:fullName,phone,contact_email:contactEmail,job_title:jobTitle,employment_start_date:startDate
@@ -118,7 +118,7 @@ Deno.serve(async(req:Request)=>{
    await admin.from("institution_user_branches").delete().eq("institution_user_id",changedMemberId);
    if(previousBranches.length)await admin.from("institution_user_branches").insert(previousBranches.map(branch_id=>({institution_user_id:changedMemberId,branch_id})));
    await admin.from("institution_user_permission_overrides").delete().eq("institution_user_id",changedMemberId);
-   if(oldOverrides.length)await admin.from("institution_user_permission_overrides").insert(oldOverrides.map((x:any)=>({...x,institution_id:undefined,institution_user_id:changedMemberId})));
+   if(oldOverrides.length)await admin.from("institution_user_permission_overrides").insert(oldOverrides.map((x:any)=>({...x,institution_user_id:changedMemberId})));
   }
   const message=error instanceof Error?error.message:"INTERNAL_ERROR";
   console.error("institution-staff-update-account:",message);
