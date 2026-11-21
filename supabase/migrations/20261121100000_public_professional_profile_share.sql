@@ -1,5 +1,9 @@
 -- Public, consent-gated professional profile sharing.
--- This endpoint exposes only explicitly published profile fields and verified qualifications.
+-- Public sharing is a separate, explicit choice from employer-directory visibility.
+ALTER TABLE public.graduate_profiles
+  ADD COLUMN IF NOT EXISTS public_profile_consent boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS public_profile_consent_at timestamptz;
+
 CREATE OR REPLACE FUNCTION public.get_public_professional_profile(p_profile_id uuid)
 RETURNS jsonb
 LANGUAGE sql
@@ -44,9 +48,11 @@ AS $function$
     ), '[]'::jsonb)
   )
   FROM public.alumni_profiles p
+  JOIN public.graduate_profiles g ON g.id = p.legacy_graduate_profile_id
   WHERE p.id = p_profile_id
     AND p.visibility_status = 'public'
     AND p.publication_consent IS TRUE
+    AND g.public_profile_consent IS TRUE
   LIMIT 1;
 $function$;
 
@@ -54,4 +60,4 @@ REVOKE ALL ON FUNCTION public.get_public_professional_profile(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_public_professional_profile(uuid) TO anon, authenticated;
 
 COMMENT ON FUNCTION public.get_public_professional_profile(uuid) IS
-'Returns a minimal public professional profile only when publication is approved and explicit graduate consent is active. Never returns contact details, private documents, CV paths, or unverified qualifications.';
+'Returns a minimal public professional profile only when platform publication approval, employer publication consent, and separate public-link consent are all active. Never returns contact details, private documents, CV paths, or unverified qualifications.';
