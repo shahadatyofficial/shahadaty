@@ -98,6 +98,9 @@ alter table public.institution_attendance
 alter table public.institution_attendance
   add constraint institution_attendance_enrollment_id_session_id_key
   unique (enrollment_id, session_id);
+create unique index if not exists institution_attendance_legacy_enrollment_date_unique
+  on public.institution_attendance(enrollment_id, session_date)
+  where session_id is null;
 
 create index if not exists institution_attendance_session_id_idx
   on public.institution_attendance(session_id) where session_id is not null;
