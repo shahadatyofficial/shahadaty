@@ -35,10 +35,12 @@ let institutions=[];
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const tel=v=>String(v||'').replace(/[^0-9+]/g,'');
+const EGYPT_GOVERNORATES=['القاهرة','الجيزة','الإسكندرية','القليوبية','البحيرة','مطروح','كفر الشيخ','الغربية','المنوفية','الدقهلية','دمياط','بورسعيد','الإسماعيلية','السويس','شمال سيناء','جنوب سيناء','الشرقية','بني سويف','الفيوم','المنيا','أسيوط','سوهاج','قنا','الأقصر','أسوان','البحر الأحمر','الوادي الجديد'];
+const normalizeGovernorate=v=>String(v||'').trim().replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/[\u064B-\u065F\u0670]/g,'');
 function logoMarkup(x,small=false){return x.logo_url?'<img class="logo" '+(small?'style="width:78px;height:78px;margin:0" ':'')+'src="'+esc(x.logo_url)+'" alt="شعار '+esc(x.institution_name)+'" loading="lazy" onerror="this.outerHTML=\'<div class=&quot;logo-fallback&quot;>ش</div>\'">':'<div class="logo-fallback" '+(small?'style="width:78px;height:78px;margin:0"':'')+'>ش</div>';}
 function render(){
  const q=$('search').value.trim().toLowerCase(),gov=$('governorate').value;
- const rows=institutions.filter(x=>(!gov||x.governorate===gov)&&(!q||[x.institution_name,x.description,x.institution_type,...(x.courses||[]).map(c=>c.name)].join(' ').toLowerCase().includes(q)));
+ const rows=institutions.filter(x=>(!gov||normalizeGovernorate(x.governorate)===normalizeGovernorate(gov))&&(!q||[x.institution_name,x.description,x.institution_type,...(x.courses||[]).map(c=>c.name)].join(' ').toLowerCase().includes(q)));
  $('count').textContent='عدد المؤسسات المنشورة: '+rows.length.toLocaleString('ar-EG');
  $('cards').innerHTML=rows.length?rows.map((x)=>'<article class="card" tabindex="0" role="button" aria-label="عرض '+esc(x.institution_name)+'" data-id="'+esc(x.institution_id)+'">'+logoMarkup(x)+'<h2>'+esc(x.institution_name)+'</h2><div class="type">'+esc(x.institution_type||'مؤسسة تعليمية')+(x.governorate?' · '+esc(x.governorate):'')+'</div><span class="verified">✓ تمت مراجعة الملف على المنصة</span></article>').join(''):'<div class="empty">لا توجد مؤسسات منشورة تطابق البحث حاليًا.</div>';
 }
@@ -64,8 +66,7 @@ async function init(){
  const {data,error}=await sb.rpc('get_public_institution_directory');
  if(error){$('count').textContent='تعذر تحميل الدليل: '+error.message;$('cards').innerHTML='<div class="empty">حدث خطأ أثناء تحميل المؤسسات. يرجى المحاولة لاحقًا.</div>';return;}
  institutions=data||[];
- const govs=[...new Set(institutions.map(x=>x.governorate).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
- $('governorate').innerHTML='<option value="">كل المحافظات</option>'+govs.map(g=>'<option value="'+esc(g)+'">'+esc(g)+'</option>').join('');
+ $('governorate').innerHTML='<option value="">كل المحافظات</option>'+EGYPT_GOVERNORATES.map(g=>'<option value="'+esc(g)+'">'+esc(g)+'</option>').join('');
  render();
 }
 init();
