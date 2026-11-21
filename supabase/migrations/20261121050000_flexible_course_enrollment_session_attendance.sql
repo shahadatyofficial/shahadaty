@@ -223,7 +223,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public, pg_temp
-as $
+as $$
 declare
   v_session_count integer;
   v_pending_count integer;
@@ -279,7 +279,7 @@ begin
   if new.completed_at is null then new.completed_at := now(); end if;
   return new;
 end;
-$;
+$$;
 
 drop policy if exists institution_enrollments_insert on public.institution_enrollments;
 create policy institution_enrollments_insert on public.institution_enrollments
