@@ -18,7 +18,7 @@ checks = {
         "complete_institution_staff_password_change", "workspaceSb.auth.signInWithPassword",
     ],
     "institution-workspace.html": [
-        "runPublicListing", "runInstitutionAiInsights", "institution_insights", "platform_notifications", "loadPlatformNotifications", "platform_notification_preferences", "institution_list_training_marketplace_applications",
+        "runPublicListing", "runInstitutionAiInsights", "institution_insights", "platform_notifications", "loadPlatformNotifications", "certificate_status_update", "training_session_reminder", "platform_notification_preferences", "institution_list_training_marketplace_applications",
         "institution_review_training_marketplace_application",
         "institution_branches", "institution_users", "institution-staff-create-account",
         "institution_staff_profiles", "institution_user_permission_overrides",
