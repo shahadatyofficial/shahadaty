@@ -191,6 +191,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="sb-item" onclick="sp('training-ads',this)"><span class="material-symbols-outlined">notifications_active</span>إعلانات الدورات</div>
     <div class="sb-sec">المؤسسات</div>
     <div class="sb-item" onclick="sp('institutions',this)"><span class="material-symbols-outlined">business</span>إدارة المؤسسات</div>
+    <div class="sb-item" onclick="sp('institution-directory',this)"><span class="material-symbols-outlined">storefront</span>مراجعة دليل المراكز</div>
     <div class="sb-item" onclick="sp('requests',this)"><span class="material-symbols-outlined">approval</span>طلبات الاعتماد<span class="sb-badge" id="reqBadge">0</span></div>
     <div class="sb-sec">الشهادات</div>
     <div class="sb-item" onclick="sp('certs',this)"><span class="material-symbols-outlined">description</span>مراجعة الشهادات</div>
@@ -396,6 +397,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
       </div>
     </div>
 
+<div class="page" id="page-institution-directory"><div class="card"><div class="card-head"><span class="card-title">طلبات نشر الملفات التعريفية للمؤسسات</span><button class="btn-p" onclick="loadInstitutionDirectoryReviews()">تحديث</button></div><div class="card-body"><p style="font-size:12px;color:var(--muted);line-height:1.8">راجع الشعار والنبذة وبيانات التواصل قبل النشر.</p><div id="institutionDirectoryReviewRows"><div style="padding:18px;text-align:center;color:var(--muted)">اضغط تحديث لتحميل الطلبات.</div></div></div></div></div>
     <!-- REQUESTS -->
     <div class="page" id="page-requests">
       <div class="card">
@@ -633,7 +635,7 @@ const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
 window.initEgyptLocationSelects([{governorateId:'al_governorate',centerId:'al_center'},{governorateId:'job_governorate',centerId:'job_center'}]);
-const ptitles={'graduate-directory':'سجل الخريجين','graduate-memberships':'طلبات عضوية الخريجين','employment-requests':'طلبات التواصل والتوظيف',alumni:'إدارة ملفات التوظيف','job-ads':'إعلانات الوظائف','training-ads':'إعلانات الدورات',overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات','publication-consents':'موافقات النشر','add-cert':'إضافة شهادة',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام','academic-refs':'قوائم المؤهلات العلمية'};
+const ptitles={'graduate-directory':'سجل الخريجين','graduate-memberships':'طلبات عضوية الخريجين','employment-requests':'طلبات التواصل والتوظيف',alumni:'إدارة ملفات التوظيف','job-ads':'إعلانات الوظائف','training-ads':'إعلانات الدورات',overview:'نظرة عامة',support:'رسائل الدعم',institutions:'إدارة المؤسسات','institution-directory':'مراجعة دليل المراكز',requests:'طلبات الاعتماد',certs:'مراجعة الشهادات','publication-consents':'موافقات النشر','add-cert':'إضافة شهادة',verify:'تحقق يدوي',recruitment:'طلبات الترشيح',companies:'الشركات المشتركة',packages:'إدارة الباقات',reports:'التقارير',sys:'إعدادات النظام','academic-refs':'قوائم المؤهلات العلمية'};
 let allInstitutions=[], allAdminCerts=[], allPublicationRows=[];
 const pendingPublicationConsents={};
 function adminEsc(v){return String(v??'—').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}
@@ -663,7 +665,7 @@ function sp(name,el){
   document.getElementById('page-'+name).classList.add('active');
   document.getElementById('pageTitle').textContent=ptitles[name]||name;
   if(el)el.classList.add('active');
-  const loaders={'graduate-directory':loadGraduateDirectory,'graduate-memberships':()=>{loadInstitutionGraduateRequests();loadGraduateAccessRequests();loadGraduateMembershipRequests();},'employment-requests':loadEmploymentContactRequests,alumni:loadAlumniProfiles,'job-ads':loadJobAnnouncements,'training-ads':loadTrainingAnnouncements,institutions:loadInstitutions,requests:loadReqs,certs:loadAdminCerts,'publication-consents':()=>{loadPublicationConsents();loadGraduateConsentAudit();},'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
+  const loaders={'graduate-directory':loadGraduateDirectory,'graduate-memberships':()=>{loadInstitutionGraduateRequests();loadGraduateAccessRequests();loadGraduateMembershipRequests();},'employment-requests':loadEmploymentContactRequests,alumni:loadAlumniProfiles,'job-ads':loadJobAnnouncements,'training-ads':loadTrainingAnnouncements,institutions:loadInstitutions,'institution-directory':loadInstitutionDirectoryReviews,requests:loadReqs,certs:loadAdminCerts,'publication-consents':()=>{loadPublicationConsents();loadGraduateConsentAudit();},'add-cert':loadAdminCertificateForm,recruitment:loadRec,companies:loadCompanies,packages:loadPkgs,'academic-refs':loadAcademicReferences,reports:loadReports,support:()=>{loadSupportSettings();loadSupportInbox();startSupportRealtime();}};
   if(loaders[name])loaders[name]();
 }
 
@@ -848,6 +850,20 @@ async function loadBadges(){
   recBadge.textContent=recruitmentCount;
   recBadge.style.display=recruitmentCount?'inline':'none';
 }
+
+
+async function loadInstitutionDirectoryReviews(){
+ const box=document.getElementById('institutionDirectoryReviewRows');if(!box)return;
+ box.innerHTML='<div style="padding:18px;text-align:center">جارٍ تحميل الملفات...</div>';
+ const results=await Promise.all([sb.from('institution_public_profiles').select('institution_id,description,logo_url,public_phone,whatsapp,public_email,website_url,status,rejection_reason,updated_at').order('updated_at',{ascending:false}).limit(300),sb.rpc('admin_list_institutions',{p_status:null})]);
+ const profiles=results[0].data, error=results[0].error, institutions=results[1].data, instError=results[1].error;
+ if(error||instError){box.innerHTML='<div style="color:#b91c1c;padding:14px">تعذر تحميل الملفات: '+adminEsc(error?.message||instError?.message)+'</div>';return;}
+ const names=new Map((institutions||[]).map(x=>[x.id,x]));
+ const rows=(profiles||[]).filter(p=>p.status==='pending'||p.status==='rejected');
+ if(!rows.length){box.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">لا توجد ملفات بانتظار المراجعة.</div>';return;}
+ box.innerHTML=rows.map(p=>{const inst=names.get(p.institution_id)||{};return '<article style="border:1px solid #e2e8f0;border-radius:14px;padding:15px;margin:12px 0;display:grid;grid-template-columns:90px minmax(0,1fr);gap:14px"><div>'+(p.logo_url?'<img src="'+adminEsc(p.logo_url)+'" alt="شعار المؤسسة" style="width:86px;height:86px;object-fit:contain;border:1px solid #e2e8f0;border-radius:12px;padding:5px">':'<div style="width:86px;height:86px;display:grid;place-items:center;background:#f1f5f9;border-radius:12px">بلا شعار</div>')+'</div><div><b>'+adminEsc(inst.name||'مؤسسة غير معروفة')+'</b><p style="font-size:12px;line-height:1.9;margin:8px 0">'+adminEsc(p.description)+'</p><div style="font-size:11px;color:#64748b;line-height:1.9">الهاتف: '+adminEsc(p.public_phone||inst.contact_phone)+' · واتساب: '+adminEsc(p.whatsapp||'—')+' · البريد: '+adminEsc(p.public_email||inst.contact_email)+'</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn-p" data-review-id="'+p.institution_id+'" data-review-status="'+p.status+'" data-review-action="approved">اعتماد ونشر</button><button class="btn-d" data-review-id="'+p.institution_id+'" data-review-status="'+p.status+'" data-review-action="rejected">رفض وإرجاع للتعديل</button></div></div></article>';}).join('');
+}
+document.addEventListener('click',async e=>{const btn=e.target.closest('[data-review-id]');if(!btn)return;let reason=null;if(btn.dataset.reviewAction==='rejected'){reason=prompt('اكتب سبب الرفض أو البيانات المطلوب تعديلها:');if(!reason)return;}const {data:{user}}=await sb.auth.getUser();const {error}=await sb.from('institution_public_profiles').update({status:btn.dataset.reviewAction,rejection_reason:reason,reviewed_at:new Date().toISOString(),reviewed_by:user?.id||null,updated_at:new Date().toISOString()}).eq('institution_id',btn.dataset.reviewId).eq('status',btn.dataset.reviewStatus);if(error){toast('تعذر تحديث حالة الملف: '+error.message,'err');return;}toast(btn.dataset.reviewAction==='approved'?'تم اعتماد الملف ونشره في الدليل.':'تم إرجاع الملف للمؤسسة.','ok');loadInstitutionDirectoryReviews();});
 
 // ── INSTITUTIONS ──────────────────────────────────────────────
 async function loadInstitutions(){
