@@ -125,7 +125,7 @@ BEGIN
         'يتبقى ' || ((v_row.ends_at AT TIME ZONE 'Africa/Cairo')::date - v_today)::text ||
           ' يومًا على انتهاء اشتراك المؤسسة. راجع صفحة الاشتراكات لتجنب توقف الخدمات.',
         'institution.html','subscription',v_row.id,
-        'subscription:' || v_row.id::text || ':' || (v_row.ends_at AT TIME ZONE 'Africa/Cairo')::date::text
+        'subscription:' || v_row.id::text || ':' || (v_row.ends_at AT TIME ZONE 'Africa/Cairo')::date::text || ':' || ((v_row.ends_at AT TIME ZONE 'Africa/Cairo')::date - v_today)::text
       );
       IF v_notification_id IS NOT NULL THEN v_count := v_count + 1; END IF;
     END LOOP;
