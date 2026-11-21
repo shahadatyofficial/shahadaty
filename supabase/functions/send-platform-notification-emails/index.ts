@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const allowedOrigin = "https://shahadatyofficial.github.io";
 const corsHeaders = {
   "Access-Control-Allow-Origin": allowedOrigin,
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-cron-secret",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Vary": "Origin",
 };
@@ -33,16 +33,28 @@ Deno.serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || req.headers.get("apikey");
   const authorization = req.headers.get("Authorization");
-  if (!supabaseUrl || !anonKey || !authorization) return json({ error: "AUTH_REQUIRED" }, 401);
+  const cronSecret = req.headers.get("x-cron-secret");
+  if (!supabaseUrl || !anonKey) return json({ error: "SERVICE_NOT_CONFIGURED" }, 503);
 
+  const globalHeaders: Record<string, string> = {};
+  if (authorization) globalHeaders.Authorization = authorization;
   const userClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authorization } },
+    global: { headers: globalHeaders },
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: userData, error: userError } = await userClient.auth.getUser();
-  if (userError || !userData.user) return json({ error: "AUTH_REQUIRED" }, 401);
-  const { data: isAdmin, error: adminError } = await userClient.rpc("is_platform_admin");
-  if (adminError || isAdmin !== true) return json({ error: "ADMIN_REQUIRED" }, 403);
+
+  let authorized = false;
+  if (authorization) {
+    const { data: userData, error: userError } = await userClient.auth.getUser();
+    if (!userError && userData.user) {
+      const { data: isAdmin, error: adminError } = await userClient.rpc("is_platform_admin");
+      authorized = !adminError && isAdmin === true;
+    }
+  } else if (cronSecret) {
+    const { data: isCron, error: cronError } = await userClient.rpc("is_notification_cron_secret", { p_secret: cronSecret });
+    authorized = !cronError && isCron === true;
+  }
+  if (!authorized) return json({ error: "ADMIN_OR_CRON_AUTH_REQUIRED" }, 403);
 
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const resendKey = Deno.env.get("RESEND_API_KEY");
