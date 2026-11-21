@@ -34,6 +34,10 @@ Deno.serve(async (req: Request) => {
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || req.headers.get("apikey");
   const authorization = req.headers.get("Authorization");
   const cronSecret = req.headers.get("x-cron-secret");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const adminClient = supabaseUrl && serviceRoleKey ? createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  }) : null;
   if (!supabaseUrl || !anonKey) return json({ error: "SERVICE_NOT_CONFIGURED" }, 503);
 
   const globalHeaders: Record<string, string> = {};
@@ -50,22 +54,17 @@ Deno.serve(async (req: Request) => {
       const { data: isAdmin, error: adminError } = await userClient.rpc("is_platform_admin");
       authorized = !adminError && isAdmin === true;
     }
-  } else if (cronSecret) {
-    const { data: isCron, error: cronError } = await userClient.rpc("is_notification_cron_secret", { p_secret: cronSecret });
+  } else if (cronSecret && adminClient) {
+    const { data: isCron, error: cronError } = await adminClient.rpc("is_notification_cron_secret", { p_secret: cronSecret });
     authorized = !cronError && isCron === true;
   }
   if (!authorized) return json({ error: "ADMIN_OR_CRON_AUTH_REQUIRED" }, 403);
 
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const resendKey = Deno.env.get("RESEND_API_KEY");
   const from = Deno.env.get("EMAIL_FROM");
-  if (!serviceRoleKey || !resendKey || !from) {
+  if (!serviceRoleKey || !adminClient || !resendKey || !from) {
     return json({ error: "EMAIL_PROVIDER_NOT_CONFIGURED", required_settings: ["SUPABASE_SERVICE_ROLE_KEY", "RESEND_API_KEY", "EMAIL_FROM"] }, 503);
   }
-
-  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
   const { data: queue, error: queueError } = await adminClient
     .from("platform_notifications")
     .select("id,recipient_user_id,title,body,action_url,email_attempts")
