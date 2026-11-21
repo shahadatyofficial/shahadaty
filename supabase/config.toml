@@ -1,0 +1,2 @@
+[functions.send-platform-notification-emails]
+verify_jwt = false
