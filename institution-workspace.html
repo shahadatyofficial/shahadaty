@@ -249,7 +249,7 @@ table{width:100%;border-collapse:collapse;min-width:640px}th,td{text-align:right
 <script>
 const SUPABASE_URL='https://snteiiavvaaumgaegazn.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:'shahadaty-institution-workspace-auth',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 let user=null,org=null,membership=null,branches=[],courses=[],courseRuns=[],institutionSessions=[],branchById=new Map();
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -551,10 +551,24 @@ async function loadOperationalReadiness(){
 $('refreshOperationalReadinessBtn').addEventListener('click',loadOperationalReadiness);
 async function init(){
  const {data:{user:u},error}=await sb.auth.getUser();user=u;
- if(user?.app_metadata?.account_type==='institution_staff'&&user.app_metadata.must_change_password===true){location.replace('institution.html');return;}
- if(error||!user){say('سجّل الدخول أولاً من لوحة المؤسسة ثم افتح إدارة الفروع.','error');return;}
+ if(error||!user){say('سجّل الدخول من بوابة المؤسسة، ثم افتح البرنامج ببيانات المالك أو الموظف المصرح له.','error');return;}
+ if(user.app_metadata?.account_type==='institution_staff'&&user.app_metadata.must_change_password===true){say('يجب تغيير كلمة المرور أولاً من نافذة الدخول التي فتحها مالك المؤسسة.','error');return;}
  const {data:m,error:me}=await sb.from('institution_users').select('id,institution_id,role,status').eq('auth_user_id',user.id).eq('status','active').order('created_at',{ascending:true}).limit(1).maybeSingle();
  if(me||!m){say('لم يتم العثور على عضوية مؤسسة نشطة لهذا الحساب.','error');return;}membership=m;
+ const workspacePermissions=['dashboard.view','branches.view','branches.manage','team.view','team.manage','trainees.view','trainees.manage','courses.view','courses.manage','certificates.view','certificates.issue','reports.view'];
+ let allowedWorkspace=false;
+ if(m.role==='owner'||m.role==='manager'){
+  for(const permission of workspacePermissions){const {data:ok,error:permissionError}=await sb.rpc('institution_has_permission',{p_institution_id:m.institution_id,p_permission:permission,p_branch_id:null});if(!permissionError&&ok===true){allowedWorkspace=true;break;}}
+ }else{
+  const {data:scopes,error:scopeError}=await sb.from('institution_user_branches').select('branch_id').eq('institution_user_id',m.id);
+  if(scopeError){say('تعذر التحقق من الفروع المخصصة لحسابك.','error');return;}
+  const branchIds=(scopes||[]).map(scope=>scope.branch_id).filter(Boolean);
+  for(const permission of workspacePermissions){
+   for(const branchId of branchIds){const {data:ok,error:permissionError}=await sb.rpc('institution_has_permission',{p_institution_id:m.institution_id,p_permission:permission,p_branch_id:branchId});if(!permissionError&&ok===true){allowedWorkspace=true;break;}}
+   if(allowedWorkspace)break;
+  }
+ }
+ if(!allowedWorkspace){say('لا توجد صلاحية نشطة للدخول إلى برنامج إدارة المؤسسة. راجع مالك المؤسسة.','error');return;}
  const {data:i,error:ie}=await sb.from('institutions').select('id,name,status').eq('id',m.institution_id).maybeSingle();
  if(ie||!i||i.status!=='approved'){say('المؤسسة غير معتمدة أو تعذر تحميل بياناتها.','error');return;}org=i;$('orgTitle').textContent=org.name;
  await loadBranches();
