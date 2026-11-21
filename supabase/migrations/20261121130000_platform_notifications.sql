@@ -326,6 +326,76 @@ BEGIN
       'institution.html','training_session',v_entity_id
     );
   END LOOP;
+
+  FOR v_recipient IN
+    SELECT DISTINCT gp.auth_user_id AS user_id
+    FROM public.institution_enrollments e
+    JOIN public.institution_trainees t ON t.id = e.trainee_id
+    JOIN public.graduate_profiles gp
+      ON regexp_replace(COALESCE(gp.phone,''),'[^0-9]','','g')
+       = regexp_replace(COALESCE(t.phone,''),'[^0-9]','','g')
+    WHERE e.course_run_id = NEW.course_run_id
+      AND e.status IN ('enrolled','attending')
+      AND gp.auth_user_id IS NOT NULL
+      AND NULLIF(regexp_replace(COALESCE(t.phone,''),'[^0-9]','','g'),'') IS NOT NULL
+  LOOP
+    PERFORM app_private.enqueue_platform_notification(
+      v_recipient.user_id,'training_session_created','تمت إضافة جلسة في دورتك',
+      'تمت إضافة جلسة ' || COALESCE(NEW.title,'تدريبية') ||
+        ' بتاريخ ' || NEW.session_date::text ||
+        CASE WHEN NEW.starts_at IS NOT NULL THEN ' الساعة ' || NEW.starts_at::text ELSE '' END || '.',
+      'graduate-v2.html','training_session',NEW.id
+    );
+  END LOOP;
+  RETURN NEW;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION app_private.notify_graduate_certificate_event()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO ''
+AS $function$
+DECLARE
+  v_recipient_user_id uuid;
+  v_institution_name text;
+  v_title text;
+  v_body text;
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.status IS DISTINCT FROM 'active' THEN RETURN NEW; END IF;
+    v_title := 'تم إصدار شهادة جديدة';
+    v_body := 'تم إصدار شهادة ' || COALESCE(NEW.course,'تدريبية') ||
+      CASE WHEN NULLIF(NEW.cert_number,'') IS NOT NULL THEN ' برقم ' || NEW.cert_number ELSE '' END ||
+      ' لصالح ملفك المهني.';
+  ELSIF OLD.status IS DISTINCT FROM NEW.status THEN
+    v_title := 'تحديث حالة الشهادة';
+    v_body := 'تم تحديث حالة الشهادة رقم ' || COALESCE(NEW.cert_number,'') ||
+      ' إلى: ' || COALESCE(NEW.status,'غير محددة') || '.';
+  ELSE
+    RETURN NEW;
+  END IF;
+
+  SELECT i.name INTO v_institution_name
+  FROM public.institutions i
+  WHERE i.id = NEW.institution_id AND i.status = 'approved';
+  IF v_institution_name IS NULL THEN RETURN NEW; END IF;
+
+  SELECT gp.auth_user_id INTO v_recipient_user_id
+  FROM public.graduate_profiles gp
+  WHERE gp.auth_user_id IS NOT NULL
+    AND NULLIF(regexp_replace(COALESCE(gp.phone,''),'[^0-9]','','g'),'') IS NOT NULL
+    AND regexp_replace(COALESCE(gp.phone,''),'[^0-9]','','g')
+      = regexp_replace(COALESCE(NEW.student_phone,''),'[^0-9]','','g')
+  ORDER BY gp.created_at DESC
+  LIMIT 1;
+
+  PERFORM app_private.enqueue_platform_notification(
+    v_recipient_user_id,'certificate_status_update',v_title,
+    v_body || ' الجهة المصدرة: ' || v_institution_name || '.',
+    'graduate-v2.html','certificate',NEW.id
+  );
   RETURN NEW;
 END;
 $function$;
@@ -401,6 +471,11 @@ DROP TRIGGER IF EXISTS trg_platform_notify_job_application ON public.job_applica
 CREATE TRIGGER trg_platform_notify_job_application
 AFTER INSERT OR UPDATE OF status ON public.job_applications
 FOR EACH ROW EXECUTE FUNCTION app_private.notify_job_application_event();
+
+DROP TRIGGER IF EXISTS trg_platform_notify_certificate_event ON public.certificates;
+CREATE TRIGGER trg_platform_notify_certificate_event
+AFTER INSERT OR UPDATE OF status ON public.certificates
+FOR EACH ROW EXECUTE FUNCTION app_private.notify_graduate_certificate_event();
 
 DROP TRIGGER IF EXISTS trg_platform_notify_institution_registration ON public.institutions;
 CREATE TRIGGER trg_platform_notify_institution_registration
