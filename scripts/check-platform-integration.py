@@ -15,6 +15,8 @@ checks = {
     "institution-workspace.html": [
         "institution_branches", "institution_users", "institution-invite-member",
         "issue_certificate", "graduate-institution-account-create",
+        "operationalReadinessCard", "loadOperationalReadiness",
+        "operationalReadinessStats", "operationalReadinessSteps",
     ],
     "graduate-v2.html": [
         "graduate_publication_consents", "graduate-publication-consent-sync",
