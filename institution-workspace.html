@@ -316,7 +316,7 @@ async function openTraineeHistoryProfile(traineeId){
  $('traineeProfileModal').classList.add('open');
  try{
   const [enrollmentsResult,certificatesResult]=await Promise.all([
-   sb.from('institution_enrollments').select('id,status,enrolled_at,completed_at,course_run_id,trainee_id,institution_course_runs(run_name,branch_id,start_date,end_date,institution_courses(name,specialization))').eq('institution_id',org.id).eq('trainee_id',traineeId).order('enrolled_at',{ascending:false}).limit(500),
+   sb.from('institution_enrollments').select('id,status,enrolled_at,completed_at,course_id,course_run_id,trainee_id,institution_courses(name,specialization,duration,branch_id),institution_course_runs(run_name,branch_id,start_date,end_date,institution_courses(name,specialization,duration)))'.eq('institution_id',org.id).eq('trainee_id',traineeId).order('enrolled_at',{ascending:false}).limit(500),
    sb.from('certificates').select('id,cert_number,course,issue_date,status,branch_id,trainee_id,visible_to_companies').eq('institution_id',org.id).eq('trainee_id',traineeId).order('issue_date',{ascending:false}).limit(500)
   ]);
   if(enrollmentsResult.error)throw enrollmentsResult.error;
@@ -332,9 +332,9 @@ async function openTraineeHistoryProfile(traineeId){
   const statusLabels={enrolled:'مسجل',attending:'منتظم',completed:'مكتمل',withdrawn:'منسحب',failed:'لم يجتز'};
   const branchName=id=>branchById.get(id)?.name||'عام / غير محدد';
   const enrollmentHtml=enrollments.map(e=>{
-   const run=e.institution_course_runs||{},course=run.institution_courses||{},records=attendanceByEnrollment.get(e.id)||[];
+   const run=e.institution_course_runs||{},course=e.institution_courses||run.institution_courses||{},records=attendanceByEnrollment.get(e.id)||[];
    const counts={present:0,absent:0,late:0,excused:0};records.forEach(a=>{if(counts[a.attendance_status]!==undefined)counts[a.attendance_status]++;});
-   return '<tr><td>'+esc(course.name||'—')+'</td><td>'+esc(run.run_name||'مجموعة')+'</td><td>'+esc(branchName(run.branch_id))+'</td><td>'+esc(statusLabels[e.status]||e.status)+'</td><td>'+esc(e.enrolled_at?new Date(e.enrolled_at).toLocaleDateString('ar-EG'):'—')+'</td><td>'+esc(e.completed_at?new Date(e.completed_at).toLocaleDateString('ar-EG'):'—')+'</td><td>'+records.length+'</td><td>'+counts.present+'</td><td>'+counts.absent+'</td></tr>';
+   return '<tr><td>'+esc(course.name||'—')+'</td><td>'+esc(run.run_name||'تسجيل عام دون مجموعة')+'</td><td>'+esc(branchName(run.branch_id))+'</td><td>'+esc(statusLabels[e.status]||e.status)+'</td><td>'+esc(e.enrolled_at?new Date(e.enrolled_at).toLocaleDateString('ar-EG'):'—')+'</td><td>'+esc(e.completed_at?new Date(e.completed_at).toLocaleDateString('ar-EG'):'—')+'</td><td>'+records.length+'</td><td>'+counts.present+'</td><td>'+counts.absent+'</td></tr>';
   }).join('')||'<tr><td colspan="9" class="empty">لا توجد تسجيلات تدريبية مرتبطة بالملف.</td></tr>';
   const certHtml=certificates.map(cert=>'<tr><td dir="ltr">'+esc(cert.cert_number)+'</td><td>'+esc(cert.course)+'</td><td>'+esc(cert.issue_date)+'</td><td>'+esc(certificateStatusLabels[cert.status]||cert.status||'غير محددة')+'</td><td><a class="btn light" href="certificate.html?id='+encodeURIComponent(cert.cert_number)+'&template=uploaded-2-html" target="_blank" rel="noopener">فتح الشهادة</a></td></tr>').join('')||'<tr><td colspan="5" class="empty">لا توجد شهادات مرتبطة بهذا الملف.</td></tr>';
   const recentAttendance=attendance.slice(0,40).map(a=>'<tr><td>'+esc(a.session_date)+'</td><td>'+esc(attendanceLabels[a.attendance_status]||a.attendance_status)+'</td><td>'+esc(a.notes||'—')+'</td></tr>').join('')||'<tr><td colspan="3" class="empty">لا توجد سجلات حضور.</td></tr>';
@@ -748,6 +748,29 @@ $('addTraineeBtn').addEventListener('click',async()=>{
  const row={institution_id:org.id,branch_id:$('traineeBranch').value||null,full_name,phone:$('traineePhone').value.trim()||null,email:$('traineeEmail').value.trim()||null,national_id:$('traineeNational').value.trim()||null,governorate:$('traineeGov').value.trim()||null,created_by:user.id};const validation=validateTraineeFields(row);if(validation)return say(validation,'error');
  const {error}=await sb.from('institution_trainees').insert(row);if(error)return say(error.message,'error');
  ['traineeName','traineePhone','traineeEmail','traineeNational','traineeGov'].forEach(id=>$(id).value='');say('تم تسجيل المتدرب.','success');await loadTrainees();
+});
+function updateBulkSelectionCount(){
+ const count=$('traineesRows').querySelectorAll('[data-select-trainee]:checked').length;
+ $('bulkEnrollSelectionCount').textContent=count?('تم تحديد '+count+' متدرب'):'لم يتم تحديد متدربين';
+}
+$('bulkEnrollSelectedBtn').addEventListener('click',async()=>{
+ const ids=[...$('traineesRows').querySelectorAll('[data-select-trainee]:checked')].map(x=>x.dataset.selectTrainee);
+ const courseId=$('bulkEnrollCourse').value,course=courses.find(c=>c.id===courseId),useGroup=$('bulkEnrollInGroup').checked,run=useGroup?courseRuns.find(r=>r.id===$('bulkEnrollGroup').value):null;
+ if(!ids.length)return say('حدد متدربًا واحدًا على الأقل من السجل.','error');
+ if(!course)return say('اختر الدورة أولاً.','error');
+ if(useGroup&&(!run||run.course_id!==courseId||!['open','in_progress'].includes(run.status)))return say('اختر مجموعة مفتوحة تابعة للدورة المحددة.','error');
+ let done=0,skipped=0,failed=[];
+ for(const id of ids){
+  const trainee=institutionTraineeRows.find(t=>t.id===id);if(!trainee){skipped++;continue;}
+  if(run&&(run.branch_id||null)!==(trainee.branch_id||null)){failed.push(trainee.full_name+': الفرع لا يطابق المجموعة');continue;}
+  const branchId=run?.branch_id||trainee.branch_id||course.branch_id||null;
+  if(!await allowed('trainees.manage',branchId)){failed.push(trainee.full_name+': لا توجد صلاحية');continue;}
+  const {error}=await sb.from('institution_enrollments').insert({institution_id:org.id,course_id:courseId,course_run_id:run?.id||null,trainee_id:id,status:'enrolled'});
+  if(error){if(error.code==='23505'){skipped++;continue;}failed.push(trainee.full_name+': '+error.message);continue;}
+  done++;
+ }
+ say('تم تسجيل '+done+' متدرب. المكرر/المتجاوز: '+skipped+'. الأخطاء: '+failed.length+(failed.length?' — '+failed.slice(0,3).join(' | '):''),failed.length?'error':'success');
+ await loadEnrollments();
 });
 function updateBulkSelectionCount(){
  const count=$('traineesRows').querySelectorAll('[data-select-trainee]:checked').length;
