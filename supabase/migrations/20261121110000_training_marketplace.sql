@@ -316,7 +316,7 @@ DECLARE
   v_application public.training_marketplace_applications%ROWTYPE;
   v_graduate public.graduate_profiles%ROWTYPE;
   v_capacity integer;
-  v_accepted integer;
+  v_enrolled integer;
   v_course_id uuid;
   v_trainee_id uuid;
   v_trainee_status text;
