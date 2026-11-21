@@ -316,7 +316,7 @@ async function openTraineeHistoryProfile(traineeId){
  $('traineeProfileModal').classList.add('open');
  try{
   const [enrollmentsResult,certificatesResult]=await Promise.all([
-   sb.from('institution_enrollments').select('id,status,enrolled_at,completed_at,course_id,course_run_id,trainee_id,institution_courses(name,specialization,duration,branch_id),institution_course_runs(run_name,branch_id,start_date,end_date,institution_courses(name,specialization,duration)))'.eq('institution_id',org.id).eq('trainee_id',traineeId).order('enrolled_at',{ascending:false}).limit(500),
+   sb.from('institution_enrollments').select('id,status,enrolled_at,completed_at,course_id,course_run_id,trainee_id,institution_courses(name,specialization,duration,branch_id),institution_course_runs(run_name,branch_id,start_date,end_date,institution_courses(name,specialization,duration)))').eq('institution_id',org.id).eq('trainee_id',traineeId).order('enrolled_at',{ascending:false}).limit(500),
    sb.from('certificates').select('id,cert_number,course,issue_date,status,branch_id,trainee_id,visible_to_companies').eq('institution_id',org.id).eq('trainee_id',traineeId).order('issue_date',{ascending:false}).limit(500)
   ]);
   if(enrollmentsResult.error)throw enrollmentsResult.error;
