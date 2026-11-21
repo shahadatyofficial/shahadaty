@@ -15,7 +15,8 @@
 <section id="profileContent" hidden>
 <div class="panel"><h2>نبذة مهنية</h2><p id="summary" style="line-height:2;margin:0"></p></div>
 <div class="panel"><h2>المؤهلات التي تم التحقق منها</h2><div id="qualifications"></div></div>
-<div class="panel"><h2>المهارات</h2><div id="skills"></div></div>
+<div class="panel"><h2>الخبرات المهنية التي تم التحقق منها</h2><div id="experiences"></div></div>
+<div class="panel"><h2>المهارات المسجلة</h2><div id="skills"></div></div>
 </section>
 <footer class="footer">شهادتي العلمية · نصنع المعرفة... نبني الحاضر... ونوثق المستقبل.</footer>
 </main>
@@ -37,6 +38,8 @@ async function loadPublicProfile(){
  $('summary').textContent=p.professional_summary||'لم تتم إضافة نبذة مهنية.';
  const qualifications=data.qualifications||[];
  $('qualifications').innerHTML=qualifications.length?qualifications.map(q=>'<article class="item"><strong>'+esc(q.qualification)+'</strong><div class="muted">'+[q.institution,q.faculty,q.specialization,q.graduation_year].filter(Boolean).map(esc).join(' · ')+'</div><div class="verified">✓ تم التحقق من المؤهل</div></article>').join(''):'<p class="muted">لا توجد مؤهلات تم التحقق منها منشورة حتى الآن.</p>';
+ const experiences=data.experiences||[];
+ $('experiences').innerHTML=experiences.length?experiences.map(e=>'<article class="item"><strong>'+esc(e.job_title)+'</strong><div class="muted">'+esc(e.employer_name||'جهة عمل غير محددة')+' · '+(e.start_date?new Date(e.start_date+'T00:00:00').toLocaleDateString('ar-EG'):'')+' — '+(e.is_current?'حتى الآن':e.end_date?new Date(e.end_date+'T00:00:00').toLocaleDateString('ar-EG'):'')+'</div>'+(e.description?'<p class="muted">'+esc(e.description)+'</p>':'')+'<div class="verified">✓ تم التحقق من الخبرة</div></article>').join(''):'<p class="muted">لا توجد خبرات تم التحقق منها منشورة حتى الآن.</p>';
  const skills=data.skills||[];
  $('skills').innerHTML=skills.length?skills.map(s=>'<span class="pill">'+esc(s.name)+'</span>').join(''):'<p class="muted">لم تتم إضافة مهارات عامة منشورة.</p>';
  $('state').hidden=true;$('profileContent').hidden=false;
