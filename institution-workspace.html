@@ -922,14 +922,15 @@ async function loadCoursesAndRuns(){
  const {data:runs,error}=await sb.from('institution_course_runs').select('id,run_name,instructor_name,trainer_id,start_date,end_date,status,branch_id,course_id,capacity,institution_courses(name),institution_trainers(id,full_name)').eq('institution_id',org.id).order('created_at',{ascending:false}).limit(200);
  if(error){emptyRow('runsRows',6,error.message);return;}
  courseRuns=runs||[];
- await loadInstitutionTrainers();
- await loadInstitutionSessions();
- setupAttendanceManager();
  const runLabels={planned:'مخططة',open:'متاحة للتسجيل',in_progress:'جارية',completed:'مكتملة',cancelled:'ملغاة'};
   const runManageById=new Map();
   await Promise.all((runs||[]).map(async r=>runManageById.set(r.id,await allowed('courses.manage',r.branch_id||null))));
   $('runsRows').innerHTML=(runs||[]).map(r=>{const canManage=runManageById.get(r.id)===true;return '<tr><td>'+esc(r.run_name||'مجموعة')+'</td><td>'+esc(r.institution_courses?.name||'—')+'</td><td>'+esc(branchById.get(r.branch_id)?.name||'عام')+'</td><td>'+esc(r.institution_trainers?.full_name||r.instructor_name||'—')+'</td><td>'+esc(r.start_date||'—')+' → '+esc(r.end_date||'—')+'</td><td>'+esc(r.capacity==null?'غير محددة':Number(r.capacity).toLocaleString('ar-EG'))+'</td><td>'+esc(runLabels[r.status]||r.status)+'</td><td>'+(canManage?'<select data-run-next="'+esc(r.id)+'"><option value="planned" '+(r.status==='planned'?'selected':'')+'>مخططة</option><option value="open" '+(r.status==='open'?'selected':'')+'>متاحة للتسجيل</option><option value="in_progress" '+(r.status==='in_progress'?'selected':'')+'>جارية</option><option value="completed" '+(r.status==='completed'?'selected':'')+'>مكتملة</option><option value="cancelled" '+(r.status==='cancelled'?'selected':'')+'>ملغاة</option></select> <button class="btn light" type="button" data-save-run="'+esc(r.id)+'">حفظ</button>':'<span class="muted">عرض فقط</span>')+'</td></tr>';}).join('')||'<tr><td colspan="8" class="empty">لم يتم إنشاء مجموعات تدريبية</td></tr>';
  $('runsRows').querySelectorAll('[data-save-run]').forEach(btn=>btn.addEventListener('click',()=>updateInstitutionRunStatus(btn.dataset.saveRun)));
+ // Render groups before loading the independent trainer/session tables.
+ try{await loadInstitutionTrainers();}catch(error){emptyRow('trainersRows',6,'تعذر تحميل المدربين: '+(error?.message||error));}
+ try{await loadInstitutionSessions();}catch(error){emptyRow('sessionsRows',9,'تعذر تحميل الجلسات: '+(error?.message||error));}
+ setupAttendanceManager();
  await loadEnrollments();
 }
 function syncBulkEnrollmentGroupOptions(){
@@ -1080,11 +1081,13 @@ async function toggleInstitutionTrainer(id){
  say(trainer.is_active?'تم إيقاف المدرب.':'تم تفعيل المدرب.','success');await loadInstitutionTrainers();
 }
 async function loadInstitutionSessions(){
- const {data,error}=await sb.from('institution_course_sessions').select('id,session_number,course_run_id,trainer_id,title,session_date,starts_at,ends_at,location,status,institution_course_runs!inner(run_name,branch_id,institution_courses(name)),institution_trainers(full_name)').eq('institution_id',org.id).order('session_date',{ascending:true}).limit(500);
+ // Keep the session query independent from nested PostgREST relationship joins.
+ const {data,error}=await sb.from('institution_course_sessions').select('id,session_number,course_run_id,trainer_id,title,session_date,starts_at,ends_at,location,status').eq('institution_id',org.id).order('session_date',{ascending:true}).limit(500);
  if(error){emptyRow('sessionsRows',9,error.message);return;}
  institutionSessions=data||[];
  const labels={planned:'مجدولة',completed:'منفذة',cancelled:'ملغاة'};
- $('sessionsRows').innerHTML=institutionSessions.map(s=>'<tr><td><strong>'+esc(s.session_number)+'</strong></td><td>'+esc(s.session_date)+'</td><td dir="ltr">'+esc((s.starts_at||'—').slice(0,5)+' – '+(s.ends_at||'—').slice(0,5))+'</td><td>'+esc(s.title||'جلسة تدريبية')+'</td><td>'+esc((s.institution_course_runs?.institution_courses?.name||'دورة')+' — '+(s.institution_course_runs?.run_name||'مجموعة'))+'</td><td>'+esc(s.institution_trainers?.full_name||'—')+'</td><td>'+esc(s.location||'—')+'</td><td>'+esc(labels[s.status]||s.status)+'</td><td><select data-session-status="'+s.id+'"><option value="planned" '+(s.status==='planned'?'selected':'')+'>مجدولة</option><option value="completed" '+(s.status==='completed'?'selected':'')+'>منفذة</option><option value="cancelled" '+(s.status==='cancelled'?'selected':'')+'>ملغاة</option></select><button class="btn light" data-session-save="'+s.id+'">حفظ</button></td></tr>').join('')||'<tr><td colspan="9" class="empty">لا توجد جلسات في الجدول بعد</td></tr>';
+ const runsById=new Map(courseRuns.map(r=>[r.id,r])),trainersById=new Map(institutionTrainers.map(t=>[t.id,t]));
+ $('sessionsRows').innerHTML=institutionSessions.map(s=>{const run=runsById.get(s.course_run_id),trainer=trainersById.get(s.trainer_id);return '<tr><td><strong>'+esc(s.session_number)+'</strong></td><td>'+esc(s.session_date)+'</td><td dir="ltr">'+esc((s.starts_at||'—').slice(0,5)+' – '+(s.ends_at||'—').slice(0,5))+'</td><td>'+esc(s.title||'جلسة تدريبية')+'</td><td>'+esc((run?.institution_courses?.name||'دورة')+' — '+(run?.run_name||'مجموعة'))+'</td><td>'+esc(trainer?.full_name||'—')+'</td><td>'+esc(s.location||'—')+'</td><td>'+esc(labels[s.status]||s.status)+'</td><td><select data-session-status="'+s.id+'"><option value="planned" '+(s.status==='planned'?'selected':'')+'>مجدولة</option><option value="completed" '+(s.status==='completed'?'selected':'')+'>منفذة</option><option value="cancelled" '+(s.status==='cancelled'?'selected':'')+'>ملغاة</option></select><button class="btn light" data-session-save="'+s.id+'">حفظ</button></td></tr>';}).join('')||'<tr><td colspan="9" class="empty">لا توجد جلسات في الجدول بعد</td></tr>';
  setupAttendanceManager();
  $('sessionsRows').querySelectorAll('[data-session-save]').forEach(btn=>btn.addEventListener('click',()=>updateInstitutionSessionStatus(btn.dataset.sessionSave)));
 }
