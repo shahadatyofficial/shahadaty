@@ -35,6 +35,34 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
 .login-back{text-align:center;margin-top:16px;font-size:12px;color:var(--muted);}
 .login-back a{color:var(--blue);font-weight:600;text-decoration:none;}
 
+
+/* INSTITUTION WORKSPACE SELECTOR */
+.workspace-choice-screen{position:fixed;inset:0;z-index:8500;display:none;align-items:center;justify-content:center;padding:28px;background:radial-gradient(circle at 12% 10%,#1e6090 0,#0c2d4e 48%,#071b30 100%);overflow:auto}
+.workspace-choice-screen.open{display:flex}
+.workspace-choice-wrap{width:min(100%,1080px);margin:auto}
+.workspace-choice-head{text-align:center;color:#fff;margin-bottom:30px}
+.workspace-choice-head img{width:66px;height:66px;border-radius:50%;object-fit:cover;border:2px solid #b08d48;margin-bottom:12px}
+.workspace-choice-kicker{color:#e5c77e;font-size:11px;font-weight:800;letter-spacing:2px}
+.workspace-choice-head h1{font-size:clamp(25px,4vw,38px);font-weight:900;margin:8px 0}
+.workspace-choice-head p{color:#dbeafe;font-size:14px;line-height:1.9}
+.workspace-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.workspace-choice-card{appearance:none;width:100%;min-height:330px;text-align:right;display:flex;flex-direction:column;align-items:flex-start;padding:30px;border-radius:22px;border:1px solid #ffffff30;background:linear-gradient(145deg,#ffffff 0%,#f2f8ff 100%);box-shadow:0 22px 55px #0004;cursor:pointer;transition:transform .2s,box-shadow .2s,border-color .2s;color:var(--navy);font-family:'Cairo',sans-serif}
+.workspace-choice-card:hover,.workspace-choice-card:focus-visible{transform:translateY(-5px);box-shadow:0 28px 65px #0006;border-color:#d7b96c;outline:none}
+.workspace-choice-icon{width:68px;height:68px;display:grid;place-items:center;border-radius:19px;background:#e8f3fc;color:var(--blue);margin-bottom:22px}
+.workspace-choice-icon .material-symbols-outlined{font-size:36px}
+.workspace-choice-card.operations .workspace-choice-icon{background:#fff4dc;color:#96712d}
+.workspace-choice-eyebrow{font-size:11px;color:var(--gold);font-weight:900;margin-bottom:7px}
+.workspace-choice-card h2{font-size:24px;font-weight:900;margin:0 0 10px;color:var(--navy)}
+.workspace-choice-card p{font-size:13px;line-height:2;color:#526579;margin:0 0 18px}
+.workspace-choice-features{display:flex;flex-wrap:wrap;gap:7px;margin-top:auto}
+.workspace-choice-features span{background:#eaf1f8;color:#34516b;padding:6px 10px;border-radius:20px;font-size:10px;font-weight:800}
+.workspace-choice-card.operations .workspace-choice-features span{background:#fff1d3;color:#75591e}
+.workspace-choice-action{display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:22px;padding-top:16px;border-top:1px solid #dce6ef;color:var(--blue);font-size:13px;font-weight:900}
+.workspace-choice-card.operations .workspace-choice-action{color:#96712d}
+.workspace-choice-footer{display:flex;justify-content:center;margin-top:20px}
+.workspace-choice-logout{border:1px solid #ffffff55;background:#ffffff12;color:#fff;border-radius:10px;padding:9px 18px;font:700 12px Cairo;cursor:pointer}
+@media(max-width:700px){.workspace-choice-screen{padding:20px 14px;align-items:flex-start}.workspace-choice-head{margin:18px 0 22px}.workspace-choice-grid{grid-template-columns:1fr;gap:14px}.workspace-choice-card{min-height:0;padding:22px}.workspace-choice-card h2{font-size:21px}.workspace-choice-icon{width:58px;height:58px;margin-bottom:15px}.workspace-choice-icon .material-symbols-outlined{font-size:31px}}
+
 /* SIDEBAR */
 .sidebar{position:fixed;right:0;top:0;bottom:0;width:var(--sidebar-w);background:var(--navy);display:flex;flex-direction:column;z-index:100;overflow-y:auto;}
 .sb-logo{padding:20px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:10px;}
@@ -324,6 +352,37 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);color:var
     <div class="login-back"><a href="landing.html">← العودة للرئيسية</a> &nbsp;|&nbsp; <a href="register.html">مؤسسة جديدة؟ سجل الاعتماد</a></div>
   </div>
 </div>
+
+<!-- INSTITUTION WORKSPACE SELECTOR -->
+<section class="workspace-choice-screen" id="institutionWorkspaceChooser" aria-labelledby="workspaceChoiceTitle">
+ <div class="workspace-choice-wrap">
+  <div class="workspace-choice-head">
+   <img src="logo.png" alt="شهادتي العلمية" onerror="this.style.display='none'">
+   <div class="workspace-choice-kicker">SHAHADATY · INSTITUTION PORTAL</div>
+   <h1 id="workspaceChoiceTitle">أهلاً بك في مساحة مؤسستك</h1>
+   <p id="workspaceChoiceInstitutionName">اختر مساحة العمل التي تريد الدخول إليها</p>
+  </div>
+  <div class="workspace-choice-grid">
+   <button type="button" class="workspace-choice-card certificates" id="openCertificateDashboard" aria-label="فتح لوحة إدارة الشهادات">
+    <span class="workspace-choice-icon"><span class="material-symbols-outlined" aria-hidden="true">verified</span></span>
+    <span class="workspace-choice-eyebrow">CERTIFICATE MANAGEMENT</span>
+    <h2>لوحة إدارة الشهادات</h2>
+    <p>كل ما يخص شهادات مؤسستك في مكان واحد: إصدار الشهادات، رفع ملفات Excel، متابعة الشهادات الصادرة، والتحقق المباشر وإدارة بيانات المتدربين المرتبطة بها.</p>
+    <span class="workspace-choice-features"><span>إصدار الشهادات</span><span>QR والتحقق</span><span>الشهادات الصادرة</span></span>
+    <span class="workspace-choice-action"><span>الدخول إلى لوحة الشهادات</span><span class="material-symbols-outlined" aria-hidden="true">arrow_back</span></span>
+   </button>
+   <button type="button" class="workspace-choice-card operations" id="openInstitutionProgram" aria-label="فتح برنامج إدارة المؤسسة">
+    <span class="workspace-choice-icon"><span class="material-symbols-outlined" aria-hidden="true">account_tree</span></span>
+    <span class="workspace-choice-eyebrow">INSTITUTION MANAGEMENT</span>
+    <h2>برنامج إدارة المؤسسة</h2>
+    <p>إدارة وتشغيل المركز بالكامل: الفروع والموظفون والصلاحيات، المتدربون، الدورات والمجموعات، المدربون، الحضور، التقارير ومتابعة التشغيل.</p>
+    <span class="workspace-choice-features"><span>الفروع والموظفون</span><span>الدورات والمتدربون</span><span>الحضور والتقارير</span></span>
+    <span class="workspace-choice-action"><span>الدخول إلى برنامج الإدارة</span><span class="material-symbols-outlined" aria-hidden="true">arrow_back</span></span>
+   </button>
+  </div>
+  <div class="workspace-choice-footer"><button type="button" class="workspace-choice-logout" onclick="doLogout()">تسجيل الخروج من حساب المؤسسة</button></div>
+ </div>
+</section>
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -929,6 +988,10 @@ async function loadInst(){
   await loadInstitutionBranches();
   if(subscription?.quota_limit!=null&&Number(subscription.quota_limit)>0)inst.quota_total=Number(subscription.quota_limit);
   document.getElementById('loginScreen').style.display='none';
+  const chooser=document.getElementById('institutionWorkspaceChooser');
+  document.getElementById('workspaceChoiceInstitutionName').textContent='مرحبًا '+(data.name||'بك')+' — اختر مساحة العمل التي تريد الدخول إليها';
+  chooser.classList.add('open');
+
   const n=data.name;
   document.getElementById('sbAvatar').textContent=n.charAt(0);
   document.getElementById('sbInstName').textContent=n;
@@ -1665,6 +1728,15 @@ async function saveSettings(){
   const {error}=await sb.rpc('update_my_institution_contact',{p_phone:phone});
   if(error){toast(error.message,'err');return;} inst.contact_phone=phone; toast('تم حفظ التغييرات','ok');
 }
+
+document.getElementById('openCertificateDashboard').addEventListener('click',()=>{
+ document.getElementById('institutionWorkspaceChooser').classList.remove('open');
+ showPage('dashboard',document.querySelector('.sb-item[onclick*="dashboard"]'));
+ window.scrollTo({top:0,behavior:'instant'});
+});
+document.getElementById('openInstitutionProgram').addEventListener('click',()=>{
+ location.href='institution-workspace.html';
+});
 
 // ── Init ─────────────────────────────────────────────────────────
 window.addEventListener('load',async()=>{
