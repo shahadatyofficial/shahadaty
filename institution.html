@@ -1000,7 +1000,7 @@ async function loadInst(){
   async function hasInstPermission(permission){
     const {data:globalGrant,error:globalError}=await sb.rpc('institution_has_permission',{p_institution_id:data.id,p_permission:permission,p_branch_id:null});
     if(!globalError&&globalGrant===true)return true;
-    if(!membership?.id)return false;
+    if(!membership?.id)return data.auth_user_id===user.id;
     const {data:assignments,error:assignmentError}=await sb.from('institution_user_branches').select('branch_id').eq('institution_user_id',membership.id);
     if(assignmentError)return false;
     for(const assignment of assignments||[]){
@@ -1767,7 +1767,7 @@ async function saveSettings(){
 async function hasInstitutionPermission(permission){
  const {data:globalGrant,error:globalError}=await sb.rpc('institution_has_permission',{p_institution_id:inst.id,p_permission:permission,p_branch_id:null});
  if(!globalError&&globalGrant===true)return true;
- if(!inst.membershipId)return false;
+ if(!inst.membershipId)return inst.membershipRole==='owner';
  const {data:assignments,error:assignmentError}=await sb.from('institution_user_branches').select('branch_id').eq('institution_user_id',inst.membershipId);
  if(assignmentError)return false;
  for(const assignment of assignments||[]){
