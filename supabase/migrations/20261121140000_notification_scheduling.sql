@@ -73,7 +73,7 @@ DECLARE
 BEGIN
   -- Remind institution owners and managers about tomorrow's planned sessions.
   FOR v_row IN
-    SELECT s.id, s.institution_id, s.title, s.session_date, s.starts_at,
+    SELECT s.id, s.institution_id, s.course_run_id, s.title, s.session_date, s.starts_at,
            r.run_name, c.name AS course_name
     FROM public.institution_course_sessions s
     JOIN public.institution_course_runs r ON r.id = s.course_run_id
@@ -97,6 +97,29 @@ BEGIN
           CASE WHEN v_row.starts_at IS NOT NULL THEN ' الساعة ' || v_row.starts_at::text ELSE '' END || '.',
         'institution.html','training_session',v_row.id,
         'session:' || v_row.id::text || ':' || v_today::text
+      );
+      IF v_notification_id IS NOT NULL THEN v_count := v_count + 1; END IF;
+    END LOOP;
+
+    FOR v_recipient IN
+      SELECT DISTINCT gp.auth_user_id AS user_id
+      FROM public.institution_enrollments e
+      JOIN public.institution_trainees t ON t.id = e.trainee_id
+      JOIN public.graduate_profiles gp
+        ON regexp_replace(COALESCE(gp.phone,''),'[^0-9]','','g')
+         = regexp_replace(COALESCE(t.phone,''),'[^0-9]','','g')
+      WHERE e.course_run_id = v_row.course_run_id
+        AND e.status IN ('enrolled','attending')
+        AND gp.auth_user_id IS NOT NULL
+        AND NULLIF(regexp_replace(COALESCE(t.phone,''),'[^0-9]','','g'),'') IS NOT NULL
+    LOOP
+      v_notification_id := app_private.enqueue_deduplicated_platform_notification(
+        v_recipient.user_id,'training_session_reminder','تذكير بموعد جلسة غدًا',
+        'لديك جلسة ' || COALESCE(v_row.title,'تدريبية') || ' غدًا ضمن دورة ' ||
+          COALESCE(v_row.course_name,'') ||
+          CASE WHEN v_row.starts_at IS NOT NULL THEN ' الساعة ' || v_row.starts_at::text ELSE '' END || '.',
+        'graduate-v2.html','training_session',v_row.id,
+        'graduate-session:' || v_row.id::text || ':' || v_today::text
       );
       IF v_notification_id IS NOT NULL THEN v_count := v_count + 1; END IF;
     END LOOP;
