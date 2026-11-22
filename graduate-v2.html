@@ -146,7 +146,7 @@ async function logoutGraduate(){await sb.auth.signOut();location.reload();}async
  if(membershipError){msg('saveMsg','تعذر تحميل حالة العضوية: '+membershipError.message);return;}
  const active=(membershipRows||[]).find(x=>x.status==='approved'&&x.ends_at&&new Date(x.ends_at)>new Date());
  const pending=(membershipRows||[]).find(x=>x.status==='pending');
- graduateMembershipActive=!!active;
+ graduateMembershipActive=!!active;document.getElementById('dashboardMembershipStatus').textContent=graduateMembershipActive?'نشطة ✓':'غير مفعلة';
  renderGraduateLiveCv();
  if(graduateMembershipActive)await refreshGraduateGoldFiles(p);
  const gate=document.getElementById('membershipGate'),status=document.getElementById('membershipStatus'),form=document.getElementById('graduateMembershipForm');
@@ -367,4 +367,4 @@ async function refreshDigitalPassportShare(){
  status.textContent='جواز شهاداتك متاح للمشاركة. لا يتضمن بيانات الاتصال أو الرقم القومي.';
  copy.onclick=async()=>{try{await navigator.clipboard.writeText(url.toString());status.textContent='تم نسخ رابط جواز الشهادات.';}catch{status.textContent='انسخ الرابط الظاهر بالضغط المطول أو بزر الفأرة.';}};
 }
-</script><script>document.querySelectorAll('.side-nav a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{const t=document.querySelector(a.getAttribute('href'));if(t&&t.classList.contains('hidden')){e.preventDefault();document.getElementById('auth')?.scrollIntoView({behavior:'smooth',block:'center'});return;}if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}}));</script></body></html>
+</script><script>document.querySelectorAll('.side-nav a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{const t=document.querySelector(a.getAttribute('href'));if(t&&t.classList.contains('hidden')){e.preventDefault();const gate=document.getElementById('membershipGate');if(t.id!=='auth'&&gate&&!gate.classList.contains('hidden'))gate.scrollIntoView({behavior:'smooth',block:'center'});else document.getElementById('auth')?.scrollIntoView({behavior:'smooth',block:'center'});return;}if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}}));</script></body></html>
