@@ -126,7 +126,7 @@ async function loadApprovedJobs(){if(!graduateMembershipActive)return;
   const application=applicationByJob.get(j.id);
   const applyButton=application
    ? '<button type="button" disabled aria-disabled="true" class="job-applied-button">سبق التقديم · '+esc(graduateApplicationStatusLabels[application.status]||'طلب مسجل')+'</button>'
-   : '<button type="button" onclick="applyForJob(\\''+j.id+'\\',this.parentElement.dataset.jobTitle,this)">التقديم على الوظيفة</button>';
+   : '<button type="button" onclick="applyForJob(\''+j.id+'\',this.parentElement.dataset.jobTitle,this)">التقديم على الوظيفة</button>';
   return '<div class="cert" data-job-title="'+esc(j.title)+'"><b>'+esc(j.title)+'</b><p>'+esc(j.company_display_name)+' · '+esc(j.governorate||'كل المحافظات')+' '+esc(j.center||'')+'</p><p>'+esc(j.teaser||j.description)+'</p><p>المؤهل: '+esc(j.qualification_required||'غير محدد')+' · الخبرة: '+esc(j.experience_years??'غير محددة')+'</p><p><b>'+label+'</b> · '+esc(j.matchReasons.join('، ')||'راجع متطلبات الوظيفة')+'</p><small>ترشيح إرشادي مبني على البيانات المتاحة، وليس قرار قبول أو ضمان توظيف.</small><br>'+applyButton+'</div>';
  }).join('');
 }
@@ -159,7 +159,7 @@ async function loadMyJobApplications(){
  if(error){el.textContent='تعذر تحميل طلباتك: '+error.message;return;}
  el.innerHTML=(data||[]).map(a=>{
   const canWithdraw=['submitted','reviewing','shortlisted'].includes(a.status);
-  const withdrawButton=canWithdraw?'<button type="button" onclick="withdrawMyJobApplication(\\''+esc(a.id)+'\\')">سحب طلب التوظيف</button>':'';
+  const withdrawButton=canWithdraw?'<button type="button" onclick="withdrawMyJobApplication(\''+esc(a.id)+'\')">سحب طلب التوظيف</button>':'';
   return '<div class="cert"><b>'+esc(a.job_announcements?.title||'وظيفة')+'</b><p>'+esc(a.job_announcements?.company_display_name||'جهة التوظيف')+'</p><span class="badge">'+esc(graduateApplicationStatusLabels[a.status]||'حالة غير محددة')+'</span><p style="font-size:11px;color:#718096">تاريخ التقديم: '+(a.created_at?new Date(a.created_at).toLocaleDateString('ar-EG'):'—')+'</p>'+withdrawButton+'</div>';
  }).join('')||'لم تقدم على وظائف حتى الآن.';
 }
