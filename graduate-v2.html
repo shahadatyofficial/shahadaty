@@ -92,7 +92,7 @@ html{scroll-behavior:smooth;scroll-padding-top:96px}body{background:#f5f7fc;colo
 
 /* Exact professional-profile reference layout */
 body:has(#profile:not(.hidden)) .graduate-hero{display:none!important}
-body:has(#profile:not(.hidden)) .side-nav a[href="#profile"]{background:#245dc0;color:#ffd45d}
+body:has(#profile:not(.hidden)) .side-nav a:first-of-type{background:transparent;color:#fff}body:has(#profile:not(.hidden)) .side-nav a[href="#profile"]{background:#245dc0;color:#ffd45d}
 .professional-profile-page{padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important;margin:0 0 18px!important;overflow:visible}
 #profileProgressPanel{display:none!important}
 .profile-reference-hero{height:130px;border-radius:16px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;margin:0 0 14px;background:radial-gradient(ellipse at 76% 35%,#0b77c9 0,transparent 42%),linear-gradient(105deg,#041c48,#063b86 58%,#0877c9);box-shadow:0 8px 22px #0d3b7820}
@@ -292,7 +292,7 @@ async function logoutGraduate(){await sb.auth.signOut();location.reload();}async
  renderGraduateLiveCv();
  if(graduateMembershipActive)await refreshGraduateGoldFiles(p);
  const gate=document.getElementById('membershipGate'),status=document.getElementById('membershipStatus'),form=document.getElementById('graduateMembershipForm');
- document.getElementById('profile').classList.remove('hidden');
+ const openProfileView=location.hash==='#profile';document.getElementById('profile').classList.toggle('hidden',!openProfileView);document.getElementById('dashboardHome').classList.toggle('hidden',openProfileView);
  document.getElementById('goldProfileCard').classList.remove('hidden');
  document.getElementById('goldLocked').classList.toggle('hidden',graduateMembershipActive);
  document.getElementById('goldFields').classList.toggle('premium-locked',!graduateMembershipActive);
@@ -508,4 +508,7 @@ async function refreshDigitalPassportShare(){
  status.textContent='جواز شهاداتك متاح للمشاركة. لا يتضمن بيانات الاتصال أو الرقم القومي.';
  copy.onclick=async()=>{try{await navigator.clipboard.writeText(url.toString());status.textContent='تم نسخ رابط جواز الشهادات.';}catch{status.textContent='انسخ الرابط الظاهر بالضغط المطول أو بزر الفأرة.';}};
 }
-</script><script>document.querySelectorAll('.side-nav a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{const t=document.querySelector(a.getAttribute('href'));if(t&&t.classList.contains('hidden')){e.preventDefault();const gate=document.getElementById('membershipGate');if(t.id!=='auth'&&gate&&!gate.classList.contains('hidden'))gate.scrollIntoView({behavior:'smooth',block:'center'});else document.getElementById('auth')?.scrollIntoView({behavior:'smooth',block:'center'});return;}if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}}));</script></body></html>
+</script><script>document.querySelectorAll('.side-nav a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{const t=document.querySelector(a.getAttribute('href'));if(t&&t.classList.contains('hidden')){e.preventDefault();const gate=document.getElementById('membershipGate');if(t.id!=='auth'&&gate&&!gate.classList.contains('hidden'))gate.scrollIntoView({behavior:'smooth',block:'center'});else document.getElementById('auth')?.scrollIntoView({behavior:'smooth',block:'center'});return;}if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}}));function setGraduateMainView(view){const showProfile=view==='profile';document.getElementById('profile')?.classList.toggle('hidden',!showProfile);document.getElementById('dashboardHome')?.classList.toggle('hidden',showProfile);document.querySelectorAll('.side-nav a').forEach(a=>a.classList.toggle('active',a.getAttribute('href')===(showProfile?'#profile':'#dashboardHome')));if(showProfile){renderGraduateLiveCv();document.getElementById('profile')?.scrollIntoView({behavior:'smooth',block:'start'});}else{document.getElementById('dashboardHome')?.scrollIntoView({behavior:'smooth',block:'start'});}}
+document.querySelector('.side-nav a[href="#profile"]')?.addEventListener('click',()=>setGraduateMainView('profile'));
+document.querySelector('.side-nav a[href="#dashboardHome"]')?.addEventListener('click',()=>setGraduateMainView('home'));
+</script></body></html>
