@@ -7,7 +7,7 @@ import sys
 PAGES = [
     "index.html", "admin.html", "institution.html", "register.html",
     "packages.html", "verify.html", "certificate.html", "institution-certificate.html",
-    "graduate.html", "talent.html", "company.html", "institution-workspace.html",
+    "graduate.html", "graduate-v2.html", "talent.html", "company.html", "institution-workspace.html",
     "institution-directory.html", "professional-profile.html", "training-marketplace.html", "digital-passport.html",
 ]
 
@@ -61,6 +61,15 @@ class InlineScripts(HTMLParser):
             self.parts = []
             self.in_script = False
             self.external = False
+
+# Validate the external location helper used by graduate-v2.html as well.
+location_helper = subprocess.run(["node", "--check", "egypt-locations.js"], capture_output=True, text=True)
+if location_helper.returncode:
+    print("FAIL egypt-locations.js")
+    print(location_helper.stderr)
+    failed = True
+else:
+    print("PASS egypt-locations.js")
 
 failed = False
 total_scripts = 0
