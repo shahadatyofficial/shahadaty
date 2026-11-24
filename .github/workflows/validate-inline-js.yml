@@ -17,6 +17,8 @@ jobs:
         run: python3 scripts/check-inline-js.py
       - name: Verify validation gate catches broken portal and helper scripts
         run: python3 scripts/test-validation-gate.py
+      - name: Test graduate signed-in transitions against page markup
+        run: node scripts/test-graduate-auth.cjs
       - name: Check platform workflow integration points
         run: python3 scripts/check-platform-integration.py
       - uses: denoland/setup-deno@v2
