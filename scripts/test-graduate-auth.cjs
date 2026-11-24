@@ -13,10 +13,10 @@ function fixture({membership = [], profile = true, error = null, hash = '', inva
   const nodes = new Map();
   function node(classes = '') {
     const tokens = new Set(classes.split(/\s+/).filter(Boolean));
-    return {value: '', textContent: '', innerHTML: '', style: {}, checked: false, disabled: false,
+    return {value: '', textContent: '', innerHTML: '', style: {}, dataset: {}, checked: false, disabled: false,
       classList: {add: x => tokens.add(x), remove: x => tokens.delete(x), contains: x => tokens.has(x),
         toggle(x, force) {const on = force === undefined ? !tokens.has(x) : force; on ? tokens.add(x) : tokens.delete(x); return on;}},
-      addEventListener() {}, dispatchEvent() {}, querySelectorAll: () => [], scrollIntoView() {}};
+      listeners: {}, addEventListener(type, fn) {this.listeners[type]=fn;}, dispatchEvent() {}, querySelectorAll: () => [], scrollIntoView() {}};
   }
   // Only real markup, not template strings inside scripts, defines available IDs.
   const markup = html.replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, '');
@@ -24,6 +24,12 @@ function fixture({membership = [], profile = true, error = null, hash = '', inva
     nodes.set(m[1], node(m[0].match(/\bclass=["']([^"']*)/)?.[1] || ''));
   }
   if (broken) nodes.delete('topLogoutBtn');
+  const profileMarkup = markup.slice(markup.indexOf('id="profile"'), markup.indexOf('id="goldProfileCard"'));
+  nodes.get('profile').contains = target => [...nodes].some(([id, value]) => value === target && profileMarkup.includes('id="' + id + '"'));
+  const anchors = [...markup.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)].filter(m => /href=["']#/.test(m[1])).map(m => {
+    const a = node(); a.href = m[1].match(/href=["']([^"']+)/)[1];
+    a.getAttribute = key => key === 'href' ? a.href : null; return a;
+  });
   const body = node();
   let user = null, listener = () => {};
   const reads = [], writes = [];
@@ -55,12 +61,12 @@ function fixture({membership = [], profile = true, error = null, hash = '', inva
   };
   const scheduled = [];
   const context = vm.createContext({console, URL, Date, Event: class {}, location: {href: 'https://example.invalid/graduate-v2.html', hash},
-    document: {body, getElementById: id => nodes.get(id) || null, querySelectorAll: () => [], querySelector: () => null},
+    document: {body, getElementById: id => nodes.get(id) || null, querySelectorAll: selector => selector.includes('a') ? anchors : [], querySelector: () => null}, history: {replaceState() {}},
     supabase: {createClient: () => sb}, setTimeout: fn => scheduled.push(fn)});
   context.window = context;
   context.addEventListener = () => {};
   for (const script of scripts) vm.runInContext(script, context, {filename: 'graduate-v2.html'});
-  return {context, nodes, body, reads, writes, scheduled, async drain() {
+  return {context, nodes, body, reads, writes, scheduled, anchors, async drain() {
     await new Promise(resolve => setImmediate(resolve));
     for (const callback of scheduled.splice(0)) await callback();
     await new Promise(resolve => setImmediate(resolve));
@@ -87,6 +93,24 @@ function fixture({membership = [], profile = true, error = null, hash = '', inva
     assert.equal(f.nodes.get('goldFields').classList.contains('premium-locked'), !gold);
     assert.ok(f.reads.includes('graduate_my_certificates'), 'signed-in path must reach certificates, not merely suppress the error');
     assert.ok(f.reads.includes('platform_notification_preferences'));
+    if (gold) {
+      assert.ok(f.reads.includes('job_announcements'), 'gold jobs must load after login');
+      assert.ok(f.reads.includes('alumni_notifications'), 'gold notifications must load after login');
+      for (const id of ['jobsList','myJobApplicationsList','notificationsList','accessRequests'])
+        assert.ok(!f.nodes.get(id).textContent.includes('جاري تحميل'), id + ' stuck loading');
+    }
+    for (const anchor of f.anchors) {
+      // Reset to home then invoke the exact click listener bound to each real link.
+      f.context.setGraduateMainView('home');
+      let prevented = false;
+      anchor.listeners.click?.({preventDefault() {prevented = true;}});
+      const route = f.context.graduateSectionRoute(anchor.href), target = f.nodes.get(route.slice(1));
+      if (!target) continue;
+      assert.ok(prevented, 'unbound anchor: ' + anchor.href);
+      assert.ok(!target.classList.contains('hidden'), 'hidden destination: ' + anchor.href);
+      if (f.nodes.get('profile').contains(target))
+        assert.ok(!f.nodes.get('profile').classList.contains('hidden'), 'hidden parent: ' + anchor.href);
+    }
     f.context.setGraduateMainView('profile');
     assert.ok(!f.nodes.get('profile').classList.contains('hidden'));
     f.context.setGraduateMainView('home');
