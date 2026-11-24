@@ -552,7 +552,16 @@ async function loadPlatformNotificationPreferences(userId){
 }
 document.getElementById('savePlatformNotificationPreferences')?.addEventListener('click',async()=>{
  const{data:{user}}=await sb.auth.getUser();if(!user)return;
- const{error}=await sb.from('platform_notification_preferences').upsert({user_id:user.id,in_app_enabled:true,email_enabled:document.getElementById('platformEmailNotifications').checked,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+ const preferences={in_app_enabled:true,email_enabled:document.getElementById('platformEmailNotifications').checked,updated_at:new Date().toISOString()};
+ const{data:existing,error:readError}=await sb.from('platform_notification_preferences').select('user_id').eq('user_id',user.id).maybeSingle();
+ let error=readError;
+ if(!error){
+  if(existing){({error}=await sb.from('platform_notification_preferences').update(preferences).eq('user_id',user.id));}
+  else{
+   ({error}=await sb.from('platform_notification_preferences').insert({user_id:user.id,...preferences}));
+   if(error?.code==='23505')({error}=await sb.from('platform_notification_preferences').update(preferences).eq('user_id',user.id));
+  }
+ }
  document.getElementById('platformNotificationPreferenceStatus').textContent=error?'تعذر حفظ التفضيلات: '+error.message:'تم حفظ تفضيلات الإشعارات.';
 });
 
