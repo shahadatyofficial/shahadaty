@@ -4,12 +4,8 @@ import subprocess
 import tempfile
 import sys
 
-PAGES = [
-    "index.html", "admin.html", "institution.html", "register.html",
-    "packages.html", "verify.html", "certificate.html", "institution-certificate.html",
-    "graduate.html", "talent.html", "company.html", "institution-workspace.html",
-    "institution-directory.html", "professional-profile.html", "training-marketplace.html", "digital-passport.html",
-]
+# Discover all HTML routes so newly added portals cannot silently skip validation.
+PAGES = sorted(path.name for path in Path(".").glob("*.html"))
 
 class PageMetadata(HTMLParser):
     def __init__(self):
@@ -63,6 +59,15 @@ class InlineScripts(HTMLParser):
             self.external = False
 
 failed = False
+# Check local JavaScript helpers with the same failure flag as page scripts.
+for helper in sorted(Path(".").glob("*.js")):
+    result = subprocess.run(["node", "--check", str(helper)], capture_output=True, text=True)
+    if result.returncode:
+        print(f"FAIL {helper}")
+        print(result.stderr)
+        failed = True
+    else:
+        print(f"PASS {helper}")
 total_scripts = 0
 for page in PAGES:
     path = Path(page)
@@ -78,10 +83,11 @@ for page in PAGES:
     if metadata.html_attrs.get("lang", "").lower() != "ar" or metadata.html_attrs.get("dir", "").lower() != "rtl":
         print(f"FAIL Arabic RTL document metadata: {page}")
         failed = True
-    if not metadata.has_viewport:
+    is_redirect = 'http-equiv="refresh"' in source_text.lower()
+    if not metadata.has_viewport and not is_redirect:
         print(f"FAIL missing responsive viewport meta: {page}")
         failed = True
-    if "شهادتي العلمية" not in title:
+    if "شهادتي العلمية" not in title and not is_redirect:
         print(f"FAIL page title does not use the approved brand: {page} ({title})")
         failed = True
     if page in ("certificate.html", "institution-certificate.html"):
