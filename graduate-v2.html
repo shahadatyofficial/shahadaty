@@ -190,6 +190,9 @@ body.graduate-authenticated .side-nav{display:flex!important;visibility:visible!
 body:not(.graduate-authenticated) #auth{display:block!important}
 body:not(.graduate-authenticated) #dashboardHome,body:not(.graduate-authenticated) #profile{display:none!important}
 body.graduate-authenticated #auth{display:none!important}
+
+/* Keep every desktop navigation control reachable on short screens. */
+@media(min-width:801px){.side-nav{overflow-y:auto;overscroll-behavior:contain}.side-nav>*{flex-shrink:0}}
 </style></head><body><header class="nav graduate-topbar">
 <div class="brand-lockup"><img src="logo.png" alt="شهادتي العلمية"><div><b>شهادتي العلمية</b><small>SHAHADATY</small></div></div>
 <div class="top-actions"><a class="top-icon" href="#platformNotificationsCard" aria-label="الإشعارات">✉</a><a class="top-icon" href="#notificationsCard" aria-label="تنبيهات الوظائف">♧</a><button id="topLogoutBtn" class="hidden" type="button" onclick="logoutGraduate()">تسجيل الخروج　↪</button></div>
