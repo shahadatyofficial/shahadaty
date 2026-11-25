@@ -99,6 +99,19 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);min-heigh
 .certificate-preview-title .material-symbols-outlined{color:var(--gold);font-size:22px;}
 .certificate-preview iframe{display:block;width:1024px;max-width:none;height:724px;border:0;border-radius:10px;background:#fff;overflow:hidden;transform-origin:top right;}
 @media(max-width:600px){.certificate-preview{padding:5px;margin:16px -8px;}.certificate-preview-title{font-size:12px;margin:7px 5px 9px}.certificate-preview iframe{min-height:360px;border-radius:7px;}}
+/* MOBILE RESPONSIVE FIXES */
+@media(max-width:600px){
+.nav{padding:0 12px;}
+.logo-name{font-size:15px;}
+.btn-ghost,.btn-cta{font-size:12px;padding:6px 10px;}
+.hero{padding:56px 20px 48px;}
+.hero h1{font-size:30px;}
+.search-card{padding:20px 16px;border-radius:16px;}
+.search-row{flex-direction:column;}
+.search-inp{width:100%;box-sizing:border-box;}
+.search-btn{width:100%;justify-content:center;box-sizing:border-box;}
+.info-grid{grid-template-columns:repeat(2,1fr);}
+}
 .search-btn:disabled{cursor:wait;}
 
 .footer{background:#0f2942;padding:24px;text-align:center;}
