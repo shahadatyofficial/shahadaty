@@ -134,7 +134,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);min-heigh
     </div>
     <div class="search-hint">
       <span class="material-symbols-outlined" style="font-size:14px;color:var(--muted)">info</span>
-      مثال: <code>SHD-2024-00123</code>
+      الرقم مكتوب على الشهادة بجوار رمز QR
     </div>
   </div>
 </div>
@@ -146,10 +146,10 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);min-heigh
   <!-- DEFAULT STATE -->
   <div id="defaultState">
     <!-- STATS -->
-    <div class="stats-row">
-      <div class="stat-box"><span class="stat-val">+5,000</span><span class="stat-lbl">مؤسسة معتمدة</span></div>
-      <div class="stat-box"><span class="stat-val">+1M</span><span class="stat-lbl">شهادة مسجلة</span></div>
-      <div class="stat-box"><span class="stat-val">99.9%</span><span class="stat-lbl">دقة التحقق</span></div>
+    <div class="stats-row" id="publicStatsRow" style="display:none">
+      <div class="stat-box"><span class="stat-val" id="publicInstCount"></span><span class="stat-lbl">مؤسسة معتمدة</span></div>
+      <div class="stat-box"><span class="stat-val" id="publicCertCount"></span><span class="stat-lbl">شهادة مسجلة</span></div>
+      <div class="stat-box"><span class="stat-val" id="publicVerifyCount"></span><span class="stat-lbl">عملية تحقق</span></div>
     </div>
 
     <!-- HOW -->
@@ -291,6 +291,8 @@ function share(certNum){
 }
 
 // Auto-search from URL param
+async function loadPublicStats(){try{const{data,error}=await sb.rpc('public_platform_stats');if(error)return;const r=Array.isArray(data)?data[0]:data;if(!r)return;const fmt=v=>'+'+Number(v||0).toLocaleString('ar-EG');const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=fmt(v);};set('publicInstCount',r.institutions_count);set('publicCertCount',r.certificates_count);set('publicVerifyCount',r.verifications_count);const row=document.getElementById('publicStatsRow');if(row)row.style.display='';}catch(e){console.warn('Public stats unavailable:',e);}}
+loadPublicStats();
 window.addEventListener('load',()=>{
   const params=new URLSearchParams(window.location.search);
   const cert=params.get('cert')||params.get('id');
