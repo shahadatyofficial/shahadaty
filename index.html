@@ -831,7 +831,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 <section class="hero">
   <div class="hero-layout">
     <div class="hero-copy">
-  <div class="hero-badge"><span class="badge-dot"></span>منصة التحقق الرقمي الأولى في مصر والوطن العربي</div>
+  <div class="hero-badge"><span class="badge-dot"></span>منصة تحقق رقمي للشهادات في مصر والوطن العربي</div>
   <h1 class="hero-h1">الثقة تبدأ من<br><span class="accent">شهادتك</span></h1>
   <p class="hero-sub1">امتلك سجلًا رقميًا لشهادتك، واحمِ مستقبلك.</p>
   <p class="hero-sub2">منصة رقمية للتحقق من الشهادات الأكاديمية والمهنية، بسرعة وأمان.</p>
@@ -871,15 +871,14 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
         <div class="certificate-lines"><b></b><i></i><i></i></div>
         <div class="certificate-number"><span>رقم الشهادة</span><strong>SHD-2026-00128</strong></div>
       </div>
-      <div class="showcase-verified"><span class="verified-check">✓</span><div><strong>شهادة موثقة</strong><small>تم التحقق من البيانات بنجاح</small></div><span class="verified-time">2.4 ث</span></div>
+      <div class="showcase-verified"><span class="verified-check">✓</span><div><strong>شهادة موثقة</strong><small>تم التحقق من البيانات بنجاح</small></div><span class="verified-time">مثال توضيحي</span></div>
       <div class="showcase-foot"><span>🔒 بيانات محمية</span><span>⚡ تحقق فوري</span><span>◈ QR ذكي</span></div>
     </aside>
   </div>
   <div class="stats-row" id="publicStatsRow" style="display:none">
-    <div class="stat"><span class="sn" id="publicInstCount"></span><span class="sl">مؤسسة معتمدة</span></div>
+    <div class="stat"><span class="sn" id="publicInstCount"></span><span class="sl">جهة مسجلة</span></div>
     <div class="stat"><span class="sn" id="publicCertCount"></span><span class="sl">شهادة مسجلة</span></div>
     <div class="stat"><span class="sn" id="publicVerifyCount"></span><span class="sl">عملية تحقق</span></div>
-    <div class="stat"><span class="sn"><span>&lt;</span>3ث</span><span class="sl">وقت التحقق</span></div>
   </div>
 </section>
 
@@ -995,11 +994,11 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
   <div class="strip">
     <div><h3>قطاعك مش في القائمة؟</h3><p>شهادتي تدعم أي جهة بتصدر شهادات — تواصل معنا ونعمل لك حل مخصص</p></div>
     <div class="strip-stats">
-      <div class="strip-stat"><span class="strip-val"><em>+</em>8</span><span class="strip-lbl">قطاعات مدعومة</span></div>
+      <div class="strip-stat"><span class="strip-val">8</span><span class="strip-lbl">قطاعات مدعومة</span></div>
       <div class="strip-div"></div>
-      <div class="strip-stat"><span class="strip-val" id="stripInstCount"><em>+</em>—</span><span class="strip-lbl">مؤسسة معتمدة</span></div>
+      <div class="strip-stat"><span class="strip-val" id="stripInstCount">—</span><span class="strip-lbl">جهة مسجلة</span></div>
       <div class="strip-div"></div>
-      <div class="strip-stat"><span class="strip-val" id="stripCertCount"><em>+</em>—</span><span class="strip-lbl">شهادة مسجلة</span></div>
+      <div class="strip-stat"><span class="strip-val" id="stripCertCount">—</span><span class="strip-lbl">شهادة مسجلة</span></div>
     </div>
   </div>
 </section>
@@ -1140,10 +1139,11 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 </section>
 
 <!-- TESTIMONIALS -->
-<section class="sec" id="testimonials">
+<!-- قسم الآراء مخفي مؤقتًا لحين التحقق من نسبة الاقتباسات لأصحابها وموافقتهم -->
+<section class="sec" id="testimonials" style="display:none">
   <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:16px">
     <div><div class="sec-tag">💬 آراء عملائنا</div><h2 class="sec-title">ماذا يقول <em>مستخدمو المنصة</em></h2><p class="sec-sub">آراء حقيقية من خريجين ومتخصصي موارد بشرية ومدربين ومراكز تدريب</p></div>
-    <div class="stats-mini"><div class="sm"><span class="sm-val" id="miniInstCount">—</span><span class="sm-lbl">مؤسسة معتمدة</span></div><div class="sm"><span class="sm-val" id="miniCertCount">—</span><span class="sm-lbl">شهادة مسجلة</span></div><div class="sm"><span class="sm-val" id="miniVerifyCount">—</span><span class="sm-lbl">عملية تحقق</span></div></div>
+    <div class="stats-mini"><div class="sm"><span class="sm-val" id="miniInstCount">—</span><span class="sm-lbl">جهة مسجلة</span></div><div class="sm"><span class="sm-val" id="miniCertCount">—</span><span class="sm-lbl">شهادة مسجلة</span></div><div class="sm"><span class="sm-val" id="miniVerifyCount">—</span><span class="sm-lbl">عملية تحقق</span></div></div>
   </div>
   <div class="f-tabs">
     <button class="f-tab active" onclick="filterTs('all',this)">الكل</button>
@@ -1225,7 +1225,7 @@ const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
 window.initEgyptLocationSelects([{governorateId:'careerJobGovernorate',centerId:'careerJobCenter'},{governorateId:'careerEmployeeGovernorate',centerId:'careerEmployeeCenter'}]);
-async function loadPublicStats(){try{const{data,error}=await sb.rpc('public_platform_stats');if(error)return;const r=Array.isArray(data)?data[0]:data;if(!r)return;const fmt=v=>'+'+Number(v||0).toLocaleString('ar-EG');const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=fmt(v);};set('publicInstCount',r.institutions_count);set('publicCertCount',r.certificates_count);set('publicVerifyCount',r.verifications_count);set('stripInstCount',r.institutions_count);set('stripCertCount',r.certificates_count);set('miniInstCount',r.institutions_count);set('miniCertCount',r.certificates_count);set('miniVerifyCount',r.verifications_count);const row=document.getElementById('publicStatsRow');if(row)row.style.display='';}catch(e){console.warn('Public stats unavailable:',e);}}
+async function loadPublicStats(){try{const{data,error}=await sb.rpc('public_platform_stats');if(error)return;const r=Array.isArray(data)?data[0]:data;if(!r)return;const fmt=v=>Number(v||0).toLocaleString('ar-EG');const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=fmt(v);};set('publicInstCount',r.institutions_count);set('publicCertCount',r.certificates_count);set('publicVerifyCount',r.verifications_count);set('stripInstCount',r.institutions_count);set('stripCertCount',r.certificates_count);set('miniInstCount',r.institutions_count);set('miniCertCount',r.certificates_count);set('miniVerifyCount',r.verifications_count);const row=document.getElementById('publicStatsRow');if(row)row.style.display='';}catch(e){console.warn('Public stats unavailable:',e);}}
 loadPublicStats();
 loadCareerTicker();
 
@@ -1422,7 +1422,7 @@ const EN_TRANSLATIONS = {
 'نصنع المعرفة... نبني الحاضر... ونوثق المستقبل.':'We create knowledge... build the present... and preserve the future.',
 'العربية':'Arabic','الرئيسية':'Home','المميزات':'Features','القطاعات':'Sectors','الباقات':'Plans','الأسئلة':'FAQ','تواصل معنا':'Contact',
 'تحقق من شهادة':'Verify a Certificate','البوابات':'Portals','بوابة المؤسسات':'Institution Portal','بوابة التوظيف':'Recruitment Portal','بوابة الشركات':'Company Portal','بوابة الخريج':'Graduate Portal','طلب ترشيح كفاءات':'Request Recruitment','ابدأ مجاناً':'Get Started Free',
-'منصة التحقق الرقمي الأولى في مصر والوطن العربي':'The leading digital verification platform in Egypt and the Arab world',
+'منصة تحقق رقمي للشهادات في مصر والوطن العربي':'A digital certificate verification platform in Egypt and the Arab world','جهة مسجلة':'Registered Organization','مثال توضيحي':'Illustrative example',
 'الثقة تبدأ من':'Trust begins with','شهادتك':'your certificate','امتلك سجلًا رقميًا لشهادتك، واحمِ مستقبلك.':'Own a digital record of your certificate and protect your future.',
 'منصة رقمية للتحقق من الشهادات الأكاديمية والمهنية، بسرعة وأمان.':'A digital platform to verify academic and professional certificates quickly and securely.',
 'أدخل رقم الشهادة للتحقق الفوري...':'Enter certificate number for instant verification...',
