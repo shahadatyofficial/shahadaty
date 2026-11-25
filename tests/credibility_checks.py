@@ -13,7 +13,7 @@ Usage:  python3 tests/credibility_checks.py
 Needs:  google-chrome, python3 stdlib only, network access to Supabase.
 Exit code 0 = all checks passed.
 """
-import json, re, subprocess, sys, tempfile, threading, functools
+import json, re, subprocess, sys, tempfile, threading, functools, time
 import http.server, socketserver, urllib.request, os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -105,6 +105,116 @@ def main():
                       re.search(r'id="testimonials" style="display:none', dom) is not None)
                 # testimonial cards may still render inside the hidden section's DOM;
                 # the display:none assertion above is what users see.
+        # layout probe via CDP: horizontal overflow, button visibility, launcher a11y
+        import json as _json, urllib.request as _url
+        import websocket as _ws
+        MEASURE = r"""
+        (function(){
+          const de=document.documentElement;
+          const r={innerWidth:window.innerWidth,scrollWidth:de.scrollWidth};
+          r.overflow=de.scrollWidth>window.innerWidth+1;
+          const btn=document.querySelector('.search-btn');
+          if(btn){const b=btn.getBoundingClientRect();r.btnVisible=b.left>=-1&&b.right<=window.innerWidth+1;r.btnWidth=Math.round(b.width);}
+          const launcher=document.querySelector('#sh-support-launcher');
+          if(launcher){
+            r.ariaLabel=launcher.getAttribute('aria-label')||'';
+            r.glyphDisplay=getComputedStyle(launcher.querySelector('.sh-chat-glyph')).display;
+            r.dotDisplay=getComputedStyle(launcher.querySelector('.sh-chat-dot')).display;
+            const lb=launcher.getBoundingClientRect();r.launcherVisible=lb.right<=window.innerWidth+1&&lb.left>=-1;
+          }
+          return JSON.stringify(r);
+        })()"""
+        VERIFY_THEN_MEASURE = r"""
+        (function(){
+          return new Promise(function(res){
+            const inp=document.querySelector('.search-inp');
+            if(!inp){res('{"error":"no input"}');return;}
+            inp.value='NO-SUCH-CERT-000';
+            document.querySelector('.search-btn').click();
+            const t0=Date.now();
+            const iv=setInterval(function(){
+              if(document.querySelector('.result-ok,.result-err')||Date.now()-t0>15000){
+                clearInterval(iv);
+                setTimeout(function(){res(%s);},900);
+              }
+            },300);
+          });
+        })()""" % MEASURE.strip()
+        class CDP:
+            def __init__(self):
+                self.proc = subprocess.Popen(
+                    ["google-chrome", "--headless=new", "--disable-gpu", "--no-sandbox",
+                     "--disable-dev-shm-usage", "--remote-debugging-port=9333",
+                     "--user-data-dir=" + tempfile.mkdtemp(), "about:blank"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                ws_url = None
+                for _ in range(50):
+                    try:
+                        tabs = _json.load(_url.urlopen("http://127.0.0.1:9333/json/list"))
+                        pages = [t for t in tabs if t.get("type") == "page"]
+                        if pages:
+                            ws_url = pages[0]["webSocketDebuggerUrl"]; break
+                    except Exception:
+                        pass
+                    time.sleep(0.3)
+                if not ws_url: raise RuntimeError("no CDP target")
+                self.ws = _ws.create_connection(ws_url, timeout=60)
+                self.mid = 0
+            def cmd(self, method, params=None):
+                self.mid += 1
+                self.ws.send(_json.dumps({"id": self.mid, "method": method, "params": params or {}}))
+                while True:
+                    msg = _json.loads(self.ws.recv())
+                    if msg.get("id") == self.mid:
+                        return msg.get("result", {})
+            def eval(self, expr, await_promise=False):
+                r = self.cmd("Runtime.evaluate", {"expression": expr, "awaitPromise": await_promise,
+                                                  "returnByValue": True})
+                return r.get("result", {}).get("value")
+            def measure(self, page, w, verify=False):
+                self.cmd("Emulation.setDeviceMetricsOverride",
+                         {"width": w, "height": 1200, "deviceScaleFactor": 1, "mobile": False})
+                self.cmd("Page.navigate", {"url": "http://127.0.0.1:%d/%s" % (PORT, page)})
+                time.sleep(3.0)
+                v = self.eval(VERIFY_THEN_MEASURE, await_promise=True) if verify else self.eval(MEASURE)
+                try:
+                    return _json.loads(v) if v else None
+                except Exception:
+                    return None
+            def close(self):
+                try: self.proc.terminate()
+                except Exception: pass
+        cdp = CDP()
+        try:
+            for w in (1280, 390, 320):
+                r = cdp.measure("verify.html", w)
+                where = "verify/%dpx" % w
+                check("%s: probe ran" % where, r is not None)
+                if r:
+                    check("%s: no horizontal overflow" % where, not r.get("overflow"), str(r))
+                    check("%s: verify button fully visible" % where, bool(r.get("btnVisible")), str(r))
+                r = cdp.measure("verify.html", w, verify=True)
+                where = "verify/%dpx/result" % w
+                check("%s: probe ran" % where, r is not None)
+                if r:
+                    check("%s: no horizontal overflow after result" % where, not r.get("overflow"), str(r))
+            for w in (390, 320):
+                r = cdp.measure("index.html", w)
+                where = "index/%dpx" % w
+                check("%s: probe ran" % where, r is not None)
+                if r:
+                    check("%s: no horizontal overflow" % where, not r.get("overflow"), str(r))
+                    check("%s: launcher has aria-label" % where, bool(r.get("ariaLabel")), str(r))
+                    check("%s: chat glyph visible, dot hidden" % where,
+                          r.get("glyphDisplay") == "flex" and r.get("dotDisplay") == "none", str(r))
+                    check("%s: launcher inside viewport" % where, bool(r.get("launcherVisible")), str(r))
+            r = cdp.measure("index.html", 1280)
+            check("index/1280px: probe ran", r is not None)
+            if r:
+                check("index/1280px: desktop launcher unchanged (dot shown, glyph hidden)",
+                      r.get("dotDisplay") == "block" and r.get("glyphDisplay") == "none", str(r))
+        finally:
+            cdp.close()
         # RPC failure: rows must stay hidden, no fake numbers, no uncaught errors
         for page in ("index.html", "verify.html"):
             dom, visible, console = render(page, block_rpc=True)
