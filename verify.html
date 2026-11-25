@@ -99,6 +99,19 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);min-heigh
 .certificate-preview-title .material-symbols-outlined{color:var(--gold);font-size:22px;}
 .certificate-preview iframe{display:block;width:1024px;max-width:none;height:724px;border:0;border-radius:10px;background:#fff;overflow:hidden;transform-origin:top right;}
 @media(max-width:600px){.certificate-preview{padding:5px;margin:16px -8px;}.certificate-preview-title{font-size:12px;margin:7px 5px 9px}.certificate-preview iframe{min-height:360px;border-radius:7px;}}
+/* MOBILE RESPONSIVE FIXES */
+@media(max-width:600px){
+.nav{padding:0 12px;}
+.logo-name{font-size:15px;}
+.btn-ghost,.btn-cta{font-size:12px;padding:6px 10px;}
+.hero{padding:56px 20px 48px;}
+.hero h1{font-size:30px;}
+.search-card{padding:20px 16px;border-radius:16px;}
+.search-row{flex-direction:column;}
+.search-inp{width:100%;box-sizing:border-box;}
+.search-btn{width:100%;justify-content:center;box-sizing:border-box;}
+.info-grid{grid-template-columns:repeat(2,1fr);}
+}
 .search-btn:disabled{cursor:wait;}
 
 .footer{background:#0f2942;padding:24px;text-align:center;}
@@ -134,7 +147,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);min-heigh
     </div>
     <div class="search-hint">
       <span class="material-symbols-outlined" style="font-size:14px;color:var(--muted)">info</span>
-      مثال: <code>SHD-2024-00123</code>
+      الرقم مكتوب على الشهادة بجوار رمز QR
     </div>
   </div>
 </div>
@@ -145,12 +158,6 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);min-heigh
 
   <!-- DEFAULT STATE -->
   <div id="defaultState">
-    <!-- STATS -->
-    <div class="stats-row">
-      <div class="stat-box"><span class="stat-val">+5,000</span><span class="stat-lbl">مؤسسة معتمدة</span></div>
-      <div class="stat-box"><span class="stat-val">+1M</span><span class="stat-lbl">شهادة مسجلة</span></div>
-      <div class="stat-box"><span class="stat-val">99.9%</span><span class="stat-lbl">دقة التحقق</span></div>
-    </div>
 
     <!-- HOW -->
     <div class="how-section">

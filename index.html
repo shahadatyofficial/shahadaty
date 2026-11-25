@@ -42,7 +42,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;color:var(--navy);background:#
 .portal-menu-panel small{font-size:10px;color:#718096;line-height:1.5}
 .portal-menu-panel b{margin-inline-start:auto;color:var(--gold);font-size:17px}
 @media(max-width:820px){.portal-menu{display:block!important}.portal-menu-trigger{padding:8px 12px;font-size:12px}.portal-menu-panel{right:auto;left:0;width:min(285px,calc(100vw - 32px))}}
-@media(max-width:520px){.portal-menu-trigger{padding:7px 10px;font-size:11px;gap:8px}.portal-menu-panel{left:-5px}}
+@media(max-width:520px){.portal-menu-trigger{padding:7px 10px;font-size:11px;gap:8px}.portal-menu-panel{position:fixed;left:12px;right:12px;top:70px;width:auto}.cta-strip-btns{flex-wrap:wrap;flex-shrink:1;width:100%}}
 
 .btn-cta{background:linear-gradient(135deg,var(--blue),var(--sky));color:#fff;font-size:13px;font-weight:700;padding:10px 22px;border-radius:10px;border:none;cursor:pointer;font-family:'Cairo',sans-serif;box-shadow:0 4px 14px rgba(3,105,161,0.28);display:flex;align-items:center;gap:7px;}
 
@@ -646,7 +646,8 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 #sh-support-toast[hidden]{display:none}
 @keyframes shToastIn{from{opacity:0;transform:translateX(-15px)}to{opacity:1;transform:translateX(0)}}
 .sh-toast-dot{width:9px;height:9px;background:#22bd7a;border-radius:50%;flex:none}
-@media(max-width:520px){#sh-support-launcher{left:14px;bottom:14px;padding:12px 15px}#sh-support-panel{left:12px;bottom:76px;width:calc(100vw - 24px)}#sh-support-toast{left:12px;bottom:72px;max-width:calc(100vw - 24px)}}
+#sh-support-launcher .sh-chat-glyph{display:none}
+@media(max-width:520px){#sh-support-launcher{left:14px;bottom:14px;padding:12px;border-radius:50%}#sh-support-launcher span:last-child{display:none}#sh-support-launcher .sh-chat-dot{display:none}#sh-support-launcher .sh-chat-glyph{display:flex;align-items:center;justify-content:center;color:#fff}#sh-support-panel{left:12px;bottom:76px;width:calc(100vw - 24px)}#sh-support-toast{left:12px;bottom:72px;max-width:calc(100vw - 24px)}}
 @media(prefers-reduced-motion:reduce){#sh-support-panel.sh-open,#sh-support-toast{animation:none}#sh-support-launcher{transition:none}}
 
 
@@ -831,7 +832,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 <section class="hero">
   <div class="hero-layout">
     <div class="hero-copy">
-  <div class="hero-badge"><span class="badge-dot"></span>منصة التحقق الرقمي الأولى في مصر والوطن العربي</div>
+  <div class="hero-badge"><span class="badge-dot"></span>منصة تحقق رقمي للشهادات في مصر والوطن العربي</div>
   <h1 class="hero-h1">الثقة تبدأ من<br><span class="accent">شهادتك</span></h1>
   <p class="hero-sub1">امتلك سجلًا رقميًا لشهادتك، واحمِ مستقبلك.</p>
   <p class="hero-sub2">منصة رقمية للتحقق من الشهادات الأكاديمية والمهنية، بسرعة وأمان.</p>
@@ -845,7 +846,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
       <button class="s-btn" onclick="doSearch()">تحقق الآن</button>
     </div>
   </div>
-  <div class="s-hint">مثال: <code>SHD-2024-00123</code> — أو اضغط QR لتشغيل الكاميرا</div>
+  <div class="s-hint">الرقم مكتوب على الشهادة بجوار رمز QR — أو اضغط QR لتشغيل الكاميرا</div>
   <p class="hero-brand-slogan">نصنع المعرفة... نبني الحاضر... ونوثق المستقبل.</p>
   <div class="hero-actions" aria-label="البدء واستكشاف المنصة">
     <a class="hero-action-primary" href="register.html">ابدأ رحلتك مجانًا <span aria-hidden="true">←</span></a>
@@ -871,15 +872,9 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
         <div class="certificate-lines"><b></b><i></i><i></i></div>
         <div class="certificate-number"><span>رقم الشهادة</span><strong>SHD-2026-00128</strong></div>
       </div>
-      <div class="showcase-verified"><span class="verified-check">✓</span><div><strong>شهادة موثقة</strong><small>تم التحقق من البيانات بنجاح</small></div><span class="verified-time">2.4 ث</span></div>
+      <div class="showcase-verified"><span class="verified-check">✓</span><div><strong>شهادة موثقة</strong><small>تم التحقق من البيانات بنجاح</small></div><span class="verified-time">مثال توضيحي</span></div>
       <div class="showcase-foot"><span>🔒 بيانات محمية</span><span>⚡ تحقق فوري</span><span>◈ QR ذكي</span></div>
     </aside>
-  </div>
-  <div class="stats-row">
-    <div class="stat"><span class="sn"><span>+</span>5,000</span><span class="sl">مؤسسة معتمدة</span></div>
-    <div class="stat"><span class="sn"><span>+</span>1,000,000</span><span class="sl">شهادة مسجلة</span></div>
-    <div class="stat"><span class="sn">99.9<span>%</span></span><span class="sl">دقة التحقق</span></div>
-    <div class="stat"><span class="sn"><span>&lt;</span>3ث</span><span class="sl">وقت التحقق</span></div>
   </div>
 </section>
 
@@ -983,23 +978,19 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
     <div><div class="sec-tag">🏢 القطاعات</div><h2 class="sec-title" style="margin-bottom:0">نخدم <em>كل المؤسسات</em></h2></div>
   </div>
   <div class="sectors-grid">
-    <div class="sector" role="button" tabindex="0" data-sector-index="0" aria-haspopup="dialog" aria-controls="sector-modal" aria-label="اعرف المزيد عن الجامعات والكليات"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1562774053-701939374585?w=400&q=80" alt="جامعات"><div class="sector-badge" style="background:rgba(3,105,161,0.85);color:#fff">+500 جامعة</div></div><div class="sector-body"><div class="sector-name">الجامعات والكليات</div><div class="sector-desc">شهادات الدرجات العلمية والدبلومات الأكاديمية المعتمدة</div></div></div>
-    <div class="sector" role="button" tabindex="0" data-sector-index="1" aria-haspopup="dialog" aria-controls="sector-modal" aria-label="اعرف المزيد عن مراكز التدريب"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=400&q=80" alt="مراكز تدريب"><div class="sector-badge" style="background:rgba(176,141,72,0.9);color:#fff">+3,000 مركز</div></div><div class="sector-body"><div class="sector-name">مراكز التدريب</div><div class="sector-desc">شهادات الدورات المهنية والتدريبية المتخصصة</div></div></div>
-    <div class="sector" role="button" tabindex="0" data-sector-index="2" aria-haspopup="dialog" aria-controls="sector-modal" aria-label="اعرف المزيد عن المدارس"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=400&q=80" alt="مدارس"><div class="sector-badge" style="background:rgba(5,150,105,0.85);color:#fff">+1,000 مدرسة</div></div><div class="sector-body"><div class="sector-name">المدارس</div><div class="sector-desc">شهادات التميز والتخرج وشهادات الأنشطة الطلابية</div></div></div>
-    <div class="sector" role="button" tabindex="0" data-sector-index="3" aria-haspopup="dialog" aria-controls="sector-modal" aria-label="اعرف المزيد عن المعاهد العلمية"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1509062522246-3755977927d7?w=400&q=80" alt="معاهد"><div class="sector-badge" style="background:rgba(124,58,237,0.85);color:#fff">+500 معهد</div></div><div class="sector-body"><div class="sector-name">المعاهد العلمية</div><div class="sector-desc">البرامج الأكاديمية والشهادات المهنية المعتمدة</div></div></div>
-    <div class="sector" role="button" tabindex="0" data-sector-index="4" aria-haspopup="dialog" aria-controls="sector-modal" aria-label="اعرف المزيد عن المستشفيات"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400&q=80" alt="مستشفيات"><div class="sector-badge" style="background:rgba(225,29,72,0.85);color:#fff">+200 مستشفى</div></div><div class="sector-body"><div class="sector-name">المستشفيات</div><div class="sector-desc">شهادات الكوادر الطبية والتمريضية والتحقق من مؤهلاتهم</div></div></div>
-    <div class="sector" role="button" tabindex="0" data-sector-index="5" aria-haspopup="dialog" aria-controls="sector-modal" aria-label="اعرف المزيد عن النوادي الرياضية"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1459865264687-595d652de67e?w=400&q=80" alt="نوادي"><div class="sector-badge" style="background:rgba(217,119,6,0.9);color:#fff">+300 نادي</div></div><div class="sector-body"><div class="sector-name">النوادي الرياضية</div><div class="sector-desc">شهادات المدربين والمحكمين وإجازات الاتحادات الرياضية</div></div></div>
-    <div class="sector" role="button" tabindex="0" data-sector-index="6" aria-haspopup="dialog" aria-controls="sector-modal" aria-label="اعرف المزيد عن الجمعيات والمنظمات"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1593113598332-cd288d649433?w=400&q=80" alt="جمعيات"><div class="sector-badge" style="background:rgba(8,145,178,0.85);color:#fff">+150 جمعية</div></div><div class="sector-body"><div class="sector-name">الجمعيات والمنظمات</div><div class="sector-desc">شهادات التطوع والعضوية وبرامج التأهيل المجتمعي</div></div></div>
-    <div class="sector" role="button" tabindex="0" data-sector-index="7" aria-haspopup="dialog" aria-controls="sector-modal" aria-label="اعرف المزيد عن المصانع المتطورة"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1565514020179-026b92b84bb6?w=400&q=80" alt="مصانع"><div class="sector-badge" style="background:rgba(109,40,217,0.85);color:#fff">+100 مصنع</div></div><div class="sector-body"><div class="sector-name">المصانع المتطورة</div><div class="sector-desc">شهادات السلامة الصناعية والتدريب التقني المتخصص</div></div></div>
+    <div class="sector" role="button" tabindex="0" data-sector-index="0" aria-haspopup="dialog" aria-controls="sector-modal" aria-label="اعرف المزيد عن الجامعات والكليات"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1562774053-701939374585?w=400&q=80" alt="جامعات"><div class="sector-badge" style="background:rgba(3,105,161,0.85);color:#fff">قطاع مدعوم</div></div><div class="sector-body"><div class="sector-name">الجامعات والكليات</div><div class="sector-desc">شهادات الدرجات العلمية والدبلومات الأكاديمية المعتمدة</div></div></div>
+    <div class="sector" role="button" tabindex="0" data-sector-index="1" aria-haspopup="dialog" aria-controls="sector-modal" aria-label="اعرف المزيد عن مراكز التدريب"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=400&q=80" alt="مراكز تدريب"><div class="sector-badge" style="background:rgba(176,141,72,0.9);color:#fff">قطاع مدعوم</div></div><div class="sector-body"><div class="sector-name">مراكز التدريب</div><div class="sector-desc">شهادات الدورات المهنية والتدريبية المتخصصة</div></div></div>
+    <div class="sector" role="button" tabindex="0" data-sector-index="2" aria-haspopup="dialog" aria-controls="sector-modal" aria-label="اعرف المزيد عن المدارس"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=400&q=80" alt="مدارس"><div class="sector-badge" style="background:rgba(5,150,105,0.85);color:#fff">قطاع مدعوم</div></div><div class="sector-body"><div class="sector-name">المدارس</div><div class="sector-desc">شهادات التميز والتخرج وشهادات الأنشطة الطلابية</div></div></div>
+    <div class="sector" role="button" tabindex="0" data-sector-index="3" aria-haspopup="dialog" aria-controls="sector-modal" aria-label="اعرف المزيد عن المعاهد العلمية"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1509062522246-3755977927d7?w=400&q=80" alt="معاهد"><div class="sector-badge" style="background:rgba(124,58,237,0.85);color:#fff">قطاع مدعوم</div></div><div class="sector-body"><div class="sector-name">المعاهد العلمية</div><div class="sector-desc">البرامج الأكاديمية والشهادات المهنية المعتمدة</div></div></div>
+    <div class="sector" role="button" tabindex="0" data-sector-index="4" aria-haspopup="dialog" aria-controls="sector-modal" aria-label="اعرف المزيد عن المستشفيات"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400&q=80" alt="مستشفيات"><div class="sector-badge" style="background:rgba(225,29,72,0.85);color:#fff">قطاع مدعوم</div></div><div class="sector-body"><div class="sector-name">المستشفيات</div><div class="sector-desc">شهادات الكوادر الطبية والتمريضية والتحقق من مؤهلاتهم</div></div></div>
+    <div class="sector" role="button" tabindex="0" data-sector-index="5" aria-haspopup="dialog" aria-controls="sector-modal" aria-label="اعرف المزيد عن النوادي الرياضية"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1459865264687-595d652de67e?w=400&q=80" alt="نوادي"><div class="sector-badge" style="background:rgba(217,119,6,0.9);color:#fff">قطاع مدعوم</div></div><div class="sector-body"><div class="sector-name">النوادي الرياضية</div><div class="sector-desc">شهادات المدربين والمحكمين وإجازات الاتحادات الرياضية</div></div></div>
+    <div class="sector" role="button" tabindex="0" data-sector-index="6" aria-haspopup="dialog" aria-controls="sector-modal" aria-label="اعرف المزيد عن الجمعيات والمنظمات"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1593113598332-cd288d649433?w=400&q=80" alt="جمعيات"><div class="sector-badge" style="background:rgba(8,145,178,0.85);color:#fff">قطاع مدعوم</div></div><div class="sector-body"><div class="sector-name">الجمعيات والمنظمات</div><div class="sector-desc">شهادات التطوع والعضوية وبرامج التأهيل المجتمعي</div></div></div>
+    <div class="sector" role="button" tabindex="0" data-sector-index="7" aria-haspopup="dialog" aria-controls="sector-modal" aria-label="اعرف المزيد عن المصانع المتطورة"><div class="sector-img-wrap"><img class="sector-img" src="https://images.unsplash.com/photo-1565514020179-026b92b84bb6?w=400&q=80" alt="مصانع"><div class="sector-badge" style="background:rgba(109,40,217,0.85);color:#fff">قطاع مدعوم</div></div><div class="sector-body"><div class="sector-name">المصانع المتطورة</div><div class="sector-desc">شهادات السلامة الصناعية والتدريب التقني المتخصص</div></div></div>
   </div>
   <div class="strip">
     <div><h3>قطاعك مش في القائمة؟</h3><p>شهادتي تدعم أي جهة بتصدر شهادات — تواصل معنا ونعمل لك حل مخصص</p></div>
     <div class="strip-stats">
-      <div class="strip-stat"><span class="strip-val"><em>+</em>8</span><span class="strip-lbl">قطاعات مدعومة</span></div>
-      <div class="strip-div"></div>
-      <div class="strip-stat"><span class="strip-val"><em>+</em>5,000</span><span class="strip-lbl">مؤسسة معتمدة</span></div>
-      <div class="strip-div"></div>
-      <div class="strip-stat"><span class="strip-val"><em>+</em>1M</span><span class="strip-lbl">شهادة مسجلة</span></div>
+      <div class="strip-stat"><span class="strip-val">8</span><span class="strip-lbl">قطاعات مدعومة</span></div>
     </div>
   </div>
 </section>
@@ -1140,10 +1131,10 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 </section>
 
 <!-- TESTIMONIALS -->
-<section class="sec" id="testimonials">
+<!-- قسم الآراء مخفي مؤقتًا لحين التحقق من نسبة الاقتباسات لأصحابها وموافقتهم -->
+<section class="sec" id="testimonials" style="display:none">
   <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:16px">
     <div><div class="sec-tag">💬 آراء عملائنا</div><h2 class="sec-title">ماذا يقول <em>مستخدمو المنصة</em></h2><p class="sec-sub">آراء حقيقية من خريجين ومتخصصي موارد بشرية ومدربين ومراكز تدريب</p></div>
-    <div class="stats-mini"><div class="sm"><span class="sm-val">4.9</span><span class="sm-lbl">متوسط التقييم</span></div><div class="sm"><span class="sm-val">+5K</span><span class="sm-lbl">مؤسسة</span></div><div class="sm"><span class="sm-val">99%</span><span class="sm-lbl">رضا العملاء</span></div></div>
   </div>
   <div class="f-tabs">
     <button class="f-tab active" onclick="filterTs('all',this)">الكل</button>
@@ -1187,7 +1178,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 <div class="cta-sec">
   <div class="cta-badge"><span class="cta-dot"></span>ابدأ مجاناً — بدون بطاقة ائتمانية</div>
   <h2 class="cta-title">مستعد تنضم لشبكة<br><em>شهادتي؟</em></h2>
-  <p class="cta-sub">انضم لآلاف المؤسسات التي تستخدم شهادتي لإدارة سجلات خريجيها وشهاداتهم وحماية بياناتهم</p>
+  <p class="cta-sub">أدِر سجلات خريجيك وشهاداتهم واحمِ بياناتهم من منصة واحدة</p>
   <div class="cta-btns">
     <button class="cb1" onclick="location.href='register.html'">ابدأ تجربتك المجانية الآن</button>
     <button class="cb2" onclick="window.open('https://www.facebook.com/shahadatyofficial','_blank','noopener')">تحدث مع فريقنا</button>
@@ -1225,8 +1216,6 @@ const SU='https://snteiiavvaaumgaegazn.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A';
 const sb=supabase.createClient(SU,SK);
 window.initEgyptLocationSelects([{governorateId:'careerJobGovernorate',centerId:'careerJobCenter'},{governorateId:'careerEmployeeGovernorate',centerId:'careerEmployeeCenter'}]);
-async function loadPublicStats(){const{data}=await sb.rpc('public_platform_stats');const r=Array.isArray(data)?data[0]:data;if(!r)return;document.getElementById('publicInstCount').textContent='+'+Number(r.institutions_count||0).toLocaleString('ar-EG');document.getElementById('publicCertCount').textContent='+'+Number(r.certificates_count||0).toLocaleString('ar-EG');document.getElementById('publicVerifyCount').textContent='+'+Number(r.verifications_count||0).toLocaleString('ar-EG');}
-loadPublicStats();
 loadCareerTicker();
 
 function publicEsc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
@@ -1422,7 +1411,7 @@ const EN_TRANSLATIONS = {
 'نصنع المعرفة... نبني الحاضر... ونوثق المستقبل.':'We create knowledge... build the present... and preserve the future.',
 'العربية':'Arabic','الرئيسية':'Home','المميزات':'Features','القطاعات':'Sectors','الباقات':'Plans','الأسئلة':'FAQ','تواصل معنا':'Contact',
 'تحقق من شهادة':'Verify a Certificate','البوابات':'Portals','بوابة المؤسسات':'Institution Portal','بوابة التوظيف':'Recruitment Portal','بوابة الشركات':'Company Portal','بوابة الخريج':'Graduate Portal','طلب ترشيح كفاءات':'Request Recruitment','ابدأ مجاناً':'Get Started Free',
-'منصة التحقق الرقمي الأولى في مصر والوطن العربي':'The leading digital verification platform in Egypt and the Arab world',
+'منصة تحقق رقمي للشهادات في مصر والوطن العربي':'A digital certificate verification platform in Egypt and the Arab world','جهة مسجلة':'Registered Organization','مثال توضيحي':'Illustrative example',
 'الثقة تبدأ من':'Trust begins with','شهادتك':'your certificate','امتلك سجلًا رقميًا لشهادتك، واحمِ مستقبلك.':'Own a digital record of your certificate and protect your future.',
 'منصة رقمية للتحقق من الشهادات الأكاديمية والمهنية، بسرعة وأمان.':'A digital platform to verify academic and professional certificates quickly and securely.',
 'أدخل رقم الشهادة للتحقق الفوري...':'Enter certificate number for instant verification...',
@@ -1492,7 +1481,7 @@ const EN_TRANSLATIONS = {
 'محادثة مباشرة':'Live Chat','رد فوري خلال دقائق':'Replies within minutes','تواصل من موبايلك':'Contact us from your phone',
 'بريد إلكتروني':'Email','رد خلال ساعة':'Reply within an hour','💬 تحدث مع فريقنا الآن':'💬 Talk to Our Team Now',
 'ابدأ مجاناً — بدون بطاقة ائتمانية':'Start free — no credit card required','مستعد تنضم لشبكة':'Ready to join the','شهادتي؟':'Shahadaty network?',
-'انضم لآلاف المؤسسات التي تستخدم شهادتي لإدارة سجلات خريجيها وشهاداتهم وحماية بياناتهم':'Join organizations using Shahadaty to manage graduate and certificate records securely',
+'أدِر سجلات خريجيك وشهاداتهم واحمِ بياناتهم من منصة واحدة':'Manage graduate records, certificates and data protection from one platform','قطاع مدعوم':'Supported Sector','عملية تحقق':'Verifications',
 'ابدأ تجربتك المجانية الآن':'Start your free trial now','✓ 14 يوم مجاناً &nbsp;·&nbsp; ✓ بدون بطاقة ائتمانية &nbsp;·&nbsp; ✓ إلغاء في أي وقت':'✓ 14 days free · ✓ No credit card · ✓ Cancel anytime',
 'منصة التحقق الرقمي الموحد من الشهادات الأكاديمية والمهنية — موثوقة من آلاف المؤسسات في مصر والوطن العربي.':'A unified digital verification platform for academic and professional certificates, trusted across Egypt and the Arab world.',
 'المنصة':'Platform','المدونة':'Blog','جديد':'New','الخدمات':'Services','للشركات':'For Companies','ملفي الرقمي':'My Digital Profile',
@@ -1554,7 +1543,7 @@ window.addEventListener('load',()=>{
 
 <!-- Floating customer support: WhatsApp-backed chat entry -->
 <div id="sh-support-toast" hidden role="status" aria-live="polite" onclick="shOpenSupport()"><span class="sh-toast-dot"></span><span>فريق شهادتي جاهز لمساعدتك — ابدأ محادثة الآن</span></div>
-<button id="sh-support-launcher" type="button" aria-controls="sh-support-panel" aria-expanded="false" onclick="shToggleSupport()"><span class="sh-chat-dot"></span><span>محادثة مباشرة</span></button>
+<button id="sh-support-launcher" type="button" aria-controls="sh-support-panel" aria-expanded="false" aria-label="محادثة مباشرة مع فريق دعم شهادتي" title="محادثة مباشرة" onclick="shToggleSupport()"><span class="sh-chat-dot"></span><span class="sh-chat-glyph" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2z"/></svg></span><span>محادثة مباشرة</span></button>
 <section id="sh-support-panel" aria-label="محادثة الدعم" aria-hidden="true">
   <header class="sh-chat-head"><div class="sh-chat-avatar">ش</div><div><strong>دعم شهادتي العلمية</strong><small id="sh-support-status">جاري معرفة مواعيد الدعم...</small></div><button class="sh-chat-close" type="button" aria-label="إغلاق" onclick="shCloseSupport()">×</button></header>
   <div class="sh-chat-body"><div class="sh-chat-welcome" id="sh-support-welcome">أهلاً بيك 👋</div><div class="sh-chat-hint">فريقنا متاح من الأحد إلى الخميس، من 9 صباحًا إلى 5 مساءً.</div><div class="sh-chat-links"><a class="sh-chat-wa" href="https://wa.me/201233380085" target="_blank" rel="noopener noreferrer">واتساب مباشر</a><a class="sh-chat-mail" href="mailto:shahadatyofficial@gmail.com">البريد الإلكتروني</a></div></div>
@@ -1597,7 +1586,7 @@ window.addEventListener('load',()=>{
  }catch(err){alert('تعذر إرسال الرسالة الآن. '+(err?.message||'حاول مرة أخرى.'));}finally{btn.disabled=false;btn.textContent='إرسال ↗';if(currentLang==='en')applyLanguage('en');}
  };
  document.addEventListener('keydown',e=>{if(e.key==='Escape')shCloseSupport();});
- setTimeout(()=>{if(!panel.classList.contains('sh-open')&&toast)toast.hidden=false;},6500);
+ setTimeout(()=>{if(!panel.classList.contains('sh-open')&&toast&&window.innerWidth>520)toast.hidden=false;},6500);
 })();
 </script>
 
@@ -1690,4 +1679,4 @@ window.addEventListener('load',()=>{
 </style>
 
 </body>
-</html>
+  </html>
