@@ -70,8 +70,6 @@ FABRICATED = ["+5,000", "1,000,000", "99.9", "99% رضا العملاء", "مت�
               "2.4 ث", "وقت التحقق", "مؤسسة معتمدة", "SHD-2024-00123"]
 
 def main():
-    stats = rpc_stats()
-    print("live RPC:", stats)
     httpd = serve()
     try:
         for page in ("index.html", "verify.html"):
@@ -80,17 +78,14 @@ def main():
                 where = "%s/%s" % (page, label)
                 for bad in FABRICATED:
                     check("%s: no %r" % (where, bad), bad not in visible)
-                for key, field in (("institutions_count", "publicInstCount"),
-                                   ("certificates_count", "publicCertCount"),
-                                   ("verifications_count", "publicVerifyCount")):
-                    pat = r'id="%s"[^>]*>\s*\+?\s*%s\s*<' % (field, ar(stats[key]))
-                    check("%s: %s == %s" % (where, field, stats[key]),
-                          re.search(pat, dom) is not None)
-                check("%s: stats row revealed" % where,
-                      re.search(r'id="publicStatsRow" style="(?!display:none)[^"]*"', dom) is not None)
+                for gone in ("publicStatsRow", "publicInstCount", "publicCertCount",
+                             "publicVerifyCount", "stripInstCount", "stripCertCount",
+                             "miniInstCount", "miniCertCount", "miniVerifyCount",
+                             "loadPublicStats", "public_platform_stats"):
+                    check("%s: no usage counter %s" % (where, gone), gone not in dom)
+                check("%s: no stat label جهة مسجلة" % where, "جهة مسجلة" not in visible)
                 check("%s: no uncaught console errors" % where,
                       "Uncaught" not in console)
-                check("%s: label جهة مسجلة" % where, "جهة مسجلة" in visible)
                 if page == "index.html" and label == "mobile":
                     check("index/mobile: chat toast stays hidden on narrow screens",
                           'id="sh-support-toast" hidden' in dom)
@@ -215,12 +210,10 @@ def main():
                       r.get("dotDisplay") == "block" and r.get("glyphDisplay") == "none", str(r))
         finally:
             cdp.close()
-        # RPC failure: rows must stay hidden, no fake numbers, no uncaught errors
+        # RPC failure: pages must still render without uncaught errors
         for page in ("index.html", "verify.html"):
             dom, visible, console = render(page, block_rpc=True)
             where = page + "/rpc-down"
-            check("%s: stats row stays hidden" % where,
-                  'id="publicStatsRow" style="display:none"' in dom)
             check("%s: no uncaught console errors" % where, "Uncaught" not in console)
     finally:
         httpd.shutdown()
