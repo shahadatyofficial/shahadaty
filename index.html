@@ -646,7 +646,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 #sh-support-toast[hidden]{display:none}
 @keyframes shToastIn{from{opacity:0;transform:translateX(-15px)}to{opacity:1;transform:translateX(0)}}
 .sh-toast-dot{width:9px;height:9px;background:#22bd7a;border-radius:50%;flex:none}
-@media(max-width:520px){#sh-support-launcher{left:14px;bottom:14px;padding:12px 15px}#sh-support-panel{left:12px;bottom:76px;width:calc(100vw - 24px)}#sh-support-toast{left:12px;bottom:72px;max-width:calc(100vw - 24px)}}
+@media(max-width:520px){#sh-support-launcher{left:14px;bottom:14px;padding:12px;border-radius:50%}#sh-support-launcher span:last-child{display:none}#sh-support-panel{left:12px;bottom:76px;width:calc(100vw - 24px)}#sh-support-toast{left:12px;bottom:72px;max-width:calc(100vw - 24px)}}
 @media(prefers-reduced-motion:reduce){#sh-support-panel.sh-open,#sh-support-toast{animation:none}#sh-support-launcher{transition:none}}
 
 
@@ -1597,7 +1597,7 @@ window.addEventListener('load',()=>{
  }catch(err){alert('تعذر إرسال الرسالة الآن. '+(err?.message||'حاول مرة أخرى.'));}finally{btn.disabled=false;btn.textContent='إرسال ↗';if(currentLang==='en')applyLanguage('en');}
  };
  document.addEventListener('keydown',e=>{if(e.key==='Escape')shCloseSupport();});
- setTimeout(()=>{if(!panel.classList.contains('sh-open')&&toast)toast.hidden=false;},6500);
+ setTimeout(()=>{if(!panel.classList.contains('sh-open')&&toast&&window.innerWidth>520)toast.hidden=false;},6500);
 })();
 </script>
 
@@ -1690,4 +1690,4 @@ window.addEventListener('load',()=>{
 </style>
 
 </body>
-  </html>
+                                             </html>
