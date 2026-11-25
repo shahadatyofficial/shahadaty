@@ -91,6 +91,12 @@ def main():
                 check("%s: no uncaught console errors" % where,
                       "Uncaught" not in console)
                 check("%s: label جهة مسجلة" % where, "جهة مسجلة" in visible)
+                if page == "index.html" and label == "mobile":
+                    check("index/mobile: chat toast stays hidden on narrow screens",
+                          'id="sh-support-toast" hidden' in dom)
+                if page == "index.html" and label == "desktop":
+                    check("index/desktop: chat toast auto-shows on wide screens",
+                          'id="sh-support-toast" hidden' not in dom)
             if page == "index.html":
                 check("index: illustrative sample labelled", "مثال توضيحي" in visible)
                 check("index: 8 supported-sector badges",
