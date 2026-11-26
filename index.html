@@ -826,6 +826,9 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
 @media(max-width:820px){.hero-actions{justify-content:center}}
 @media(max-width:520px){.hero-actions{display:grid;grid-template-columns:1fr;gap:9px;margin:0 auto 20px;max-width:340px}.hero-action-primary,.hero-action-secondary{width:100%;min-height:46px}}
 @media(prefers-reduced-motion:reduce){.hero-action-primary,.hero-action-secondary{transition:none}.hero-action-primary:hover,.hero-action-secondary:hover{transform:none}}
+.s-btn-bulk{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;background:#fff;color:var(--blue);border:1.5px solid var(--blue);box-shadow:none;}
+.s-btn-bulk:hover{background:#e0f4ff;}
+@media(max-width:520px){.s-btn-bulk{padding:0 8px;font-size:11px;}.search-card .s-icon{display:none;}}
 </style>
 
 <!-- HERO -->
@@ -844,6 +847,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px s
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><rect x="19" y="14" width="2" height="2"/><rect x="14" y="19" width="2" height="2"/><rect x="18" y="18" width="3" height="3"/></svg>
       </button>
       <button class="s-btn" onclick="doSearch()">تحقق الآن</button>
+      <a class="s-btn s-btn-bulk" href="bulk-verify.html">تحقق جماعي</a>
     </div>
   </div>
   <div class="s-hint">الرقم مكتوب على الشهادة بجوار رمز QR — أو اضغط QR لتشغيل الكاميرا</div>
