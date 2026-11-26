@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>التحقق الجماعي من الشهادات | شهادتي العلمية</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#0c2d4e;--blue:#0369a1;--gold:#b08d48;--bg:#f0f7ff;--border:#e0f0ff;--muted:#64748b}
+body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--navy);min-height:100vh}
+.nav{background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:64px}
+.nav a{color:var(--blue);font-weight:700;font-size:14px;text-decoration:none}
+.logo{font-weight:900;font-size:18px;color:var(--navy)}
+.hero{background:linear-gradient(150deg,#0c2d4e,#0369a1,#38bdf8);color:#fff;text-align:center;padding:44px 20px}
+.hero h1{font-size:28px;font-weight:900;margin-bottom:8px}
+.hero p{font-size:14px;opacity:.9}
+main{max-width:900px;margin:-24px auto 40px;padding:0 16px}
+.card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 8px 24px rgba(3,105,161,.08);margin-bottom:16px}
+textarea{width:100%;min-height:150px;border:1.5px solid var(--border);border-radius:12px;padding:12px;font-family:inherit;font-size:14px;direction:ltr;text-align:left;resize:vertical}
+.hint{font-size:12px;color:var(--muted);margin:8px 0 12px}
+button{font-family:inherit;font-weight:700;font-size:14px;border-radius:10px;padding:10px 20px;border:0;cursor:pointer}
+.primary{background:var(--blue);color:#fff}.ghost{background:var(--bg);color:var(--blue);border:1.5px solid var(--border)}
+button:disabled{opacity:.6;cursor:not-allowed}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+#progress{font-size:13px;color:var(--muted)}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+th{background:var(--bg);font-weight:700}
+.ok{color:#15803d;font-weight:700}.warn{color:#b45309;font-weight:700}.bad{color:#b91c1c;font-weight:700}
+</style>
+</head>
+<body>
+<div class="nav"><span class="logo">شهادتي العلمية</span><a href="verify.html">التحقق من شهادة واحدة</a></div>
+<div class="hero"><h1>التحقق الجماعي من الشهادات</h1><p>الصق أرقام الشهادات (حتى 50 رقمًا) وتحقق منها دفعة واحدة، ثم نزّل النتيجة كملف CSV.</p></div>
+<main>
+<div class="card">
+<label for="nums" style="font-weight:700;font-size:14px">أرقام الشهادات (رقم في كل سطر أو مفصولة بفاصلة)</label>
+<textarea id="nums" placeholder="CERT-0001&#10;CERT-0002"></textarea>
+<div class="hint">يتم التحقق عبر نفس خدمة التحقق العامة المستخدمة في صفحة التحقق، ولا تظهر إلا البيانات المتاحة للتحقق العلني.</div>
+<div class="actions"><button class="primary" id="go">تحقق</button><button class="ghost" id="csv" disabled>تنزيل CSV</button><span id="progress"></span></div>
+</div>
+<div class="card" id="res" style="display:none"><div class="tw"><table><thead><tr><th>رقم الشهادة</th><th>الحالة</th><th>اسم الحاصل عليها</th><th>المؤهل / الدورة</th><th>الجهة</th><th>رابط</th></tr></thead><tbody id="tb"></tbody></table></div></div>
+</main>
+<script>
+const sb=supabase.createClient("https://snteiiavvaaumgaegazn.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A");
+const MAX=50;let rows=[];
+const $=id=>document.getElementById(id);
+function cell(tr,text,cls){const td=document.createElement('td');td.textContent=text;if(cls)td.className=cls;tr.appendChild(td);return td;}
+function parse(){const seen=new Set();return $('nums').value.split(/[\s,;،]+/).map(s=>s.trim().toUpperCase()).filter(s=>s&&!seen.has(s)&&seen.add(s));}
+async function run(){
+ const list=parse();
+ if(!list.length){$('progress').textContent='أدخل رقمًا واحدًا على الأقل.';return;}
+ if(list.length>MAX){$('progress').textContent='الحد الأقصى '+MAX+' رقمًا في المرة، سيتم التحقق من أول '+MAX+' فقط.';list.length=MAX;}
+ $('go').disabled=true;$('csv').disabled=true;rows=[];$('tb').textContent='';$('res').style.display='block';
+ for(let i=0;i<list.length;i++){
+  const q=list[i];$('progress').textContent='جاري التحقق '+(i+1)+' / '+list.length;
+  const tr=document.createElement('tr');let rec={num:q,status:'',name:'',title:'',org:'',url:''};
+  try{
+   const {data,error}=await sb.rpc('verify_certificate_details',{p_cert_number:q});
+   if(error)throw error;
+   const d=Array.isArray(data)?data[0]:data;
+   if(!d){rec.status='غير موجودة';}
+   else{
+    const ac=d.record_type==='academic';
+    rec.status=d.status==='active'?'موثقة وصالحة':'غير سارية';
+    rec.name=d.student_name||'';
+    rec.title=(ac?(d.academic_degree||d.course):d.course)||'';
+    rec.org=(ac?(d.source_type==='admin'?'إدارة منصة شهادتي':d.institution_name):d.institution_name)||'';
+    const u=new URL('verify.html',location.href);u.searchParams.set('cert',d.cert_number||q);rec.url=u.toString();
+   }
+  }catch(e){rec.status='تعذر التحقق';}
+  rows.push(rec);
+  cell(tr,rec.num);cell(tr,rec.status,rec.status==='موثقة وصالحة'?'ok':rec.status==='غير سارية'?'warn':'bad');
+  cell(tr,rec.name);cell(tr,rec.title);cell(tr,rec.org);
+  const td=document.createElement('td');if(rec.url){const a=document.createElement('a');a.href=rec.url;a.textContent='فتح';a.target='_blank';a.rel='noopener';td.appendChild(a);}tr.appendChild(td);
+  $('tb').appendChild(tr);
+  await new Promise(r=>setTimeout(r,250));
+ }
+ $('progress').textContent='تم التحقق من '+rows.length+' رقم.';$('go').disabled=false;$('csv').disabled=!rows.length;
+}
+function csvCell(v){v=String(v==null?'':v);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"';}
+function dl(){
+ const head=['رقم الشهادة','الحالة','الاسم','المؤهل / الدورة','الجهة','رابط التحقق'];
+ const body=rows.map(r=>[r.num,r.status,r.name,r.title,r.org,r.url].map(csvCell).join(','));
+ const blob=new Blob(['\ufeff'+[head.map(csvCell).join(',')].concat(body).join('\r\n')],{type:'text/csv;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='shahadaty-bulk-verification.csv';document.body.appendChild(a);a.click();a.remove();
+}
+$('go').addEventListener('click',run);$('csv').addEventListener('click',dl);
+</script>
+</body>
+</html>
