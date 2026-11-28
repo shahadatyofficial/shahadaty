@@ -128,7 +128,6 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);min-heigh
   </a>
   <div class="nav-right">
     <a href="bulk-verify.html" class="btn-ghost">تحقق جماعي</a>
-    <a href="badge.html" class="btn-ghost">شارة الخريج</a>
     <a href="institution.html" class="btn-ghost">بوابة المؤسسات</a>
     <a href="register.html" class="btn-cta">ابدأ مجاناً</a>
   </div>
@@ -142,7 +141,7 @@ body{font-family:'Cairo',sans-serif;direction:rtl;background:var(--bg);min-heigh
   <div class="search-card">
     <span class="search-label">رقم الشهادة</span>
     <div class="search-row">
-      <input class="search-inp" id="searchInp" placeholder="SHD-2024-00001" onkeydown="if(event.key==='Enter')doSearch()">
+      <input class="search-inp" id="searchInp" placeholder="SH-2026-XXXXXX" onkeydown="if(event.key==='Enter')doSearch()">
       <button class="search-btn" onclick="doSearch()">
         <span class="material-symbols-outlined">verified</span> تحقق الآن
       </button>
@@ -268,7 +267,7 @@ async function doSearch(){
     html+='<div class="info-box"><div class="info-lbl">'+(academic?'جهة تسجيل البيانات':'تاريخ الحصول على الدورة')+'</div><div class="info-val">'+(academic?esc(data.source_type==='admin'?'إدارة منصة شهادتي':data.institution_name):esc(date))+'</div></div>';
     if(!academic)html+='<div class="info-box"><div class="info-lbl">المؤسسة المصدِرة</div><div class="info-val">'+esc(data.institution_name)+'</div></div>';
     html+='<div class="info-box"><div class="info-lbl">رقم الشهادة</div><div class="info-val" style="font-family:monospace;font-size:12px">'+esc(data.cert_number)+'</div></div>';
-    html+='</div><div class="result-actions"><a href="'+certUrl+'" class="btn-view" target="_blank" rel="noopener"><span class="material-symbols-outlined" style="font-size:18px">open_in_new</span> فتح الشهادة كاملة</a><button class="btn-share" id="shareResultBtn"><span class="material-symbols-outlined">share</span> مشاركة رابط التحقق</button><a href="badge.html?cert='+encodeURIComponent(data.cert_number)+'" class="btn-share" style="text-decoration:none"><span class="material-symbols-outlined">workspace_premium</span> احصل على شارة الخريج</a><button class="btn-share" onclick="reset()"><span class="material-symbols-outlined">search</span> بحث جديد</button></div></div></div>';
+    html+='</div><div class="result-actions"><a href="'+certUrl+'" class="btn-view" target="_blank" rel="noopener"><span class="material-symbols-outlined" style="font-size:18px">open_in_new</span> فتح الشهادة كاملة</a><button class="btn-share" id="shareResultBtn"><span class="material-symbols-outlined">share</span> مشاركة رابط التحقق</button><button class="btn-share" onclick="reset()"><span class="material-symbols-outlined">search</span> بحث جديد</button></div></div></div>';
     html+='<section class="certificate-preview"><div class="certificate-preview-title"><span class="material-symbols-outlined">workspace_premium</span> الشهادة الرقمية الأصلية ورمز QR</div><iframe title="الشهادة الرقمية الموثقة" src="'+certUrl+'" loading="eager" onload="resizeCertificateFrame(this)" referrerpolicy="strict-origin-when-cross-origin"></iframe></section></div>';
     ra.innerHTML=html;
     const shareButton=document.getElementById('shareResultBtn');
