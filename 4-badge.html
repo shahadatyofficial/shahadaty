@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>شارة الخريج المتحققة | شهادتي العلمية</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#0c2d4e;--blue:#0369a1;--gold:#b08d48;--bg:#f0f7ff;--border:#e0f0ff;--muted:#64748b}
+body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--navy);min-height:100vh}
+.nav{background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:64px}
+.nav a{color:var(--blue);font-weight:700;font-size:14px;text-decoration:none}
+.logo{font-weight:900;font-size:18px;color:var(--navy)}
+.hero{background:linear-gradient(150deg,#0c2d4e,#0369a1,#38bdf8);color:#fff;text-align:center;padding:44px 20px}
+.hero h1{font-size:28px;font-weight:900;margin-bottom:8px}
+.hero p{font-size:14px;opacity:.9}
+main{max-width:900px;margin:-24px auto 40px;padding:0 16px}
+.card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 8px 24px rgba(3,105,161,.08);margin-bottom:16px}
+textarea{width:100%;min-height:150px;border:1.5px solid var(--border);border-radius:12px;padding:12px;font-family:inherit;font-size:14px;direction:ltr;text-align:left;resize:vertical}
+.hint{font-size:12px;color:var(--muted);margin:8px 0 12px}
+button{font-family:inherit;font-weight:700;font-size:14px;border-radius:10px;padding:10px 20px;border:0;cursor:pointer}
+.primary{background:var(--blue);color:#fff}.ghost{background:var(--bg);color:var(--blue);border:1.5px solid var(--border)}
+button:disabled{opacity:.6;cursor:not-allowed}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+#progress{font-size:13px;color:var(--muted)}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+th{background:var(--bg);font-weight:700}
+.ok{color:#15803d;font-weight:700}.warn{color:#b45309;font-weight:700}.bad{color:#b91c1c;font-weight:700}
+
+.badge{border:2px solid var(--gold);border-radius:16px;padding:20px;background:linear-gradient(160deg,#fff,#f6efe0);text-align:center;max-width:420px;margin:0 auto 16px}
+.badge .seal{font-size:13px;font-weight:900;color:#15803d;margin-bottom:6px}
+.badge .nm{font-size:22px;font-weight:900}.badge .tt{font-size:15px;margin:4px 0;color:var(--blue);font-weight:700}
+.badge .og{font-size:13px;color:var(--muted)}.badge .lk{font-size:11px;color:var(--muted);margin-top:10px;direction:ltr;word-break:break-all}
+input[type=text]{width:100%;border:1.5px solid var(--border);border-radius:12px;padding:12px;font-family:inherit;font-size:15px;direction:ltr;text-align:left}
+.box{background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:10px;font-size:12px;direction:ltr;text-align:left;word-break:break-all;margin:6px 0 8px;white-space:pre-wrap}
+h3{font-size:15px;margin:14px 0 4px}
+.steps{display:flex;gap:10px;justify-content:space-between;padding:14px}.steps div{flex:1;display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700}.steps b{background:var(--blue);color:#fff;border-radius:50%;min-width:26px;height:26px;display:flex;align-items:center;justify-content:center}@media(max-width:560px){.steps{flex-direction:column}}.preview{border:1px dashed var(--border);border-radius:10px;padding:12px;margin:6px 0 8px;background:#fff;font-size:14px}.preview a{color:#0369a1;font-weight:700;text-decoration:none}.wa{background:#16a34a;color:#fff;text-decoration:none;padding:10px 20px;border-radius:10px;font-weight:700;font-size:14px}.err{color:#b91c1c}.msg{font-size:13px;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="nav"><span class="logo">شهادتي العلمية</span><a href="verify.html">التحقق من شهادة</a></div>
+<div class="hero"><h1>شارة الخريج المتحققة</h1><p>أدخل رقم شهادتك واحصل على شارة تضيفها إلى LinkedIn أو سيرتك الذاتية أو توقيع بريدك، ويفتح رابطها صفحة التحقق مباشرة.</p></div>
+<main>
+<div class="card steps"><div><b>1</b><span>أدخل رقم شهادتك</span></div><div><b>2</b><span>نزّل الشارة أو انسخ الرابط</span></div><div><b>3</b><span>ضعها في LinkedIn أو سيرتك أو بريدك</span></div></div>
+<div class="card">
+<label for="num" style="font-weight:700;font-size:14px">رقم الشهادة</label>
+<input type="text" id="num" placeholder="CERT-0001" autocomplete="off">
+<div class="hint">تصدر الشارة فقط للشهادات الموثقة والسارية، وتعرض البيانات المتاحة للتحقق العلني فقط.</div>
+<div class="actions"><button class="primary" id="go">إنشاء الشارة</button><span id="msg" class="msg"></span></div>
+</div>
+<div class="card" id="out" style="display:none">
+<div class="badge" id="badge"><div class="seal">✔ شهادة موثقة على منصة شهادتي</div><div class="nm" id="bn"></div><div class="tt" id="bt"></div><div class="og" id="bo"></div><div class="lk" id="bl"></div></div>
+<div class="actions" style="justify-content:center"><button class="primary" id="png">تنزيل الشارة كصورة PNG</button><button class="ghost" id="cpl">نسخ رابط التحقق</button><a class="wa" id="wa" target="_blank" rel="noopener">مشاركة عبر واتساب</a><a class="ghost" id="li" target="_blank" rel="noopener" style="text-decoration:none;padding:10px 20px;border-radius:10px;font-weight:700;font-size:14px">إضافة إلى LinkedIn</a></div>
+<h3>نص لتوقيع البريد أو السيرة الذاتية</h3><div class="box" id="sig"></div><button class="ghost" id="cps">نسخ النص</button>
+<h3>شكل الرابط في التوقيع</h3><div class="preview" id="pv"></div>
+<h3>كود HTML للتوقيع</h3><div class="box" id="htm"></div><button class="ghost" id="cph">نسخ الكود</button>
+</div>
+</main>
+<script>
+const sb=supabase.createClient("https://snteiiavvaaumgaegazn.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNudGVpaWF2dmFhdW1nYWVnYXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODEyODYsImV4cCI6MjA5OTA1NzI4Nn0.7kmeHkDL1xNcNbUGwds-kUyIa7R6KbJkndDZM1qVk6A");
+const $=id=>document.getElementById(id);let cur=null;
+function escH(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+async function run(){
+ const q=$('num').value.trim().toUpperCase();$('out').style.display='none';
+ if(!q){$('msg').textContent='أدخل رقم الشهادة.';return;}
+ $('go').disabled=true;$('msg').className='msg';$('msg').textContent='جاري التحقق...';
+ try{
+  const {data,error}=await sb.rpc('verify_certificate_details',{p_cert_number:q});
+  if(error)throw error;
+  const d=Array.isArray(data)?data[0]:data;
+  if(!d){$('msg').className='msg err';$('msg').textContent='لم يتم العثور على شهادة بهذا الرقم. راجع الرقم المكتوب على شهادتك.';}
+  else if(d.status!=='active'){$('msg').textContent='هذه الشهادة غير سارية، ولا يمكن إصدار شارة لها.';}
+  else{
+   const ac=d.record_type==='academic';
+   const title=(ac?(d.academic_degree||d.course):d.course)||'';
+   const org=(ac?(d.source_type==='admin'?'إدارة منصة شهادتي':d.institution_name):d.institution_name)||'';
+   const u=new URL('verify.html',location.href);u.searchParams.set('cert',d.cert_number||q);
+   cur={name:d.student_name||'',title,org,url:u.toString(),num:d.cert_number||q};
+   show();$('msg').textContent='';
+  }
+ }catch(e){$('msg').textContent='تعذر التحقق حاليًا، حاول مرة أخرى.';}
+ $('go').disabled=false;
+}
+function show(){
+ $('bn').textContent=cur.name;$('bt').textContent=cur.title;$('bo').textContent=cur.org;$('bl').textContent=cur.url;
+ const sig='شهادة موثقة من منصة شهادتي: '+cur.title+'\n'+cur.url;
+ $('sig').textContent=sig;
+ $('htm').textContent='<a href="'+escH(cur.url)+'" style="color:#0369a1;font-weight:bold;text-decoration:none">✔ Verified certificate on Shahadaty</a>';
+ const li=new URL('https://www.linkedin.com/profile/add');
+ li.searchParams.set('startTask','CERTIFICATION_NAME');li.searchParams.set('name',cur.title);li.searchParams.set('organizationName',cur.org||'منصة شهادتي');
+ li.searchParams.set('certUrl',cur.url);li.searchParams.set('certId',cur.num);
+ $('li').href=li.toString();
+ $('wa').href='https://wa.me/?text='+encodeURIComponent('شهادتي موثقة على منصة شهادتي: '+cur.title+'\n'+cur.url);
+ $('pv').textContent='';const pa=document.createElement('a');pa.href=cur.url;pa.target='_blank';pa.rel='noopener';pa.textContent='✔ Verified certificate on Shahadaty';$('pv').appendChild(pa);
+ $('out').style.display='block';
+}
+function copy(t,btn){const old=btn.textContent;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{btn.textContent='تم النسخ';setTimeout(()=>btn.textContent=old,1500);}).catch(()=>{btn.textContent='انسخ يدويًا';});}
+function wrap(ctx,t,x,y,w,lh){const words=t.split(' ');let line='';for(const wd of words){const tst=line?line+' '+wd:wd;if(ctx.measureText(tst).width>w&&line){ctx.fillText(line,x,y);line=wd;y+=lh;}else line=tst;}ctx.fillText(line,x,y);return y+lh;}
+function png(){
+ const c=document.createElement('canvas');c.width=1200;c.height=630;const x=c.getContext('2d');x.direction='rtl';x.textAlign='center';
+ const g=x.createLinearGradient(0,0,1200,630);g.addColorStop(0,'#ffffff');g.addColorStop(1,'#f6efe0');x.fillStyle=g;x.fillRect(0,0,1200,630);x.fillStyle='#0c2d4e';x.fillRect(20,20,1160,14);x.strokeStyle='#b08d48';x.lineWidth=10;x.strokeRect(20,20,1160,590);
+ x.fillStyle='#15803d';x.font='700 36px Cairo,sans-serif';x.fillText('✔ شهادة موثقة على منصة شهادتي',600,110);
+ x.fillStyle='#0c2d4e';x.font='900 64px Cairo,sans-serif';let y=wrap(x,cur.name,600,220,1000,80);
+ x.fillStyle='#0369a1';x.font='700 40px Cairo,sans-serif';y=wrap(x,cur.title,600,y+10,1000,52);
+ x.fillStyle='#64748b';x.font='400 32px Cairo,sans-serif';wrap(x,cur.org,600,y+10,1000,44);
+ x.fillStyle='#b08d48';x.font='900 30px Cairo,sans-serif';x.fillText('شهادتي العلمية',600,520);x.fillStyle='#64748b';x.direction='ltr';x.font='400 22px sans-serif';x.fillText(cur.url.length>80?cur.url.slice(0,77)+'...':cur.url,600,570);
+ const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='shahadaty-verified-badge.png';document.body.appendChild(a);a.click();a.remove();
+}
+$('go').addEventListener('click',run);$('num').addEventListener('keydown',e=>{if(e.key==='Enter')run();});
+$('png').addEventListener('click',png);
+$('cpl').addEventListener('click',e=>copy(cur.url,e.target));$('cps').addEventListener('click',e=>copy($('sig').textContent,e.target));$('cph').addEventListener('click',e=>copy($('htm').textContent,e.target));
+(function(){const p=new URLSearchParams(location.search).get('cert');if(p){$('num').value=p;run();}})();
+</script>
+</body>
+</html>
